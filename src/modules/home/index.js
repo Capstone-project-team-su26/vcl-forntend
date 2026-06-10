@@ -6,3 +6,5 @@ export {ProfilePage} from "./components/Profile";
 export {OperationalDBoard} from "./components/OperationDBoard";
 export { Transfer } from "./components/TransferFunction";
 export { StaffPage} from "./components/StaffPage";
+export { Homepage} from "./components/Homepage-1";
+export {PurchaseRequest} from  "./components/Purchase-Re";
