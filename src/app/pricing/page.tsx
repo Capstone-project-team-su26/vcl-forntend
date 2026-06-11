@@ -1,6 +1,6 @@
 "use client";
 
-import PricingPage from "@/modules/admin/pricing/PricingPage";
+import PricingPage from "@/modules/consignor/pricing/PricingPage";
 
 export default function Page() {
   return <PricingPage />;

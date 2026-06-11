@@ -1,19 +1,17 @@
 "use client"
 import { Icon } from '@iconify/react';
 import { useState } from 'react';
+import AppLogo from "@/shared/components/AppLogo";
 
 export default function TransferPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen bg-white font-['Open_Sans'] text-[#575E6B]">
+    <div className="flex min-h-screen bg-white font-['Open_Sans'] text-muted">
       {/* Sidebar - Desktop */}
-      <aside className="hidden lg:flex flex-col w-64 bg-[#F9FAFB] border-r border-[#f3f4f6] fixed h-full z-30">
-        <div className="h-16 flex items-center px-6 border-b border-[#f3f4f6]">
-          <div className="w-8 h-8 bg-[#9ECAD6] rounded-md flex items-center justify-center mr-3">
-            <img src="./assets/IMG_1.svg" alt="Logo" className="w-5.5 h-5.5 text-white" />
-          </div>
-          <span className="font-[Oswald] text-xl font-black text-[#9ECAD6] tracking-tight">SwiftShip</span>
+      <aside className="hidden lg:flex flex-col w-64 bg-surface border-r border-surface-muted fixed h-full z-30">
+        <div className="h-16 flex items-center px-6 border-b border-surface-muted">
+          <AppLogo />
         </div>
 
         <nav className="flex-1 px-4 py-6 space-y-2">
@@ -23,7 +21,7 @@ export default function TransferPage() {
           <SidebarItem icon="./assets/IMG_5.svg" label="Pricing & Services" />
         </nav>
 
-        <div className="p-4 border-t border-[#f3f4f6] space-y-1">
+        <div className="p-4 border-t border-surface-muted space-y-1">
           <SidebarItem icon="./assets/IMG_6.svg" label="Settings" />
           <SidebarItem icon="./assets/IMG_7.svg" label="Sign Out" variant="danger" />
         </div>
@@ -38,14 +36,9 @@ export default function TransferPage() {
       )}
 
       {/* Mobile Sidebar */}
-      <aside className={`fixed inset-y-0 left-0 w-64 bg-[#F9FAFB] z-50 transform transition-transform duration-300 lg:hidden ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <div className="h-16 flex items-center px-6 border-b border-[#f3f4f6] justify-between">
-          <div className="flex items-center">
-            <div className="w-8 h-8 bg-[#9ECAD6] rounded-md flex items-center justify-center mr-3">
-              <img src="./assets/IMG_1.svg" alt="Logo" className="w-5.5 h-5.5 text-white" />
-            </div>
-            <span className="font-[Oswald] text-xl font-black text-[#9ECAD6]">SwiftShip</span>
-          </div>
+      <aside className={`fixed inset-y-0 left-0 w-64 bg-surface z-50 transform transition-transform duration-300 lg:hidden ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="h-16 flex items-center px-6 border-b border-surface-muted justify-between">
+          <AppLogo />
           <button onClick={() => setIsSidebarOpen(false)}>
             <Icon icon="lucide:x" className="w-6 h-6" />
           </button>
@@ -61,25 +54,25 @@ export default function TransferPage() {
       {/* Main Content Area */}
       <div className="flex-1 lg:ml-64 flex flex-col min-w-0">
         {/* Header */}
-        <header className="h-16 bg-white border-b border-[#f3f4f6] flex items-center justify-between px-4 lg:px-8 sticky top-0 z-20">
+        <header className="h-16 bg-white border-b border-surface-muted flex items-center justify-between px-4 lg:px-8 sticky top-0 z-20">
           <button className="lg:hidden p-2" onClick={() => setIsSidebarOpen(true)}>
             <Icon icon="lucide:menu" className="w-6 h-6" />
           </button>
 
           <div className="flex items-center ml-auto space-x-4 lg:space-x-6">
             <div className="relative">
-              <img src="./assets/IMG_9.svg" alt="Notifications" className="w-5 h-5 text-[#16181D]" />
-              <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-[#D92644] border-2 border-white rounded-full" />
+              <img src="./assets/IMG_9.svg" alt="Notifications" className="w-5 h-5 text-ink" />
+              <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-danger border-2 border-white rounded-full" />
             </div>
-            <div className="hidden sm:block h-8 w-px bg-[#f3f4f6]" />
+            <div className="hidden sm:block h-8 w-px bg-surface-muted" />
             <div className="flex items-center text-right">
               <div className="mr-3 hidden sm:block">
-                <p className="text-sm font-bold text-[#16181D] leading-none">Alex Henderson</p>
-                <p className="text-[12px] text-[#575E6B] mt-1">Premium Member</p>
+                <p className="text-sm font-bold text-ink leading-none">Alex Henderson</p>
+                <p className="text-[12px] text-muted mt-1">Premium Member</p>
               </div>
               <div className="relative">
-                <img src="./assets/IMG_8.webp" alt="Avatar" className="w-9 h-9 rounded-full object-cover border border-[#f3f4f6]" />
-                <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#22C358] border-2 border-white rounded-full" />
+                <img src="./assets/IMG_8.webp" alt="Avatar" className="w-9 h-9 rounded-full object-cover border border-surface-muted" />
+                <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-success border-2 border-white rounded-full" />
               </div>
             </div>
           </div>
@@ -87,16 +80,16 @@ export default function TransferPage() {
 
         {/* Scrollable Content */}
         <main className="flex-1 p-4 lg:p-8 max-w-[1200px] mx-auto w-full">
-          <button className="flex items-center text-sm font-medium text-[#575E6B] mb-6 hover:text-[#9ECAD6] transition-colors">
+          <button className="flex items-center text-sm font-medium text-muted mb-6 hover:text-primary transition-colors">
             <img src="./assets/IMG_10.svg" alt="Back" className="w-4 h-4 mr-4" />
             Back to Dashboard
           </button>
 
           <h1 className="text-4xl font-black tracking-tight mb-2">
-            <span className="text-[#16181D]">Transfer </span>
-            <span className="text-[#9ECAD6] font-sans normal-case">Package</span>
+            <span className="text-ink">Transfer </span>
+            <span className="text-primary font-sans normal-case">Package</span>
           </h1>
-          <p className="text-lg text-[#575E6B] mb-10">
+          <p className="text-lg text-muted mb-10">
             Fill in the details below to generate your shipping label and schedule a pickup.
           </p>
 
@@ -107,7 +100,7 @@ export default function TransferPage() {
               <section>
                 <div className="flex items-center mb-6">
                   <div className="step-number">1</div>
-                  <h2 className="text-xl font-bold text-[#16181D] normal-case tracking-normal">What are you sending?</h2>
+                  <h2 className="text-xl font-bold text-ink normal-case tracking-normal">What are you sending?</h2>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <PackageCard icon="./assets/IMG_15.svg" label="Envelope" sub="Up to 0.5kg" />
@@ -117,15 +110,15 @@ export default function TransferPage() {
                 </div>
               </section>
 
-              <hr className="border-[#f3f4f6]" />
+              <hr className="border-surface-muted" />
 
               {/* Step 2: Destination */}
               <section>
                 <div className="flex items-center mb-6">
                   <div className="step-number">2</div>
-                  <h2 className="text-xl font-bold text-[#16181D] normal-case tracking-normal">Where is it going?</h2>
+                  <h2 className="text-xl font-bold text-ink normal-case tracking-normal">Where is it going?</h2>
                 </div>
-                <div className="bg-white border border-[#f3f4f6] rounded-xl p-6 space-y-6">
+                <div className="bg-white border border-surface-muted rounded-xl p-6 space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <InputField label="Sender Full Name" placeholder="Alex Henderson" />
                     <InputField label="Contact Number" placeholder="+1 (555) 000-0000" />
@@ -143,13 +136,13 @@ export default function TransferPage() {
                 </div>
               </section>
 
-              <hr className="border-[#f3f4f6]" />
+              <hr className="border-surface-muted" />
 
               {/* Step 3: Service Level */}
               <section>
                 <div className="flex items-center mb-6">
                   <div className="step-number">3</div>
-                  <h2 className="text-xl font-bold text-[#16181D] normal-case tracking-normal">Choose your service level</h2>
+                  <h2 className="text-xl font-bold text-ink normal-case tracking-normal">Choose your service level</h2>
                 </div>
                 <div className="space-y-4">
                   <ServiceOption 
@@ -176,16 +169,16 @@ export default function TransferPage() {
               </section>
 
               {/* Insurance Section */}
-              <section className="bg-[#9ECAD6]/5 border border-[#9ECAD6]/20 rounded-xl p-6 flex flex-col md:flex-row gap-4">
+              <section className="bg-primary/5 border border-primary/20 rounded-xl p-6 flex flex-col md:flex-row gap-4">
                 <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shrink-0 shadow-sm">
-                  <img src="./assets/IMG_21.svg" alt="Shield" className="w-6 h-6 text-[#9ECAD6]" />
+                  <img src="./assets/IMG_21.svg" alt="Shield" className="w-6 h-6 text-primary" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-base font-bold text-[#16181D] normal-case tracking-normal mb-1">Add Shipment Insurance</h3>
-                  <p className="text-sm text-[#575E6B] mb-4">
+                  <h3 className="text-base font-bold text-ink normal-case tracking-normal mb-1">Add Shipment Insurance</h3>
+                  <p className="text-sm text-muted mb-4">
                     Protect your package up to $500 for just $4.99. Recommended for fragile or high-value items.
                   </p>
-                  <button className="px-4 py-2 border border-[#9ECAD6] text-[#9ECAD6] rounded-lg text-sm font-semibold hover:bg-[#9ECAD6] hover:text-white transition-colors">
+                  <button className="px-4 py-2 border border-primary text-primary rounded-lg text-sm font-semibold hover:bg-primary hover:text-white transition-colors">
                     Add Protection
                   </button>
                 </div>
@@ -194,47 +187,47 @@ export default function TransferPage() {
 
             {/* Summary Sidebar */}
             <div className="xl:col-span-4 space-y-6">
-              <div className="bg-[#FFEAEA]/40 rounded-xl shadow-lg shadow-black/5 overflow-hidden border border-white/60">
-                <div className="bg-white/60 p-6 border-b border-[#f3f4f6]">
+              <div className="bg-accent-subtle/40 rounded-xl shadow-lg shadow-black/5 overflow-hidden border border-white/60">
+                <div className="bg-white/60 p-6 border-b border-surface-muted">
                   <div className="flex items-center mb-1">
-                    <img src="./assets/IMG_11.svg" alt="Card" className="w-5 h-5 mr-2 text-[#748DAE]" />
-                    <h3 className="text-lg font-bold text-[#16181D] normal-case tracking-tight">Shipment Summary</h3>
+                    <img src="./assets/IMG_11.svg" alt="Card" className="w-5 h-5 mr-2 text-secondary" />
+                    <h3 className="text-lg font-bold text-ink normal-case tracking-tight">Shipment Summary</h3>
                   </div>
-                  <p className="text-sm text-[#575E6B]">Estimated totals based on selection</p>
+                  <p className="text-sm text-muted">Estimated totals based on selection</p>
                 </div>
 
                 <div className="p-6 space-y-4">
                   <SummaryRow label="Package Type:" value="small box" />
-                  <SummaryRow label="Service Level:" value="standard" valueClass="text-[#748DAE]" />
+                  <SummaryRow label="Service Level:" value="standard" valueClass="text-secondary" />
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-[#575E6B]">Est. Delivery:</span>
-                    <div className="flex items-center font-semibold text-[#16181D]">
+                    <span className="text-muted">Est. Delivery:</span>
+                    <div className="flex items-center font-semibold text-ink">
                       <img src="./assets/IMG_12.svg" alt="Calendar" className="w-3 h-3 mr-1.5" />
                       Oct 24, 2024
                     </div>
                   </div>
                   
-                  <hr className="border-[#f3f4f6] my-2" />
+                  <hr className="border-surface-muted my-2" />
 
                   <SummaryRow label="Base Rate" value="$24.80" />
                   <SummaryRow label="Fuel Surcharge" value="$2.40" />
                   <SummaryRow label="Handling Fee" value="$0.00" />
 
                   <div className="flex justify-between items-center pt-2">
-                    <span className="text-sm font-bold text-[#748DAE]">Total Due</span>
-                    <span className="text-xl font-bold font-[Oswald] text-[#748DAE]">$27.20</span>
+                    <span className="text-sm font-bold text-secondary">Total Due</span>
+                    <span className="text-xl font-bold font-[Oswald] text-secondary">$27.20</span>
                   </div>
 
-                  <div className="bg-[#F5CBCB]/30 border border-[#F5CBCB]/50 rounded-lg p-3 flex gap-3">
-                    <img src="./assets/IMG_13.svg" alt="Info" className="w-4 h-4 mt-0.5 shrink-0 text-[#748DAE]" />
-                    <p className="text-[11px] leading-relaxed text-[#748DAE]/80">
+                  <div className="bg-accent/30 border border-accent/50 rounded-lg p-3 flex gap-3">
+                    <img src="./assets/IMG_13.svg" alt="Info" className="w-4 h-4 mt-0.5 shrink-0 text-secondary" />
+                    <p className="text-[11px] leading-relaxed text-secondary/80">
                       Prices include basic tracking and up to $50 coverage. Terms and conditions apply.
                     </p>
                   </div>
                 </div>
 
                 <div className="p-6 bg-white/40">
-                  <button className="w-full bg-[#9ECAD6] text-white py-3.5 rounded-lg font-black text-lg flex items-center justify-center gap-3 shadow-lg shadow-[#9ECAD6]/30 hover:bg-[#8bb7c2] transition-all active:scale-[0.98]">
+                  <button className="w-full bg-primary text-white py-3.5 rounded-lg font-black text-lg flex items-center justify-center gap-3 shadow-lg shadow-primary/30 hover:bg-primary-hover transition-all active:scale-[0.98]">
                     Confirm & Pay
                     <img src="./assets/IMG_14.svg" alt="Arrow" className="w-5 h-5" />
                   </button>
@@ -242,13 +235,13 @@ export default function TransferPage() {
               </div>
 
               {/* Pickup Card */}
-              <div className="border border-dashed border-[#748DAE]/40 rounded-xl p-4 flex items-center gap-4 bg-transparent">
-                <div className="w-10 h-10 bg-[#748DAE]/10 rounded-full flex items-center justify-center shrink-0">
-                  <img src="./assets/IMG_20.svg" alt="Truck" className="w-5 h-5 text-[#748DAE]" />
+              <div className="border border-dashed border-secondary/40 rounded-xl p-4 flex items-center gap-4 bg-transparent">
+                <div className="w-10 h-10 bg-secondary/10 rounded-full flex items-center justify-center shrink-0">
+                  <img src="./assets/IMG_20.svg" alt="Truck" className="w-5 h-5 text-secondary" />
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-[#16181D]">Need a pickup?</p>
-                  <p className="text-[12px] text-[#575E6B]">Schedule a courier for $2.99 extra.</p>
+                  <p className="text-sm font-bold text-ink">Need a pickup?</p>
+                  <p className="text-[12px] text-muted">Schedule a courier for $2.99 extra.</p>
                 </div>
               </div>
             </div>
@@ -256,13 +249,13 @@ export default function TransferPage() {
         </main>
 
         {/* Footer */}
-        <footer className="bg-[#f3f4f6]/30 border-t border-[#f3f4f6] py-4 px-4 lg:px-8 mt-auto">
-          <div className="max-w-[1200px] mx-auto flex flex-col md:flex-row justify-between items-center gap-4 text-[12px] text-[#575E6B]">
+        <footer className="bg-surface-muted/30 border-t border-surface-muted py-4 px-4 lg:px-8 mt-auto">
+          <div className="max-w-[1200px] mx-auto flex flex-col md:flex-row justify-between items-center gap-4 text-[12px] text-muted">
             <p>© 2024 SwiftShip Logistics Inc. All rights reserved.</p>
             <div className="flex gap-6">
-              <a href="#" className="hover:text-[#9ECAD6]">Support Center</a>
-              <a href="#" className="hover:text-[#9ECAD6]">Terms of Service</a>
-              <a href="#" className="hover:text-[#9ECAD6]">Privacy Policy</a>
+              <a href="#" className="hover:text-primary">Support Center</a>
+              <a href="#" className="hover:text-primary">Terms of Service</a>
+              <a href="#" className="hover:text-primary">Privacy Policy</a>
             </div>
           </div>
         </footer>
@@ -273,12 +266,12 @@ export default function TransferPage() {
 
 function SidebarItem({ icon, label, active = false, variant = 'default' }: { icon: string, label: string, active?: boolean, variant?: 'default' | 'danger' }) {
   const baseClasses = "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all";
-  const activeClasses = active ? "bg-[#9ECAD6]/10 text-[#9ECAD6]" : "text-[#575E6B] hover:bg-gray-100";
-  const dangerClasses = variant === 'danger' ? "text-[#D92644] hover:bg-red-50" : "";
+  const activeClasses = active ? "bg-primary/10 text-primary" : "text-muted hover:bg-gray-100";
+  const dangerClasses = variant === 'danger' ? "text-danger hover:bg-red-50" : "";
 
   return (
     <button className={`${baseClasses} ${activeClasses} ${dangerClasses}`}>
-      <img src={icon} alt={label} className={`w-5 h-5 ${variant === 'danger' ? 'text-[#D92644]' : active ? 'text-[#9ECAD6]' : 'text-[#575E6B]'}`} />
+      <img src={icon} alt={label} className={`w-5 h-5 ${variant === 'danger' ? 'text-danger' : active ? 'text-primary' : 'text-muted'}`} />
       {label}
     </button>
   );
@@ -286,12 +279,12 @@ function SidebarItem({ icon, label, active = false, variant = 'default' }: { ico
 
 function PackageCard({ icon, label, sub, active = false }: { icon: string, label: string, sub: string, active?: boolean }) {
   return (
-    <div className={`flex flex-col items-center justify-center p-6 rounded-lg border-2 transition-all cursor-pointer ${active ? 'bg-[#9ECAD6]/5 border-[#9ECAD6] shadow-sm' : 'bg-white border-[#f3f4f6] hover:border-gray-300'}`}>
-      <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 ${active ? 'bg-[#9ECAD6]' : 'bg-[#f3f4f6]'}`}>
-        <img src={icon} alt={label} className={`w-6 h-6 ${active ? 'text-white' : 'text-[#575E6B]'}`} />
+    <div className={`flex flex-col items-center justify-center p-6 rounded-lg border-2 transition-all cursor-pointer ${active ? 'bg-primary/5 border-primary shadow-sm' : 'bg-white border-surface-muted hover:border-gray-300'}`}>
+      <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 ${active ? 'bg-primary' : 'bg-surface-muted'}`}>
+        <img src={icon} alt={label} className={`w-6 h-6 ${active ? 'text-white' : 'text-muted'}`} />
       </div>
-      <span className={`text-sm font-bold mb-1 ${active ? 'text-[#9ECAD6]' : 'text-[#16181D]'}`}>{label}</span>
-      <span className="text-[12px] text-[#575E6B]">{sub}</span>
+      <span className={`text-sm font-bold mb-1 ${active ? 'text-primary' : 'text-ink'}`}>{label}</span>
+      <span className="text-[12px] text-muted">{sub}</span>
     </div>
   );
 }
@@ -299,13 +292,13 @@ function PackageCard({ icon, label, sub, active = false }: { icon: string, label
 function InputField({ label, placeholder, icon }: { label: string, placeholder: string, icon?: string }) {
   return (
     <div className="flex flex-col gap-2.5">
-      <label className="text-sm font-semibold text-[#16181D]">{label}</label>
-      <div className="relative flex items-center bg-white border border-[#E0E2E6] rounded-lg px-3 py-2.5 focus-within:border-[#9ECAD6] transition-colors">
-        {icon && <img src={icon} alt="icon" className="w-4 h-4 mr-2 text-[#748DAE]" />}
+      <label className="text-sm font-semibold text-ink">{label}</label>
+      <div className="relative flex items-center bg-white border border-border rounded-lg px-3 py-2.5 focus-within:border-primary transition-colors">
+        {icon && <img src={icon} alt="icon" className="w-4 h-4 mr-2 text-secondary" />}
         <input 
           type="text" 
           placeholder={placeholder} 
-          className="w-full text-sm text-[#575E6B] placeholder:text-[#575E6B]/60 outline-none bg-transparent"
+          className="w-full text-sm text-muted placeholder:text-muted/60 outline-none bg-transparent"
         />
       </div>
     </div>
@@ -314,33 +307,33 @@ function InputField({ label, placeholder, icon }: { label: string, placeholder: 
 
 function ServiceOption({ title, desc, price, est, active = false, badge }: { title: string, desc: string, price: string, est: string, active?: boolean, badge?: string }) {
   return (
-    <div className={`flex items-center p-5 rounded-lg border-2 transition-all cursor-pointer ${active ? 'bg-[#9ECAD6]/5 border-[#9ECAD6]' : 'bg-white border-[#f3f4f6] hover:border-gray-300'}`}>
-      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center mr-4 ${active ? 'border-[#9ECAD6]' : 'border-[#575E6B]/30'}`}>
-        {active && <div className="w-2.5 h-2.5 bg-[#9ECAD6] rounded-full" />}
+    <div className={`flex items-center p-5 rounded-lg border-2 transition-all cursor-pointer ${active ? 'bg-primary/5 border-primary' : 'bg-white border-surface-muted hover:border-gray-300'}`}>
+      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center mr-4 ${active ? 'border-primary' : 'border-muted/30'}`}>
+        {active && <div className="w-2.5 h-2.5 bg-primary rounded-full" />}
       </div>
       <div className="flex-1">
         <div className="flex items-center gap-3 mb-1">
-          <span className="text-base font-bold text-[#16181D]">{title}</span>
+          <span className="text-base font-bold text-ink">{title}</span>
           {badge && (
-            <span className="bg-[#F5CBCB] text-[#748DAE] text-[10px] font-bold px-2 py-0.5 rounded-lg">
+            <span className="bg-accent text-secondary text-[10px] font-bold px-2 py-0.5 rounded-lg">
               {badge}
             </span>
           )}
         </div>
-        <p className="text-sm text-[#575E6B]">{desc}</p>
+        <p className="text-sm text-muted">{desc}</p>
       </div>
       <div className="text-right">
-        <p className="text-base font-bold text-[#748DAE] mb-1">{price}</p>
-        <p className="text-[12px] text-[#575E6B]">{est}</p>
+        <p className="text-base font-bold text-secondary mb-1">{price}</p>
+        <p className="text-[12px] text-muted">{est}</p>
       </div>
     </div>
   );
 }
 
-function SummaryRow({ label, value, valueClass = "text-[#16181D]" }: { label: string, value: string, valueClass?: string }) {
+function SummaryRow({ label, value, valueClass = "text-ink" }: { label: string, value: string, valueClass?: string }) {
   return (
     <div className="flex justify-between items-center text-sm">
-      <span className="text-[#575E6B]">{label}</span>
+      <span className="text-muted">{label}</span>
       <span className={`font-semibold ${valueClass}`}>{value}</span>
     </div>
   );

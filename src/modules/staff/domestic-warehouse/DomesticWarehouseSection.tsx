@@ -1,8 +1,8 @@
 "use client";
 
 const domesticStats = [
-  { icon: "./assets/IMG_15.svg", label: "Awaiting Put-away", value: "08", trend: "On schedule", iconBg: "bg-transparent", iconColor: "text-[#16181D]" },
-  { icon: "./assets/IMG_16.svg", label: "Ready for Handover", value: "05", trend: "Carrier pickup", iconBg: "bg-[#748DAE]/20", iconColor: "text-[#748DAE]" },
+  { icon: "./assets/IMG_15.svg", label: "Awaiting Put-away", value: "08", trend: "On schedule", iconBg: "bg-transparent", iconColor: "text-ink" },
+  { icon: "./assets/IMG_16.svg", label: "Ready for Handover", value: "05", trend: "Carrier pickup", iconBg: "bg-secondary/20", iconColor: "text-secondary" },
 ];
 
 const domesticTransfers = [
@@ -17,7 +17,7 @@ export default function DomesticWarehouseSection() {
         <h1 className="font-oswald text-3xl lg:text-[36px] font-black leading-tight tracking-tight mb-2">
           Domestic warehouse operations
         </h1>
-        <p className="text-[#575E6B] text-base lg:text-lg font-medium mb-8">
+        <p className="text-muted text-base lg:text-lg font-medium mb-8">
           Receive inbound shipments, check manifests, put-away, picking, handover to carrier, update delivery status, and handle returns.
         </p>
       </section>
@@ -35,7 +35,7 @@ export default function DomesticWarehouseSection() {
               </div>
             </div>
             <div>
-              <p className="text-sm font-medium text-[#575E6B] mb-1">{stat.label}</p>
+              <p className="text-sm font-medium text-muted mb-1">{stat.label}</p>
               <p className="font-oswald text-2xl font-bold">{stat.value}</p>
             </div>
           </div>
@@ -46,9 +46,9 @@ export default function DomesticWarehouseSection() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="font-oswald text-xl font-bold mb-1">Outbound &amp; Delivery Status</h2>
-            <p className="text-sm text-[#575E6B]">Manifest checks, picking, and carrier handover</p>
+            <p className="text-sm text-muted">Manifest checks, picking, and carrier handover</p>
           </div>
-          <button className="flex items-center gap-1 text-[#9ECAD6] font-bold text-sm hover:underline">
+          <button className="flex items-center gap-1 text-primary font-bold text-sm hover:underline">
             View All <img src="./assets/IMG_17.svg" alt="Arrow" className="w-4 h-4" />
           </button>
         </div>
@@ -56,7 +56,7 @@ export default function DomesticWarehouseSection() {
         <div className="overflow-x-auto custom-scrollbar">
           <table className="w-full min-w-[600px]">
             <thead>
-              <tr className="text-left border-b border-[#f3f4f6]">
+              <tr className="text-left border-b border-surface-muted">
                 <th className="pb-3 text-sm font-bold">Shipment ID</th>
                 <th className="pb-3 text-sm font-bold">Delivery Status</th>
                 <th className="pb-3 text-sm font-bold">Route</th>
@@ -64,13 +64,13 @@ export default function DomesticWarehouseSection() {
                 <th className="pb-3 text-sm font-bold text-right">ETA</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#f3f4f6]">
+            <tbody className="divide-y divide-surface-muted">
               {domesticTransfers.map((row, idx) => (
                 <tr key={idx} className="group hover:bg-gray-50/50 transition-colors">
-                  <td className="py-4 text-sm font-bold text-[#9ECAD6]">{row.id}</td>
+                  <td className="py-4 text-sm font-bold text-primary">{row.id}</td>
                   <td className="py-4">
                     <span className={`inline-block px-3 py-1 rounded-lg text-[12px] font-semibold ${
-                      row.status === "Out for Delivery" ? "bg-[#9ECAD6] text-white" : "border border-[#f3f4f6] text-[#16181D]"
+                      row.status === "Out for Delivery" ? "bg-primary text-white" : "border border-surface-muted text-ink"
                     }`}>
                       {row.status}
                     </span>
@@ -84,8 +84,8 @@ export default function DomesticWarehouseSection() {
                   </td>
                   <td className="py-4">
                     <div className="flex items-center gap-2">
-                      <img src={row.typeIcon} alt={row.type} className="w-3 h-3 text-[#9ECAD6]" />
-                      <span className="text-[12px] font-bold text-[#575E6B] tracking-wider uppercase">{row.type}</span>
+                      <img src={row.typeIcon} alt={row.type} className="w-3 h-3 text-primary" />
+                      <span className="text-[12px] font-bold text-muted tracking-wider uppercase">{row.type}</span>
                     </div>
                   </td>
                   <td className="py-4 text-sm font-bold text-right">{row.eta}</td>

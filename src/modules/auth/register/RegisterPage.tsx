@@ -1,29 +1,20 @@
 "use client"
 import { Icon } from '@iconify/react';
+import AppLogo from "@/shared/components/AppLogo";
 
 export default function RegisterPage() {
   return (
     <div className="min-h-screen w-full flex flex-col lg:flex-row bg-white font-sans">
       {/* Left Section: Branding & Features (Hidden on mobile, shown on lg+) */}
-      <div className="hidden lg:flex lg:w-1/2 bg-[#F5F7F9] flex-col items-center justify-center p-12 relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-1/2 bg-surface-panel flex-col items-center justify-center p-12 relative overflow-hidden">
         {/* Decorative Blur Background */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[274px] h-[202px] bg-[#748DAE]/20 rounded-full blur-[40px] pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[274px] h-[202px] bg-secondary/20 rounded-full blur-[40px] pointer-events-none" />
 
         <div className="relative z-10 flex flex-col items-center max-w-md text-center">
-          {/* Logo */}
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 bg-[#748DAE] rounded-full flex items-center justify-center">
-              <img 
-                src="./assets/IMG_1.svg" 
-                alt="LogiAccess Logo" 
-                className="w-8 h-8 text-white"
-              />
-            </div>
-            <span className="text-[#748DAE] text-[31px] font-bold tracking-tight">LogiAccess</span>
-          </div>
+          <AppLogo variant="register" className="mb-6" />
 
           {/* Tagline */}
-          <p className="text-[#575E6B] text-xl font-medium leading-relaxed mb-12">
+          <p className="text-muted text-xl font-medium leading-relaxed mb-12">
             Streamlining global logistics with secure access for every partner.
           </p>
 
@@ -78,18 +69,12 @@ export default function RegisterPage() {
       {/* Right Section: Registration Form */}
       <div className="flex-1 flex flex-col items-center justify-center p-6 md:p-12 lg:p-24 overflow-y-auto">
         <div className="w-full max-w-[480px]">
-          {/* Mobile Logo (Only visible on small screens) */}
-          <div className="lg:hidden flex items-center gap-2 mb-8">
-            <div className="w-8 h-8 bg-[#748DAE] rounded-full flex items-center justify-center">
-              <img src="./assets/IMG_1.svg" alt="Logo" className="w-5 h-5" />
-            </div>
-            <span className="text-[#748DAE] text-xl font-bold">LogiAccess</span>
-          </div>
+          <AppLogo variant="register-mobile" className="lg:hidden mb-8" />
 
-          <h1 className="text-[30px] leading-tight font-bold text-[#16181D] tracking-[-0.75px] mb-3">
+          <h1 className="text-[30px] leading-tight font-bold text-ink tracking-[-0.75px] mb-3">
             Create an account
           </h1>
-          <p className="text-[#575E6B] text-base mb-10">
+          <p className="text-muted text-base mb-10">
             Enter your details below to get started with your logistics portal.
           </p>
 
@@ -108,7 +93,7 @@ export default function RegisterPage() {
                     id="fullName"
                     type="text" 
                     placeholder="John Doe" 
-                    className="w-full h-11 pl-10 pr-4 bg-white border border-[#E0E2E6] rounded-[10px] text-sm text-[#575E6B] input-focus-ring"
+                    className="w-full h-11 pl-10 pr-4 bg-white border border-border rounded-[10px] text-sm text-muted input-focus-ring"
                   />
                 </div>
               </div>
@@ -124,7 +109,7 @@ export default function RegisterPage() {
                     id="email"
                     type="email" 
                     placeholder="john@example.com" 
-                    className="w-full h-11 pl-10 pr-4 bg-white border border-[#E0E2E6] rounded-[10px] text-sm text-[#575E6B] input-focus-ring"
+                    className="w-full h-11 pl-10 pr-4 bg-white border border-border rounded-[10px] text-sm text-muted input-focus-ring"
                   />
                 </div>
               </div>
@@ -144,7 +129,7 @@ export default function RegisterPage() {
                     id="password"
                     type="password" 
                     placeholder="••••••••" 
-                    className="w-full h-11 pl-10 pr-4 bg-white border border-[#E0E2E6] rounded-[10px] text-sm text-[#575E6B] input-focus-ring"
+                    className="w-full h-11 pl-10 pr-4 bg-white border border-border rounded-[10px] text-sm text-muted input-focus-ring"
                   />
                 </div>
               </div>
@@ -160,7 +145,7 @@ export default function RegisterPage() {
                     id="confirmPassword"
                     type="password" 
                     placeholder="••••••••" 
-                    className="w-full h-11 pl-10 pr-4 bg-white border border-[#E0E2E6] rounded-[10px] text-sm text-[#575E6B] input-focus-ring"
+                    className="w-full h-11 pl-10 pr-4 bg-white border border-border rounded-[10px] text-sm text-muted input-focus-ring"
                   />
                 </div>
               </div>
@@ -171,7 +156,7 @@ export default function RegisterPage() {
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <label htmlFor="company">Company</label>
-                  <span className="text-[12px] text-[#575E6B]">Optional</span>
+                  <span className="text-[12px] text-muted">Optional</span>
                 </div>
                 <div className="relative">
                   <img 
@@ -183,14 +168,14 @@ export default function RegisterPage() {
                     id="company"
                     type="text" 
                     placeholder="LogiCorp Inc." 
-                    className="w-full h-11 pl-10 pr-4 bg-white border border-[#E0E2E6] rounded-[10px] text-sm text-[#575E6B] input-focus-ring"
+                    className="w-full h-11 pl-10 pr-4 bg-white border border-border rounded-[10px] text-sm text-muted input-focus-ring"
                   />
                 </div>
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <label htmlFor="phone">Phone Number</label>
-                  <span className="text-[12px] text-[#575E6B]">Optional</span>
+                  <span className="text-[12px] text-muted">Optional</span>
                 </div>
                 <div className="relative">
                   <img 
@@ -202,7 +187,7 @@ export default function RegisterPage() {
                     id="phone"
                     type="tel" 
                     placeholder="+1 (555) 000-0000" 
-                    className="w-full h-11 pl-10 pr-4 bg-white border border-[#E0E2E6] rounded-[10px] text-sm text-[#575E6B] input-focus-ring"
+                    className="w-full h-11 pl-10 pr-4 bg-white border border-border rounded-[10px] text-sm text-muted input-focus-ring"
                   />
                 </div>
               </div>
@@ -212,14 +197,14 @@ export default function RegisterPage() {
             <div className="pt-4 space-y-4">
               <button 
                 type="submit"
-                className="w-full h-12 bg-[#748DAE] text-white font-bold text-lg rounded-[10px] shadow-sm hover:bg-[#637a99] transition-colors cursor-pointer"
+                className="w-full h-12 bg-secondary text-white font-bold text-lg rounded-[10px] shadow-sm hover:bg-secondary-hover transition-colors cursor-pointer"
               >
                 Create account
               </button>
               
               <button 
                 type="button"
-                className="w-full h-10 text-[#748DAE] font-semibold text-sm hover:underline cursor-pointer"
+                className="w-full h-10 text-secondary font-semibold text-sm hover:underline cursor-pointer"
               >
                 Already have an account? Sign in
               </button>
@@ -227,11 +212,11 @@ export default function RegisterPage() {
           </form>
 
           {/* Terms & Privacy */}
-          <div className="mt-12 pt-6 border-t border-[#E0E2E6]">
-            <p className="text-[12px] text-[#575E6B] leading-relaxed text-center md:text-left">
+          <div className="mt-12 pt-6 border-t border-border">
+            <p className="text-[12px] text-muted leading-relaxed text-center md:text-left">
               By clicking "Create account", you agree to our{' '}
-              <a href="#" className="underline hover:text-[#16181D]">Terms of Service</a> and{' '}
-              <a href="#" className="underline hover:text-[#16181D]">Privacy Policy</a>.
+              <a href="#" className="underline hover:text-ink">Terms of Service</a> and{' '}
+              <a href="#" className="underline hover:text-ink">Privacy Policy</a>.
             </p>
           </div>
         </div>

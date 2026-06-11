@@ -1,173 +1,205 @@
 "use client";
-import { Icon } from '@iconify/react';
 
+import { Icon } from "@iconify/react";
+import Link from "next/link";
+import { useState } from "react";
+import AppLogo from "@/shared/components/AppLogo";
+import colors from "@/shared/constants/colors";
+
+const features = [
+  { icon: "lucide:shield-check", title: "Secure Transfers", desc: "Enterprise-grade encryption" },
+  { icon: "lucide:globe", title: "Global Reach", desc: "140+ countries supported" },
+  { icon: "lucide:clock", title: "Real-time Tracking", desc: "Live shipment visibility" },
+  { icon: "lucide:package", title: "Smart Sorting", desc: "Automated warehouse routing" },
+];
+
+const avatarColors = [colors.primary, colors.secondary, colors.accent, colors.primaryHover];
 
 export default function LoginPage() {
+  const [showPassword, setShowPassword] = useState(false);
+
   return (
-    <div className="min-h-screen w-full bg-white flex flex-col lg:flex-row font-sans">
-      {/* Left Side: Authentication Form */}
-      <main className="flex-1 flex flex-col justify-center items-center px-6 py-12 lg:px-20 xl:px-32">
-        <div className="w-full max-w-[480px]">
-          <header className="mb-10">
-            <h1 className="text-[30px] leading-[36px] font-bold text-[#16181D] tracking-[-0.75px] mb-2">
-              Sign in
-            </h1>
-            <p className="text-[16px] leading-[24px] text-[#575E6B]">
-              Enter your credentials to access your logistics dashboard.
-            </p>
-          </header>
+    <div className="min-h-screen w-full flex flex-col lg:flex-row bg-white font-sans">
+      {/* Marketing panel */}
+      <aside className="relative hidden lg:flex lg:w-[58%] bg-surface-soft flex-col justify-between p-10 xl:p-14 overflow-hidden">
+        <div className="relative z-10">
+          <AppLogo variant="auth" className="mb-10" />
 
-          <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
-            {/* Email Field */}
-            <div className="space-y-2">
-              <label className="block text-[14px] font-medium text-[#16181D]">
-                Work Email
-              </label>
-              <div className="relative flex items-center">
-                <div className="absolute left-3 text-[#575E6B]">
-                  <img src="./assets/IMG_4.svg" alt="mail" className="w-4 h-4" />
-                </div>
-                <input
-                  type="email"
-                  placeholder="name@company.com"
-                  className="w-full h-12 pl-10 pr-4 bg-white border border-[#E0E2E6] rounded-[10px] text-[14px] focus:border-[#748DAE] focus:ring-1 focus:ring-[#748DAE] transition-all outline-none placeholder:text-[#575E6B]"
-                />
-              </div>
-            </div>
+          <span className="inline-block px-3 py-1 mb-6 text-[10px] font-bold tracking-[0.12em] uppercase text-muted bg-white border border-border-muted rounded-full">
+            New service tiers available
+          </span>
 
-            {/* Password Field */}
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <label className="block text-[14px] font-medium text-[#16181D]">
-                  Password
-                </label>
-                <button type="button" className="text-[12px] font-medium text-[#748DAE] hover:underline">
-                  Forgot password?
-                </button>
-              </div>
-              <div className="relative flex items-center">
-                <div className="absolute left-3 text-[#575E6B]">
-                  <img src="./assets/IMG_5.svg" alt="lock" className="w-4 h-4" />
-                </div>
-                <input
-                  type="password"
-                  placeholder="••••••••"
-                  className="w-full h-12 pl-10 pr-10 bg-white border border-[#E0E2E6] rounded-[10px] text-[14px] focus:border-[#748DAE] focus:ring-1 focus:ring-[#748DAE] transition-all outline-none placeholder:text-[#575E6B]"
-                />
-                <button type="button" className="absolute right-3 text-[#575E6B] hover:text-[#16181D]">
-                  <img src="./assets/IMG_6.svg" alt="toggle visibility" className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
+          <h1 className="text-[42px] xl:text-[48px] font-bold leading-[1.15] text-ink tracking-tight max-w-[520px] mb-5">
+            Logistics management{" "}
+            <em className="text-primary italic font-normal">redefined</em>{" "}
+            for you.
+          </h1>
 
-            {/* Remember Device */}
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="remember"
-                className="w-4 h-4 rounded-[2px] border-[#565d6d] text-[#748DAE] focus:ring-[#748DAE]"
-              />
-              <label htmlFor="remember" className="text-[14px] font-medium text-[#575E6B] cursor-pointer">
-                Remember this device for 30 days
-              </label>
-            </div>
-
-            {/* Sign In Button */}
-            <button
-              type="submit"
-              className="w-full h-12 bg-[#748DAE] hover:bg-[#637a99] text-white font-bold rounded-[10px] shadow-[0px_2px_4px_0px_#00000012] flex items-center justify-center gap-2 transition-colors"
-            >
-              Sign in
-              <img src="./assets/IMG_7.svg" alt="arrow" className="w-4 h-4" />
-            </button>
-          </form>
-
-          {/* Create Account Link */}
-          <div className="mt-8 pt-6 border-t border-[#E0E2E6]/50 text-center">
-            <p className="text-[14px] text-[#575E6B]">
-              Don't have an account?{' '}
-              <button className="font-bold text-[#748DAE] hover:underline">
-                Create one
-              </button>
-            </p>
-          </div>
-
-          {/* Trusted Partners */}
-          <div className="mt-12 opacity-50">
-            <p className="text-[10px] font-bold text-[#575E6B] uppercase tracking-[1px] text-center mb-6">
-              Trusted by global partners
-            </p>
-            <div className="flex flex-wrap justify-center items-center gap-x-8 gap-y-4">
-              <div className="flex items-center gap-2">
-                <img src="./assets/IMG_1.svg" alt="FastLogistics" className="w-4 h-4 text-[#16181D]" />
-                <span className="text-[12px] font-semibold text-[#16181D]">FastLogistics</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <img src="./assets/IMG_2.svg" alt="SafeGuard" className="w-4 h-4 text-[#16181D]" />
-                <span className="text-[12px] font-semibold text-[#16181D]">SafeGuard</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-[#16181D] rounded-full" />
-                <span className="text-[12px] font-semibold text-[#16181D]">GlobalPort</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </main>
-
-      {/* Right Side: Branding & Info */}
-      <aside className="hidden lg:flex flex-1 bg-[#F4F9FA] flex-col justify-between items-center py-24 px-12 relative overflow-hidden">
-        <div className="flex flex-col items-center text-center max-w-[420px] z-10">
-          {/* Logo Section */}
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 bg-[#748DAE] rounded-full flex items-center justify-center">
-              <img src="./assets/IMG_1.svg" alt="Logo Icon" className="w-8 h-8 text-white" />
-            </div>
-            <span className="text-[31px] font-bold text-[#748DAE]">LogiAccess</span>
-          </div>
-          <p className="text-[20px] leading-[28px] font-medium text-[#575E6B] mb-16">
-            Enterprise-grade authentication for global logistics leaders.
+          <p className="text-[16px] leading-relaxed text-muted max-w-[480px] mb-10">
+            Securely manage your global shipments, track real-time deliveries, and optimize
+            your logistics pipeline with SwiftShip&apos;s intelligent dashboard.
           </p>
 
-          {/* Security Card */}
-          <div className="w-full bg-white/50 backdrop-blur-[12px] rounded-[14px] border border-[#E0E2E6]/50 shadow-[0px_2px_4px_0px_#00000012] p-6 text-left">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-[#748DAE]/10 rounded-[12px] flex items-center justify-center">
-                <img src="./assets/IMG_2.svg" alt="Shield" className="w-6 h-6 text-[#748DAE]" />
+          <div className="grid grid-cols-2 gap-4 max-w-[480px]">
+            {features.map((feature) => (
+              <div
+                key={feature.title}
+                className="bg-white rounded-xl border border-surface-muted p-4 shadow-[0px_1px_3px_0px_rgba(0,0,0,0.06)]"
+              >
+                <div className="w-9 h-9 rounded-lg bg-primary/15 flex items-center justify-center mb-3">
+                  <Icon icon={feature.icon} className="w-[18px] h-[18px] text-secondary" />
+                </div>
+                <p className="text-sm font-bold text-ink mb-0.5">{feature.title}</p>
+                <p className="text-xs text-muted">{feature.desc}</p>
               </div>
-              <h3 className="text-[16px] font-bold text-[#16181D]">Security Protocol</h3>
-            </div>
-            <p className="text-[14px] leading-[23px] text-[#575E6B] mb-6">
-              Your data is protected by industry-leading 256-bit AES encryption and TLS 1.3 protocols. LogiAccess ensures your logistics operations remain private and secure.
-            </p>
-            <div className="inline-flex items-center px-3 py-0.5 border border-[#E0E2E6] rounded-full">
-              <span className="text-[12px] font-semibold text-[#16181D]">
-                System Status: Operational
-              </span>
-            </div>
+            ))}
           </div>
         </div>
 
-        {/* Support Footer */}
-        <div className="flex items-center gap-2 z-10">
-          <div className="w-[30px] h-[30px] bg-white border border-[#E0E2E6] rounded-full shadow-[0px_1px_2px_0px_#0000000d] flex items-center justify-center">
-            <img src="./assets/IMG_3.svg" alt="Support" className="w-4 h-4 text-[#575E6B]" />
+        <div className="relative z-10 flex items-center gap-3 mt-10">
+          <div className="flex -space-x-2">
+            {avatarColors.map((color, i) => (
+              <div
+                key={i}
+                className="w-8 h-8 rounded-full border-2 border-white flex items-center justify-center text-[10px] font-bold text-white"
+                style={{ backgroundColor: color }}
+              >
+                {String.fromCharCode(65 + i)}
+              </div>
+            ))}
           </div>
-          <p className="text-[14px] font-medium text-[#575E6B]">
-            Need technical help? <button className="hover:underline">Contact Support</button>
+          <p className="text-sm text-muted">
+            Joined by <span className="font-semibold text-ink">12,000+</span> businesses worldwide
           </p>
+        </div>
+
+        {/* Hero image */}
+        <div className="absolute top-0 right-0 w-[42%] h-full pointer-events-none">
+          <div className="absolute inset-0 bg-gradient-to-r from-surface-soft via-surface-soft/80 to-transparent z-10" />
+          <img
+            src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=900&auto=format&fit=crop&q=80"
+            alt="Logistics professional"
+            className="w-full h-full object-cover object-center"
+          />
         </div>
       </aside>
 
-      {/* Mobile Support Footer (Visible only on small screens) */}
-      <div className="lg:hidden py-8 px-6 bg-[#F4F9FA] flex justify-center items-center gap-2">
-        <div className="w-[30px] h-[30px] bg-white border border-[#E0E2E6] rounded-full flex items-center justify-center">
-          <img src="./assets/IMG_3.svg" alt="Support" className="w-4 h-4 text-[#575E6B]" />
+      {/* Login form */}
+      <main className="flex-1 flex flex-col justify-center px-6 py-12 sm:px-12 lg:px-16 xl:px-20">
+        <div className="w-full max-w-[420px] mx-auto lg:mx-0 lg:ml-auto lg:mr-auto xl:mr-16">
+          {/* Mobile logo */}
+          <AppLogo variant="auth" className="lg:hidden mb-8" />
+
+          <header className="mb-8">
+            <h2 className="text-[28px] font-bold text-ink tracking-tight mb-2">Welcome Back</h2>
+            <p className="text-[15px] text-muted">
+              Please enter your details to access your dashboard.
+            </p>
+          </header>
+
+          <form className="space-y-5" onSubmit={(e) => e.preventDefault()}>
+            <div className="space-y-2">
+              <label htmlFor="email" className="text-sm font-semibold text-ink">
+                Email Address
+              </label>
+              <div className="relative">
+                <Icon
+                  icon="lucide:mail"
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-faint"
+                />
+                <input
+                  id="email"
+                  type="email"
+                  placeholder="alex.h@swiftship.com"
+                  className="w-full h-12 pl-11 pr-4 bg-white border border-border-muted rounded-lg text-sm text-ink input-focus-ring"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label htmlFor="password" className="text-sm font-semibold text-ink">
+                  Password
+                </label>
+                <button type="button" className="text-xs font-semibold text-primary hover:text-secondary">
+                  Forgot Password?
+                </button>
+              </div>
+              <div className="relative">
+                <Icon
+                  icon="lucide:lock"
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-faint"
+                />
+                <input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  className="w-full h-12 pl-11 pr-11 bg-white border border-border-muted rounded-lg text-sm text-ink input-focus-ring"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-faint hover:text-muted"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  <Icon icon={showPassword ? "lucide:eye-off" : "lucide:eye"} className="w-[18px] h-[18px]" />
+                </button>
+              </div>
+            </div>
+
+            <label className="flex items-center gap-2.5 cursor-pointer">
+              <input
+                type="checkbox"
+                className="w-4 h-4 rounded border-border-muted accent-primary"
+              />
+              <span className="text-sm text-muted">Remember me for 30 days</span>
+            </label>
+
+            <button
+              type="submit"
+              className="w-full h-12 bg-primary hover:bg-primary-hover text-white font-bold rounded-lg flex items-center justify-center gap-2 shadow-sm transition-colors"
+            >
+              Sign In to Dashboard
+              <Icon icon="lucide:arrow-right" className="w-4 h-4" />
+            </button>
+          </form>
+
+          <div className="flex items-center gap-4 my-7">
+            <div className="flex-1 h-px bg-border-muted" />
+            <span className="text-[10px] font-bold tracking-[0.14em] text-faint uppercase">
+              Or continue with
+            </span>
+            <div className="flex-1 h-px bg-border-muted" />
+          </div>
+
+          <button
+            type="button"
+            className="w-full h-11 flex items-center justify-center gap-2 border border-border-muted rounded-lg text-sm font-semibold text-ink hover:bg-surface transition-colors"
+          >
+            <Icon icon="logos:google-icon" className="w-4 h-4" />
+            Google
+          </button>
+
+          <p className="mt-8 text-center text-sm text-muted">
+            Don&apos;t have an account?{" "}
+            <Link href="/register" className="font-bold text-primary hover:text-secondary">
+              Request Access
+            </Link>
+          </p>
+
+          <div className="mt-10 pt-6 border-t border-surface-muted flex flex-wrap justify-center gap-x-6 gap-y-2">
+            <button type="button" className="text-xs text-faint hover:text-muted">
+              Privacy Policy
+            </button>
+            <button type="button" className="text-xs text-faint hover:text-muted">
+              Terms of Service
+            </button>
+            <button type="button" className="text-xs text-faint hover:text-muted">
+              Help Center
+            </button>
+          </div>
         </div>
-        <p className="text-[14px] font-medium text-[#575E6B]">
-          Need technical help? <button className="hover:underline">Contact Support</button>
-        </p>
-      </div>
+      </main>
     </div>
   );
 }
