@@ -1,5 +1,5 @@
-import { PurchaseRequest } from "@/modules/home/components/Purchase-Re" 
+import ConsignmentRequestPage from "@/modules/consignor/consignment-request/ConsignmentRequestPage";
 
-export default function tracking(){
-    return <PurchaseRequest/>
+export default function Page() {
+  return <ConsignmentRequestPage />;
 }

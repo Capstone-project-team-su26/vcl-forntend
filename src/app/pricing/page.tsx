@@ -1,6 +1,7 @@
-"use client"
-import { ServicePricing } from "@/modules/home/components/ServicePricing"
+"use client";
 
-export default function Pricing(){
-    return <ServicePricing/>;
+import PricingPage from "@/modules/admin/pricing/PricingPage";
+
+export default function Page() {
+  return <PricingPage />;
 }

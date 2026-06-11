@@ -2,7 +2,7 @@
 import { Icon } from '@iconify/react';
 import { useState } from 'react';
 
-export function OperationalDBoard() {
+export default function OperationalDashboardPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const recentActivity = [

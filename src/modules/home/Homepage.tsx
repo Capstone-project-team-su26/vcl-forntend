@@ -3,7 +3,7 @@
 import { Icon } from '@iconify/react';
 import { useRouter } from "next/navigation";
 
-export function Homepage() {
+export default function Homepage() {
   const router = useRouter();
   return (
     <div className="min-h-screen bg-[#f3f4f6] font-['Open_Sans'] text-[#171a1f]">

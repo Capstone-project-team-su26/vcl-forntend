@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
-import { OperationalDBoard } from "@/modules/home/components/OperationDBoard"
+import OperationalDashboardPage from "@/modules/operations/dashboard/OperationalDashboardPage";
 
-export default function staffdb(){
-    return <OperationalDBoard/>
+export default function Page() {
+  return <OperationalDashboardPage />;
 }

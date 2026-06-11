@@ -1,7 +1,7 @@
 "use client"
 import { Icon } from '@iconify/react';
 
-export function RegisterPage() {
+export default function RegisterPage() {
   return (
     <div className="min-h-screen w-full flex flex-col lg:flex-row bg-white font-sans">
       {/* Left Section: Branding & Features (Hidden on mobile, shown on lg+) */}

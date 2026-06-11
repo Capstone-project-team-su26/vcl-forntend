@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
-import { Transfer } from "@/modules/home/components/TransferFunction"
+import TransferPage from "@/modules/operations/transfer/TransferPage";
 
-export default function transferpage(){
-    return <Transfer/>
+export default function Page() {
+  return <TransferPage />;
 }

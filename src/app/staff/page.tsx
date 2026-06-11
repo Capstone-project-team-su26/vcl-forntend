@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
-import { StaffPage } from "@/modules/home/components/StaffPage"
+import StaffPage from "@/modules/staff/StaffPage";
 
-export default function staff(){
-    return <StaffPage/>
+export default function Page() {
+  return <StaffPage />;
 }

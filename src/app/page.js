@@ -1,8 +1,5 @@
-import { HomePage } from "@/modules/home";
-import { LoginPage } from "../modules/home";
-import { Homepage } from "../modules/home"; 
+import Homepage from "@/modules/home/Homepage";
 
-
-export default function Home() {
+export default function Page() {
   return <Homepage />;
 }

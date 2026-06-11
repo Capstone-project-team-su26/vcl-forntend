@@ -2,7 +2,7 @@
 import { Icon } from '@iconify/react';
 import { useState } from 'react';
 
-export function ProfilePage() {
+export default function ProfilePage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (

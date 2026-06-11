@@ -1,6 +1,6 @@
 import { Icon } from '@iconify/react';
 
-export function PurchaseRequest() {
+export default function ConsignmentRequestPage() {
   return (
     <div className="min-h-screen bg-white font-['Open_Sans'] text-[#171a1f]">
       {/* Header */}

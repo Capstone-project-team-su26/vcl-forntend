@@ -1,6 +1,7 @@
-"use client"
-import { RegisterPage } from "@/modules/home/components/RegisterPage";
+"use client";
 
-export default function Register() {
+import RegisterPage from "@/modules/auth/register/RegisterPage";
+
+export default function Page() {
   return <RegisterPage />;
 }

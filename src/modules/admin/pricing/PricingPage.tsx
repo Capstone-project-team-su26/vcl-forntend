@@ -2,7 +2,7 @@
 import { Icon } from '@iconify/react';
 import { useState } from 'react';
 
-export function ServicePricing() {
+export default function PricingPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (

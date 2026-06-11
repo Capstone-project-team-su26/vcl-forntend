@@ -2,7 +2,7 @@
 import { Icon } from '@iconify/react';
 import { useState } from 'react';
 
-export function Transfer() {
+export default function TransferPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (

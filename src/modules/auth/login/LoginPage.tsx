@@ -2,7 +2,7 @@
 import { Icon } from '@iconify/react';
 
 
-export function LoginPage() {
+export default function LoginPage() {
   return (
     <div className="min-h-screen w-full bg-white flex flex-col lg:flex-row font-sans">
       {/* Left Side: Authentication Form */}
