@@ -3,9 +3,12 @@
 import { Icon } from '@iconify/react';
 import { useRouter } from "next/navigation";
 import AppLogo from "@/shared/components/AppLogo";
+import UserNavMenu from "@/shared/components/UserNavMenu";
+import { useAuth } from "@/shared/hooks/useAuth";
 
 export default function Homepage() {
   const router = useRouter();
+  const { isLoggedIn } = useAuth();
   return (
     <div className="min-h-screen bg-surface-muted font-['Open_Sans'] text-ink-deep">
       {/* Header */}
@@ -32,12 +35,16 @@ export default function Homepage() {
               </button>
             </nav>
 
-            <button
-              onClick={() => router.push("/login")}
-              className="h-10 px-5 bg-primary text-white text-[14px] font-bold rounded-lg hover:bg-primary-hover transition-colors"
-            >
-              Sign In
-            </button>
+            {isLoggedIn ? (
+              <UserNavMenu displayName="SwiftShip User" roleLabel="MEMBER" />
+            ) : (
+              <button
+                onClick={() => router.push("/login")}
+                className="h-10 px-5 bg-primary text-white text-[14px] font-bold rounded-lg hover:bg-primary-hover transition-colors"
+              >
+                Sign In
+              </button>
+            )}
 
             {/* Mobile Menu Toggle */}
             <button className="md:hidden p-2">
