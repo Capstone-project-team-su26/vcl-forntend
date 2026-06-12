@@ -1,6 +1,15 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import * as staffService from "@/shared/services/staffService";
+
 export default function SalesSection() {
+  const [data, setData] = useState(null);
+
+  useEffect(() => {
+    staffService.getSalesWorkspace().then(setData);
+  }, []);
+
   return (
     <div className="space-y-8">
       <section className="relative bg-surface-alt rounded-xl border border-primary/20 p-6 lg:p-10 overflow-hidden">
@@ -64,7 +73,7 @@ export default function SalesSection() {
           <div className="bg-white/60 rounded-xl p-4 border border-primary/10 mb-4">
             <div className="flex justify-between items-center mb-3">
               <span className="text-[10px] font-bold text-muted tracking-wider">FUEL SURCHARGE</span>
-              <span className="text-[12px] font-black text-danger">+4.2%</span>
+              <span className="text-[12px] font-black text-danger">{data?.fuelSurcharge || "+4.2%"}</span>
             </div>
             <div className="h-1.5 w-full bg-surface-muted rounded-full overflow-hidden">
               <div className="h-full bg-danger" style={{ width: "42%" }} />
@@ -72,24 +81,20 @@ export default function SalesSection() {
           </div>
 
           <div className="space-y-4 mb-6">
-            <div className="flex items-center justify-between pb-4 border-b border-primary/10">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-primary/20 rounded flex items-center justify-center">
-                  <img src="./assets/IMG_11.svg" alt="Express" className="w-4 h-4 text-primary" />
+            {(data?.rates || []).map((rate, index) => (
+              <div
+                key={rate.label}
+                className={`flex items-center justify-between ${index === 0 ? "pb-4 border-b border-primary/10" : ""}`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 ${rate.iconBg} rounded flex items-center justify-center`}>
+                    <img src="./assets/IMG_11.svg" alt={rate.label} className="w-4 h-4 text-primary" />
+                  </div>
+                  <span className="text-sm font-bold">{rate.label}</span>
                 </div>
-                <span className="text-sm font-bold">Express Air</span>
+                <span className="text-sm font-black">{rate.price}</span>
               </div>
-              <span className="text-sm font-black">$8.50/kg</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-secondary/20 rounded flex items-center justify-center">
-                  <img src="./assets/IMG_11.svg" alt="Consolidation" className="w-4 h-4 text-secondary" />
-                </div>
-                <span className="text-sm font-bold">Consolidation</span>
-              </div>
-              <span className="text-sm font-black">$2.20/kg</span>
-            </div>
+            ))}
           </div>
 
           <button className="w-full py-2.5 bg-white border border-primary/30 rounded-lg text-primary font-bold text-sm hover:bg-gray-50 transition-colors">
@@ -101,13 +106,20 @@ export default function SalesSection() {
           <div className="absolute -top-5 -right-5 w-24 h-24 bg-secondary/10 rounded-full" />
           <h2 className="font-oswald text-lg font-bold mb-4 text-ink">Customer Notifications</h2>
           <p className="text-sm font-medium text-muted leading-relaxed mb-6">
-            Notify <span className="text-ink font-black">3 customers</span> about pending payment confirmations and customs declaration updates.
+            Notify <span className="text-ink font-black">{data?.pendingNotifications ?? 3} customers</span> about pending payment confirmations and customs declaration updates.
           </p>
           <div className="flex items-center gap-4">
             <div className="flex-1 h-3 bg-secondary/20 rounded-full overflow-hidden">
-              <div className="h-full bg-secondary" style={{ width: "60%" }} />
+              <div
+                className="h-full bg-secondary"
+                style={{
+                  width: `${((data?.pendingNotifications ?? 3) / (data?.totalNotifications ?? 5)) * 100}%`,
+                }}
+              />
             </div>
-            <span className="text-xs font-black text-ink">3/5</span>
+            <span className="text-xs font-black text-ink">
+              {data?.pendingNotifications ?? 3}/{data?.totalNotifications ?? 5}
+            </span>
           </div>
         </section>
       </div>

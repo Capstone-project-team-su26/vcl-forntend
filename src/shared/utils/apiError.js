@@ -19,12 +19,18 @@ export async function parseApiError(response) {
   return new ApiError(response.status, body);
 }
 
+const NETWORK_ERROR_PATTERN = /failed to fetch|networkerror|load failed|network request failed/i;
+
 export function getErrorMessage(error, fallback = "Đã xảy ra lỗi. Vui lòng thử lại.") {
   if (error instanceof ApiError) {
     return error.message || fallback;
   }
 
   if (error instanceof Error && error.message) {
+    if (NETWORK_ERROR_PATTERN.test(error.message)) {
+      return "Không thể kết nối máy chủ. Kiểm tra API_URL trong .env.local và backend đang chạy.";
+    }
+
     return error.message;
   }
 

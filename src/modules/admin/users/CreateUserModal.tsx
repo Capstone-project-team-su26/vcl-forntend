@@ -117,7 +117,13 @@ export default function CreateUserModal({ open, onClose, onCreated }: CreateUser
           </div>
         ) : null}
 
-        <form className="space-y-4" onSubmit={handleSubmit}>
+        <form
+          className="space-y-4"
+          onSubmit={handleSubmit}
+          onInput={() => {
+            if (error) setError("");
+          }}
+        >
           <div className="space-y-2">
             <label htmlFor="fullName" className="text-sm font-semibold text-ink">
               Họ tên

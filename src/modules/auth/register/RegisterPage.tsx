@@ -104,7 +104,13 @@ export default function RegisterPage() {
             </div>
           ) : null}
 
-          <form className="space-y-6" onSubmit={handleSubmit}>
+          <form
+            className="space-y-6"
+            onSubmit={handleSubmit}
+            onInput={() => {
+              if (error) setError("");
+            }}
+          >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label htmlFor="fullName">Full Name</label>

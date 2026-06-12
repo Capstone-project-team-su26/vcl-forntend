@@ -127,10 +127,13 @@ export default function VerifyEmailPage() {
               id="otp"
               name="otp"
               inputMode="numeric"
-              pattern="\d{6}"
               maxLength={6}
+              autoComplete="one-time-code"
               value={otp}
-              onChange={(event) => setOtp(event.target.value.replace(/\D/g, ""))}
+              onChange={(event) => {
+                setOtp(event.target.value.replace(/\D/g, ""));
+                if (error) setError("");
+              }}
               placeholder="123456"
               className="w-full h-12 px-4 bg-white border border-border-muted rounded-lg text-center text-lg tracking-[0.4em] text-ink input-focus-ring"
             />

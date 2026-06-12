@@ -135,7 +135,13 @@ export default function LoginPage() {
             </div>
           ) : null}
 
-          <form className="space-y-5" onSubmit={handleSubmit}>
+          <form
+            className="space-y-5"
+            onSubmit={handleSubmit}
+            onInput={() => {
+              if (error) setError("");
+            }}
+          >
             <div className="space-y-2">
               <label htmlFor="email" className="text-sm font-semibold text-ink">
                 Email Address
@@ -212,7 +218,7 @@ export default function LoginPage() {
           <p className="mt-8 text-center text-sm text-muted">
             Don&apos;t have an account?{" "}
             <Link href="/register" className="font-bold text-primary hover:text-secondary">
-              Request Access
+              Sign Up
             </Link>
           </p>
         </div>

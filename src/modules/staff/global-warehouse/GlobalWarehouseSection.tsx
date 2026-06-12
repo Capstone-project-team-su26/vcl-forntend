@@ -1,17 +1,15 @@
 "use client";
 
-const inboundStats = [
-  { icon: "./assets/IMG_1.svg", label: "Parcels Awaiting Receipt", value: "12", trend: "+2 this week", iconBg: "bg-primary/20", iconColor: "text-primary" },
-  { icon: "./assets/IMG_10.svg", label: "Unidentified Parcels", value: "04", trend: "Needs matching", iconBg: "bg-transparent", iconColor: "text-ink" },
-];
-
-const inboundTransfers = [
-  { id: "SS-9402", status: "In Transit", route: ["Mumbai", "Dubai"], type: "EXPRESS", typeIcon: "./assets/IMG_16.svg", eta: "24 Oct" },
-  { id: "SS-8122", status: "Processing", route: ["Chennai", "Singapore"], type: "STANDARD", typeIcon: "./assets/IMG_18.svg", eta: "26 Oct" },
-  { id: "SS-6549", status: "Pending", route: ["New York", "New Delhi"], type: "EXPRESS", typeIcon: "./assets/IMG_16.svg", eta: "28 Oct" },
-];
+import { useEffect, useState } from "react";
+import * as staffService from "@/shared/services/staffService";
 
 export default function GlobalWarehouseSection() {
+  const [data, setData] = useState({ stats: [], inboundShipments: [] });
+
+  useEffect(() => {
+    staffService.getGlobalWarehouseData().then(setData);
+  }, []);
+
   return (
     <div className="space-y-8">
       <section>
@@ -24,8 +22,8 @@ export default function GlobalWarehouseSection() {
       </section>
 
       <section className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        {inboundStats.map((stat, idx) => (
-          <div key={idx} className="bg-white p-6 rounded-xl shadow-sm border border-gray-50 flex flex-col justify-between h-40">
+        {data.stats.map((stat) => (
+          <div key={stat.label} className="bg-white p-6 rounded-xl shadow-sm border border-gray-50 flex flex-col justify-between h-40">
             <div className="flex justify-between items-start">
               <div className={`w-9 h-9 ${stat.iconBg} rounded-lg flex items-center justify-center`}>
                 <img src={stat.icon} alt={stat.label} className={`w-5 h-5 ${stat.iconColor}`} />
@@ -66,13 +64,15 @@ export default function GlobalWarehouseSection() {
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-muted">
-              {inboundTransfers.map((row, idx) => (
-                <tr key={idx} className="group hover:bg-gray-50/50 transition-colors">
+              {data.inboundShipments.map((row) => (
+                <tr key={row.id} className="group hover:bg-gray-50/50 transition-colors">
                   <td className="py-4 text-sm font-bold text-primary">{row.id}</td>
                   <td className="py-4">
-                    <span className={`inline-block px-3 py-1 rounded-lg text-[12px] font-semibold ${
-                      row.status === "Pending" ? "bg-surface-muted text-muted" : "border border-surface-muted text-ink"
-                    }`}>
+                    <span
+                      className={`inline-block px-3 py-1 rounded-lg text-[12px] font-semibold ${
+                        row.status === "Pending" ? "bg-surface-muted text-muted" : "border border-surface-muted text-ink"
+                      }`}
+                    >
                       {row.status}
                     </span>
                   </td>

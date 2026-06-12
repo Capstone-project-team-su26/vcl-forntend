@@ -1,7 +1,7 @@
 "use client";
 
 import { Icon } from "@iconify/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import AdminLayout from "../components/AdminLayout";
 import CreateUserModal from "./CreateUserModal";
 import * as userService from "@/shared/services/userService";
@@ -49,6 +49,27 @@ export default function UserManagementPage() {
   const [actionError, setActionError] = useState("");
   const [actionMessage, setActionMessage] = useState("");
   const [pendingUserId, setPendingUserId] = useState<string | null>(null);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+
+    userService
+      .listUsers()
+      .then((data) => {
+        if (active) setUsers(data);
+      })
+      .catch((error) => {
+        if (active) setActionError(getErrorMessage(error));
+      })
+      .finally(() => {
+        if (active) setIsLoadingUsers(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   async function handleLockToggle(user: ManagedUser) {
     setActionError("");
@@ -126,7 +147,13 @@ export default function UserManagementPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border-muted">
-                {users.length === 0 ? (
+                {isLoadingUsers ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-12 text-center text-sm text-muted">
+                      Đang tải danh sách người dùng...
+                    </td>
+                  </tr>
+                ) : users.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="px-6 py-12 text-center text-sm text-muted">
                       Chưa có người dùng trong phiên này. Nhấn &quot;Thêm người dùng&quot; để tạo nhân viên mới.

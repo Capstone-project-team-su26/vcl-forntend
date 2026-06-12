@@ -1,10 +1,41 @@
 "use client"
 import { Icon } from '@iconify/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import AppLogo from "@/shared/components/AppLogo";
+import * as profileService from "@/shared/services/profileService";
+import { getErrorMessage } from "@/shared/utils/apiError";
 
 export default function ProfilePage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [profile, setProfile] = useState(null);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    profileService.getProfile().then(setProfile);
+  }, []);
+
+  async function handleActivate() {
+    setError("");
+    setMessage("");
+    setIsSaving(true);
+
+    try {
+      const response = await profileService.activateProfile({
+        legalEntityName: profile?.legalEntityName,
+        taxId: profile?.taxId,
+        region: profile?.region,
+        phone: profile?.phone,
+      });
+      setProfile(response.profile);
+      setMessage(response.message);
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setIsSaving(false);
+    }
+  }
 
   return (
     <div className="flex min-h-screen bg-white font-['Open_Sans'] text-muted">
@@ -82,8 +113,8 @@ export default function ProfilePage() {
 
             <div className="flex items-center gap-3">
               <div className="text-right hidden sm:block">
-                <p className="text-sm font-bold text-ink leading-none">Alex Henderson</p>
-                <p className="text-[10px] lg:text-xs text-muted mt-1">Premium Member</p>
+                <p className="text-sm font-bold text-ink leading-none">{profile?.fullName || "..."}</p>
+                <p className="text-[10px] lg:text-xs text-muted mt-1">{profile?.membership || "Member"}</p>
               </div>
               <div className="relative w-9 h-9">
                 <img src="./assets/IMG_8.webp" className="w-full h-full rounded-full object-cover" alt="User" />
@@ -112,10 +143,22 @@ export default function ProfilePage() {
               <div className="flex items-center gap-4 bg-white px-4 py-2.5 rounded-xl border border-surface-muted self-start lg:self-auto">
                 <span className="text-sm font-semibold text-primary">Step 1 of 2</span>
                 <div className="w-24 h-2 bg-surface-muted rounded-full overflow-hidden">
-                  <div className="w-1/2 h-full bg-primary" />
+                  <div className="h-full bg-primary" style={{ width: `${profile?.setupProgress ?? 50}%` }} />
                 </div>
               </div>
             </div>
+
+            {error ? (
+              <div className="mb-4 rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
+                {error}
+              </div>
+            ) : null}
+
+            {message ? (
+              <div className="mb-4 rounded-lg border border-success/30 bg-success-bg px-4 py-3 text-sm text-success-text">
+                {message}
+              </div>
+            ) : null}
 
             <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
               {/* Form Section */}
@@ -153,7 +196,9 @@ export default function ProfilePage() {
                     <div className="space-y-2">
                       <label className="text-sm font-semibold text-ink">Legal Entity Name</label>
                       <input 
-                        type="text" 
+                        type="text"
+                        value={profile?.legalEntityName || ""}
+                        onChange={(e) => setProfile((current) => ({ ...current, legalEntityName: e.target.value }))}
                         placeholder="e.g. Acme Logistics Ltd" 
                         className="w-full px-4 py-2.5 bg-white border border-secondary/20 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                       />
@@ -161,7 +206,9 @@ export default function ProfilePage() {
                     <div className="space-y-2">
                       <label className="text-sm font-semibold text-ink">Tax Identification Number</label>
                       <input 
-                        type="text" 
+                        type="text"
+                        value={profile?.taxId || ""}
+                        onChange={(e) => setProfile((current) => ({ ...current, taxId: e.target.value }))}
                         placeholder="XX-XXXXXXX" 
                         className="w-full px-4 py-2.5 bg-white border border-secondary/20 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                       />
@@ -169,7 +216,9 @@ export default function ProfilePage() {
                     <div className="space-y-2">
                       <label className="text-sm font-semibold text-ink">Primary Operating Region</label>
                       <input 
-                        type="text" 
+                        type="text"
+                        value={profile?.region || ""}
+                        onChange={(e) => setProfile((current) => ({ ...current, region: e.target.value }))}
                         placeholder="United States" 
                         className="w-full px-4 py-2.5 bg-white border border-secondary/20 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                       />
@@ -177,7 +226,9 @@ export default function ProfilePage() {
                     <div className="space-y-2">
                       <label className="text-sm font-semibold text-ink">Logistics Contact Number</label>
                       <input 
-                        type="text" 
+                        type="text"
+                        value={profile?.phone || ""}
+                        onChange={(e) => setProfile((current) => ({ ...current, phone: e.target.value }))}
                         placeholder="+1 (555) 000-0000" 
                         className="w-full px-4 py-2.5 bg-white border border-secondary/20 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                       />
@@ -217,8 +268,13 @@ export default function ProfilePage() {
                       <button className="flex-1 sm:flex-none px-6 py-2.5 text-sm font-bold text-secondary hover:bg-gray-50 rounded-lg transition-colors">
                         Save as Draft
                       </button>
-                      <button className="flex-1 sm:flex-none flex items-center justify-center gap-3 px-8 py-2.5 bg-primary text-white rounded-lg font-bold text-sm shadow-md hover:bg-primary-hover transition-all">
-                        Activate Account
+                      <button
+                        type="button"
+                        disabled={isSaving}
+                        onClick={handleActivate}
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-3 px-8 py-2.5 bg-primary text-white rounded-lg font-bold text-sm shadow-md hover:bg-primary-hover transition-all disabled:opacity-60"
+                      >
+                        {isSaving ? "Saving..." : "Activate Account"}
                         <img src="./assets/IMG_14.svg" className="w-3.5 h-3.5" alt="Next" />
                       </button>
                     </div>

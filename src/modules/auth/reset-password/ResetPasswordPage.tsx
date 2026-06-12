@@ -75,7 +75,13 @@ export default function ResetPasswordPage() {
           </div>
         ) : null}
 
-        <form className="space-y-5" onSubmit={handleSubmit}>
+        <form
+          className="space-y-5"
+          onSubmit={handleSubmit}
+          onInput={() => {
+            if (error) setError("");
+          }}
+        >
           <div className="space-y-2">
             <label htmlFor="newPassword" className="text-sm font-semibold text-ink">
               Mật khẩu mới
