@@ -1,102 +1,106 @@
 "use client";
 
 import { Icon } from "@iconify/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import AdminLayout from "../components/AdminLayout";
+import CreateUserModal from "./CreateUserModal";
+import * as userService from "@/shared/services/userService";
+import { getErrorMessage } from "@/shared/utils/apiError";
 
-type RoleFilter = "all" | "admin" | "editor" | "viewer";
+type UserStatus = "ACTIVE" | "LOCKED";
 
-const users = [
-  {
-    id: 1,
-    name: "Nguyễn Văn An",
-    email: "an.nguyen@swiftship.vn",
-    role: "EDITOR" as const,
-    status: "ACTIVE" as const,
-    lastSeen: "2 phút trước",
-    avatar: "NA",
-  },
-  {
-    id: 2,
-    name: "Trần Thị Bình",
-    email: "binh.tran@swiftship.vn",
-    role: "ADMIN" as const,
-    status: "ACTIVE" as const,
-    lastSeen: "Đang online",
-    avatar: "TB",
-  },
-  {
-    id: 3,
-    name: "Lê Hoàng Cường",
-    email: "cuong.le@swiftship.vn",
-    role: "VIEWER" as const,
-    status: "OFFLINE" as const,
-    lastSeen: "1 giờ trước",
-    avatar: "LC",
-  },
-  {
-    id: 4,
-    name: "Phạm Minh Đức",
-    email: "duc.pham@swiftship.vn",
-    role: "EDITOR" as const,
-    status: "ACTIVE" as const,
-    lastSeen: "15 phút trước",
-    avatar: "PD",
-  },
-  {
-    id: 5,
-    name: "Hoàng Thị Em",
-    email: "em.hoang@swiftship.vn",
-    role: "VIEWER" as const,
-    status: "OFFLINE" as const,
-    lastSeen: "3 giờ trước",
-    avatar: "HE",
-  },
-];
+type ManagedUser = {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  status: UserStatus;
+  lastSeen: string;
+  avatar: string;
+};
 
-const roleFilters: { id: RoleFilter; label: string }[] = [
-  { id: "all", label: "Tất cả" },
-  { id: "admin", label: "Quản trị viên (Admin)" },
-  { id: "editor", label: "Biên tập viên (Editor)" },
-  { id: "viewer", label: "Người xem (Viewer)" },
-];
+const initialUsers: ManagedUser[] = [];
 
-function RoleBadge({ role }: { role: "ADMIN" | "EDITOR" | "VIEWER" }) {
-  const styles = {
-    ADMIN: "bg-insight text-white",
-    EDITOR: "bg-info-bg text-info-text",
-    VIEWER: "bg-accent text-insight",
-  };
-
+function RoleBadge({ role }: { role: string }) {
   return (
-    <span className={`inline-block px-3 py-1 rounded-md text-[11px] font-bold tracking-wide ${styles[role]}`}>
+    <span className="inline-block px-3 py-1 rounded-md text-[11px] font-bold tracking-wide bg-info-bg text-info-text">
       {role}
     </span>
   );
 }
 
-function StatusBadge({ status }: { status: "ACTIVE" | "OFFLINE" }) {
+function StatusBadge({ status }: { status: UserStatus }) {
   const styles = {
     ACTIVE: "bg-success-bg text-success-text",
-    OFFLINE: "bg-surface-muted text-muted",
+    LOCKED: "bg-danger/10 text-danger",
   };
 
   return (
     <span className={`inline-block px-3 py-1 rounded-full text-[11px] font-bold ${styles[status]}`}>
-      {status}
+      {status === "ACTIVE" ? "ACTIVE" : "LOCKED"}
     </span>
   );
 }
 
 export default function UserManagementPage() {
-  const [roleFilter, setRoleFilter] = useState<RoleFilter>("all");
+  const [users, setUsers] = useState<ManagedUser[]>(initialUsers);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState("");
+  const [actionMessage, setActionMessage] = useState("");
+  const [pendingUserId, setPendingUserId] = useState<string | null>(null);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(true);
 
-  const filteredUsers = users.filter((user) => {
-    if (roleFilter === "all") return true;
-    if (roleFilter === "admin") return user.role === "ADMIN";
-    if (roleFilter === "editor") return user.role === "EDITOR";
-    return user.role === "VIEWER";
-  });
+  useEffect(() => {
+    let active = true;
+
+    userService
+      .listUsers()
+      .then((data) => {
+        if (active) setUsers(data);
+      })
+      .catch((error) => {
+        if (active) setActionError(getErrorMessage(error));
+      })
+      .finally(() => {
+        if (active) setIsLoadingUsers(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function handleLockToggle(user: ManagedUser) {
+    setActionError("");
+    setActionMessage("");
+    setPendingUserId(user.id);
+    setOpenMenuId(null);
+
+    try {
+      if (user.status === "ACTIVE") {
+        const response = await userService.lockUser(user.id);
+        setUsers((current) =>
+          current.map((item) =>
+            item.id === user.id ? { ...item, status: "LOCKED", lastSeen: "Đã khóa" } : item
+          )
+        );
+        setActionMessage(response?.message || "Khóa tài khoản thành công.");
+      } else {
+        const response = await userService.unlockUser(user.id);
+        setUsers((current) =>
+          current.map((item) =>
+            item.id === user.id ? { ...item, status: "ACTIVE", lastSeen: "Vừa mở khóa" } : item
+          )
+        );
+        setActionMessage(response?.message || "Mở khóa tài khoản thành công.");
+      }
+    } catch (error) {
+      setActionError(getErrorMessage(error));
+    } finally {
+      setPendingUserId(null);
+    }
+  }
 
   return (
     <AdminLayout activeNav="users">
@@ -105,11 +109,12 @@ export default function UserManagementPage() {
           <div>
             <h1 className="text-2xl lg:text-3xl font-bold text-ink tracking-tight">Quản lý người dùng</h1>
             <p className="text-sm text-muted mt-1 max-w-xl">
-              Quản lý tài khoản, phân quyền và theo dõi hoạt động người dùng trong hệ thống logistics.
+              Tạo nhân viên và khóa/mở khóa tài khoản qua API backend. Backend chưa có API danh sách người dùng.
             </p>
           </div>
           <button
             type="button"
+            onClick={() => setIsCreateOpen(true)}
             className="inline-flex items-center justify-center gap-2 h-11 px-5 bg-insight hover:bg-secondary text-white text-sm font-bold rounded-lg transition-colors shrink-0"
           >
             <Icon icon="lucide:user-plus" className="w-4 h-4" />
@@ -117,45 +122,17 @@ export default function UserManagementPage() {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
-          <div className="lg:col-span-3 bg-white rounded-xl border border-border-muted p-5 shadow-sm">
-            <p className="text-xs font-semibold text-faint uppercase tracking-wider mb-1">Tổng người dùng</p>
-            <div className="flex items-end gap-2">
-              <span className="text-3xl font-bold text-ink">1,284</span>
-              <span className="text-sm font-bold text-success mb-1">+12%</span>
-            </div>
+        {actionError ? (
+          <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
+            {actionError}
           </div>
+        ) : null}
 
-          <div className="lg:col-span-6 bg-white rounded-xl border border-border-muted p-5 shadow-sm">
-            <p className="text-[10px] font-bold text-faint uppercase tracking-[0.14em] mb-3">Bộ lọc nhanh</p>
-            <div className="flex flex-wrap gap-2">
-              {roleFilters.map((filter) => (
-                <button
-                  key={filter.id}
-                  type="button"
-                  onClick={() => setRoleFilter(filter.id)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
-                    roleFilter === filter.id
-                      ? "bg-insight text-white"
-                      : "bg-surface text-muted hover:bg-surface-muted"
-                  }`}
-                >
-                  {filter.label}
-                </button>
-              ))}
-            </div>
+        {actionMessage ? (
+          <div className="rounded-lg border border-success/30 bg-success-bg px-4 py-3 text-sm text-success-text">
+            {actionMessage}
           </div>
-
-          <div className="lg:col-span-3 bg-white rounded-xl border border-border-muted p-5 shadow-sm flex items-center justify-end">
-            <button
-              type="button"
-              className="inline-flex items-center gap-2 text-sm font-semibold text-secondary hover:text-insight transition-colors"
-            >
-              <Icon icon="lucide:sliders-horizontal" className="w-4 h-4" />
-              Tùy chỉnh nâng cao
-            </button>
-          </div>
-        </div>
+        ) : null}
 
         <div className="bg-white rounded-xl border border-border-muted shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
@@ -170,60 +147,84 @@ export default function UserManagementPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border-muted">
-                {filteredUsers.map((user) => (
-                  <tr key={user.id} className="hover:bg-surface/80 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-primary/25 flex items-center justify-center text-xs font-bold text-insight shrink-0">
-                          {user.avatar}
-                        </div>
-                        <div>
-                          <p className="text-sm font-bold text-ink">{user.name}</p>
-                          <p className="text-xs text-muted">{user.email}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <RoleBadge role={user.role} />
-                    </td>
-                    <td className="px-6 py-4">
-                      <StatusBadge status={user.status} />
-                    </td>
-                    <td className="px-6 py-4 text-sm text-muted">{user.lastSeen}</td>
-                    <td className="px-6 py-4 text-right">
-                      <button
-                        type="button"
-                        className="p-2 text-muted hover:text-ink hover:bg-surface rounded-lg transition-colors"
-                        aria-label="Tùy chọn"
-                      >
-                        <Icon icon="lucide:more-horizontal" className="w-5 h-5" />
-                      </button>
+                {isLoadingUsers ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-12 text-center text-sm text-muted">
+                      Đang tải danh sách người dùng...
                     </td>
                   </tr>
-                ))}
+                ) : users.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-12 text-center text-sm text-muted">
+                      Chưa có người dùng trong phiên này. Nhấn &quot;Thêm người dùng&quot; để tạo nhân viên mới.
+                    </td>
+                  </tr>
+                ) : (
+                  users.map((user) => (
+                    <tr key={user.id} className="hover:bg-surface/80 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-primary/25 flex items-center justify-center text-xs font-bold text-insight shrink-0">
+                            {user.avatar}
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold text-ink">{user.name}</p>
+                            <p className="text-xs text-muted">{user.email}</p>
+                            <p className="text-[10px] text-faint mt-0.5">{user.id}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <RoleBadge role={user.role} />
+                      </td>
+                      <td className="px-6 py-4">
+                        <StatusBadge status={user.status} />
+                      </td>
+                      <td className="px-6 py-4 text-sm text-muted">{user.lastSeen}</td>
+                      <td className="px-6 py-4 text-right relative">
+                        <button
+                          type="button"
+                          onClick={() => setOpenMenuId((current) => (current === user.id ? null : user.id))}
+                          className="p-2 text-muted hover:text-ink hover:bg-surface rounded-lg transition-colors"
+                          aria-label="Tùy chọn"
+                        >
+                          <Icon icon="lucide:more-horizontal" className="w-5 h-5" />
+                        </button>
+
+                        {openMenuId === user.id ? (
+                          <div className="absolute right-6 top-12 z-20 w-44 rounded-xl border border-border-muted bg-white shadow-lg py-2 text-left">
+                            <button
+                              type="button"
+                              disabled={pendingUserId === user.id}
+                              onClick={() => handleLockToggle(user)}
+                              className="w-full px-4 py-2.5 text-sm font-semibold text-left hover:bg-surface disabled:opacity-50"
+                            >
+                              {pendingUserId === user.id
+                                ? "Đang xử lý..."
+                                : user.status === "ACTIVE"
+                                  ? "Khóa tài khoản"
+                                  : "Mở khóa tài khoản"}
+                            </button>
+                          </div>
+                        ) : null}
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
-          </div>
-
-          <div className="px-6 py-4 border-t border-border-muted text-center">
-            <button
-              type="button"
-              className="inline-flex items-center gap-2 text-sm font-semibold text-secondary hover:text-insight transition-colors"
-            >
-              <Icon icon="lucide:mail" className="w-4 h-4" />
-              Mời thêm thành viên (1 đang chờ)
-            </button>
           </div>
         </div>
       </div>
 
-      <button
-        type="button"
-        className="fixed bottom-6 right-6 w-14 h-14 bg-insight hover:bg-secondary text-white rounded-full shadow-lg flex items-center justify-center transition-colors z-30"
-        aria-label="Thêm nhanh"
-      >
-        <Icon icon="lucide:plus" className="w-6 h-6" />
-      </button>
+      <CreateUserModal
+        open={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        onCreated={(user) => {
+          setUsers((current) => [user, ...current]);
+          setActionMessage("Tạo tài khoản nhân viên thành công.");
+        }}
+      />
     </AdminLayout>
   );
 }

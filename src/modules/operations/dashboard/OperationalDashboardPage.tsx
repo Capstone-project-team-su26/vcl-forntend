@@ -1,18 +1,31 @@
 "use client"
 import { Icon } from '@iconify/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import AppLogo from "@/shared/components/AppLogo";
+import * as operationsService from "@/shared/services/operationsService";
 
 export default function OperationalDashboardPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [dashboard, setDashboard] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const recentActivity = [
-    { id: 'SW-90234', recipient: 'Sarah Jenkins', destination: 'London, UK', status: 'In Transit', date: 'Oct 24, 2024', statusColor: 'text-primary bg-primary/15' },
-    { id: 'SW-90112', recipient: 'TechnoCorp Ltd', destination: 'Tokyo, JP', status: 'Delivered', date: 'Oct 22, 2024', statusColor: 'text-ink' },
-    { id: 'SW-89982', recipient: 'Michael Chen', destination: 'San Francisco, US', status: 'Pending', date: 'Oct 25, 2024', statusColor: 'text-ink' },
-    { id: 'SW-89551', recipient: 'Global Logistics', destination: 'Berlin, DE', status: 'On Hold', date: 'Oct 21, 2024', statusColor: 'text-accent bg-accent/15' },
-    { id: 'SW-89400', recipient: 'Anna Schmidt', destination: 'Munich, DE', status: 'Delivered', date: 'Oct 20, 2024', statusColor: 'text-ink' },
-  ];
+  useEffect(() => {
+    let active = true;
+
+    operationsService.getOperationalDashboard().then((data) => {
+      if (active) {
+        setDashboard(data);
+        setIsLoading(false);
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const recentActivity = dashboard?.recentActivity ?? [];
+  const stats = dashboard?.stats ?? [];
 
   return (
     <div className="flex min-h-screen bg-white font-['Open_Sans'] text-ink">
@@ -91,10 +104,10 @@ export default function OperationalDashboardPage() {
           <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
             <div>
               <h1 className="text-3xl lg:text-4xl font-black tracking-tight">
-                Welcome back, <span className="text-secondary font-sans uppercase-none">Alex</span>
+                Welcome back, <span className="text-secondary font-sans uppercase-none">{dashboard?.userName || "User"}</span>
               </h1>
               <p className="text-muted text-lg font-medium mt-2">
-                You have <span className="text-primary font-bold">12 active shipments</span> in transit today.
+                You have <span className="text-primary font-bold">{dashboard?.activeShipments ?? 0} active shipments</span> in transit today.
               </p>
             </div>
             <button className="flex items-center justify-center gap-3 bg-primary text-white px-6 py-2.5 rounded-lg shadow-[0px_2px_4px_0px_#9ECAD633] font-bold text-sm hover:bg-primary-hover transition-colors w-full lg:w-auto">
@@ -105,11 +118,7 @@ export default function OperationalDashboardPage() {
 
           {/* Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[
-              { label: 'Active Shipments', value: '12', sub: '4 arriving today', icon: './assets/IMG_11.svg', bg: 'bg-primary/20', iconColor: 'text-primary' },
-              { label: 'Pending Pickups', value: '03', sub: 'Scheduled for tomorrow', icon: './assets/IMG_12.svg', bg: 'bg-secondary/20', iconColor: 'text-secondary' },
-              { label: 'Loyalty Points', value: '4,850', sub: '250 points to Gold status', icon: './assets/IMG_13.svg', bg: 'bg-accent/20', iconColor: 'text-accent' },
-            ].map((stat, i) => (
+            {stats.map((stat, i) => (
               <div key={i} className="bg-white p-6 rounded-xl shadow-[0px_2px_4px_0px_#00000012] flex justify-between items-start">
                 <div>
                   <p className="text-[14px] font-medium text-muted tracking-wider uppercase">{stat.label}</p>
@@ -171,19 +180,27 @@ export default function OperationalDashboardPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
-                      {recentActivity.map((row, i) => (
-                        <tr key={i} className="hover:bg-gray-50 transition-colors">
-                          <td className="px-6 py-4 text-sm font-bold text-secondary">{row.id}</td>
-                          <td className="px-6 py-4 text-sm font-medium">{row.recipient}</td>
-                          <td className="px-6 py-4 text-sm text-muted">{row.destination}</td>
-                          <td className="px-6 py-4">
-                            <span className={`px-3 py-1 rounded-full text-[12px] font-bold ${row.statusColor || 'bg-transparent'}`}>
-                              {row.status}
-                            </span>
+                      {isLoading ? (
+                        <tr>
+                          <td colSpan={5} className="px-6 py-8 text-center text-sm text-muted">
+                            Đang tải dữ liệu...
                           </td>
-                          <td className="px-6 py-4 text-sm font-medium text-right">{row.date}</td>
                         </tr>
-                      ))}
+                      ) : (
+                        recentActivity.map((row) => (
+                          <tr key={row.id} className="hover:bg-gray-50 transition-colors">
+                            <td className="px-6 py-4 text-sm font-bold text-secondary">{row.id}</td>
+                            <td className="px-6 py-4 text-sm font-medium">{row.recipient}</td>
+                            <td className="px-6 py-4 text-sm text-muted">{row.destination}</td>
+                            <td className="px-6 py-4">
+                              <span className={`px-3 py-1 rounded-full text-[12px] font-bold ${row.statusColor || 'bg-transparent'}`}>
+                                {row.status}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-sm font-medium text-right">{row.date}</td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -209,7 +226,7 @@ export default function OperationalDashboardPage() {
 
                 <div className="pt-4 border-t border-primary/10 flex items-center justify-between">
                   <span className="text-insight text-sm font-semibold">Current Rate</span>
-                  <span className="bg-primary/20 text-primary px-3 py-1 rounded-full text-[12px] font-bold">13.8%</span>
+                  <span className="bg-primary/20 text-primary px-3 py-1 rounded-full text-[12px] font-bold">{dashboard?.fuelSurchargeRate || "—"}</span>
                 </div>
               </div>
 

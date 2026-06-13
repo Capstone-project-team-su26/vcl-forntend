@@ -1,8 +1,11 @@
 "use client";
 
 import { Icon } from "@iconify/react";
+import { useEffect, useState, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useState, type ReactNode } from "react";
+import UserNavMenu from "@/shared/components/UserNavMenu";
+import { useAuth } from "@/shared/hooks/useAuth";
 
 type AdminNavId = "dashboard" | "users" | "alerts" | "settings";
 
@@ -19,7 +22,30 @@ type AdminLayoutProps = {
 };
 
 export default function AdminLayout({ activeNav, children }: AdminLayoutProps) {
+  const router = useRouter();
+  const { session, isReady, isAdmin } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isReady) return;
+
+    if (!session?.token) {
+      router.replace("/login");
+      return;
+    }
+
+    if (!isAdmin) {
+      router.replace("/");
+    }
+  }, [isReady, session?.token, isAdmin, router]);
+
+  if (!isReady || !session?.token || !isAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-surface-panel text-muted">
+        Đang kiểm tra quyền truy cập...
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-surface-panel font-sans text-ink">
@@ -73,16 +99,6 @@ export default function AdminLayout({ activeNav, children }: AdminLayoutProps) {
             );
           })}
         </nav>
-
-        <div className="p-4 border-t border-border-muted">
-          <button
-            type="button"
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-danger hover:bg-danger/5 transition-colors"
-          >
-            <Icon icon="lucide:log-out" className="w-5 h-5" />
-            Logout
-          </button>
-        </div>
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">
@@ -95,20 +111,6 @@ export default function AdminLayout({ activeNav, children }: AdminLayoutProps) {
             <Icon icon="lucide:menu" className="w-6 h-6" />
           </button>
 
-          <div className="flex-1 max-w-xl">
-            <div className="relative">
-              <Icon
-                icon="lucide:search"
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-faint"
-              />
-              <input
-                type="search"
-                placeholder="Tìm kiếm hệ thống..."
-                className="w-full h-10 pl-10 pr-4 bg-surface rounded-full border border-border-muted text-sm text-ink input-focus-ring"
-              />
-            </div>
-          </div>
-
           <div className="flex items-center gap-3 lg:gap-5 ml-auto">
             <button type="button" className="relative p-2 text-muted hover:text-ink">
               <Icon icon="lucide:bell" className="w-5 h-5" />
@@ -118,15 +120,7 @@ export default function AdminLayout({ activeNav, children }: AdminLayoutProps) {
               <Icon icon="lucide:circle-help" className="w-5 h-5" />
             </button>
             <div className="hidden sm:block h-8 w-px bg-border-muted" />
-            <div className="flex items-center gap-3">
-              <div className="text-right hidden md:block">
-                <p className="text-sm font-bold text-ink leading-none">Quản trị viên</p>
-                <p className="text-[10px] font-bold text-faint tracking-wider mt-1">ADMIN ROLE</p>
-              </div>
-              <div className="w-9 h-9 rounded-full bg-primary/30 flex items-center justify-center overflow-hidden">
-                <Icon icon="lucide:user" className="w-5 h-5 text-insight" />
-              </div>
-            </div>
+            <UserNavMenu />
           </div>
         </header>
 

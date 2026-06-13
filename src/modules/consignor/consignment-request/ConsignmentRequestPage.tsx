@@ -1,7 +1,109 @@
-import { Icon } from '@iconify/react';
+"use client";
+
+import { Icon } from "@iconify/react";
+import { useEffect, useState } from "react";
 import AppLogo from "@/shared/components/AppLogo";
+import * as consignmentService from "@/shared/services/consignmentService";
+import { getErrorMessage } from "@/shared/utils/apiError";
+
+const STATUS_CLASS = {
+  Pending: "bg-warning-bg text-warning-text",
+  Approved: "bg-success-bg text-success-text",
+  Processing: "bg-info-bg text-info-text",
+  Draft: "bg-surface text-muted",
+};
 
 export default function ConsignmentRequestPage() {
+  const [requests, setRequests] = useState([]);
+  const [warehouses, setWarehouses] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    let active = true;
+
+    async function load() {
+      try {
+        const data = await consignmentService.listPurchaseRequests();
+        if (active) {
+          setRequests(data);
+          setWarehouses(consignmentService.getWarehouses());
+        }
+      } catch (err) {
+        if (active) setError(getErrorMessage(err));
+      } finally {
+        if (active) setIsLoading(false);
+      }
+    }
+
+    load();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError("");
+    setMessage("");
+
+    const form = e.currentTarget;
+    const payload = {
+      productLink: form.productLink?.value?.trim(),
+      productName: form.productName?.value?.trim(),
+      quantity: form.quantity?.value?.trim(),
+      destination: form.destination?.value,
+      requiredBy: form.requiredBy?.value,
+    };
+
+    if (!payload.productName || !payload.destination) {
+      setError("Vui lòng nhập tên sản phẩm và kho đích.");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const response = await consignmentService.createPurchaseRequest(payload);
+      setMessage(response.message);
+      const data = await consignmentService.listPurchaseRequests();
+      setRequests(data);
+      form.reset();
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function handleSaveDraft(e) {
+    const form = e.currentTarget.closest("form");
+    if (!form) return;
+
+    setError("");
+    setMessage("");
+    setIsSubmitting(true);
+
+    try {
+      const response = await consignmentService.savePurchaseRequestDraft({
+        productLink: form.productLink?.value?.trim(),
+        productName: form.productName?.value?.trim() || "Draft request",
+        quantity: form.quantity?.value?.trim() || "0",
+        destination: form.destination?.value || "HCM Hub",
+        requiredBy: form.requiredBy?.value,
+      });
+      setMessage(response.message);
+      const data = await consignmentService.listPurchaseRequests();
+      setRequests(data);
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-white font-['Open_Sans'] text-ink-deep">
       {/* Header */}
@@ -43,13 +145,26 @@ export default function ConsignmentRequestPage() {
               Fill out the details below to initiate a new procurement request.
             </p>
 
+            {error ? (
+              <div className="mb-4 rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
+                {error}
+              </div>
+            ) : null}
+
+            {message ? (
+              <div className="mb-4 rounded-lg border border-success/30 bg-success-bg px-4 py-3 text-sm text-success-text">
+                {message}
+              </div>
+            ) : null}
+
             {/* Form Card */}
             <div className="bg-white rounded-[16px] shadow-[0px_4px_24px_0px_#0000000a] p-6 lg:p-8">
-              <form className="space-y-6">
+              <form className="space-y-6" onSubmit={handleSubmit}>
                 {/* Product Link */}
                 <div className="space-y-2">
                   <label className="text-[14px] font-bold">Product Link</label>
                   <input
+                    name="productLink"
                     type="text"
                     placeholder="Product link"
                     className="w-full h-12 px-4 rounded-lg border border-secondary/30 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
@@ -61,7 +176,9 @@ export default function ConsignmentRequestPage() {
                   <div className="space-y-2">
                     <label className="text-[14px] font-bold">Product Name</label>
                     <input
+                      name="productName"
                       type="text"
+                      required
                       placeholder="Enter product name"
                       className="w-full h-12 px-4 rounded-lg border border-secondary/30 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                     />
@@ -70,7 +187,9 @@ export default function ConsignmentRequestPage() {
                   <div className="space-y-2">
                     <label className="text-[14px] font-bold">Quantity</label>
                     <input
-                      type="text"
+                      name="quantity"
+                      type="number"
+                      min="1"
                       placeholder="0"
                       className="w-full h-12 px-4 rounded-lg border border-secondary/30 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                     />
@@ -80,8 +199,20 @@ export default function ConsignmentRequestPage() {
                   <div className="space-y-2">
                     <label className="text-[14px] font-bold">Destination Warehouse</label>
                     <div className="relative">
-                      <select className="w-full h-12 px-4 rounded-lg border border-secondary/30 appearance-none bg-white focus:border-primary outline-none">
-                        <option value="">Select warehouse</option>
+                      <select
+                        name="destination"
+                        required
+                        defaultValue=""
+                        className="w-full h-12 px-4 rounded-lg border border-secondary/30 appearance-none bg-white focus:border-primary outline-none"
+                      >
+                        <option value="" disabled>
+                          Select warehouse
+                        </option>
+                        {warehouses.map((warehouse) => (
+                          <option key={warehouse} value={warehouse}>
+                            {warehouse}
+                          </option>
+                        ))}
                       </select>
                       <Icon icon="lucide:chevron-down" className="absolute right-4 top-1/2 -translate-y-1/2 text-muted" />
                     </div>
@@ -90,6 +221,7 @@ export default function ConsignmentRequestPage() {
                   <div className="space-y-2">
                     <label className="text-[14px] font-bold">Required By</label>
                     <input
+                      name="requiredBy"
                       type="date"
                       className="w-full h-12 px-4 rounded-lg border border-secondary/30 focus:border-primary outline-none"
                     />
@@ -113,8 +245,8 @@ export default function ConsignmentRequestPage() {
                   <div className="space-y-2">
                     <label className="text-[14px] font-bold">Notes</label>
                     <input
+                      name="notes"
                       type="text"
-                      placeholder="Additional instructions..."
                       className="w-full h-12 px-4 rounded-lg border border-secondary/30 focus:border-primary outline-none"
                     />
                   </div>
@@ -124,13 +256,16 @@ export default function ConsignmentRequestPage() {
                 <div className="flex flex-col sm:flex-row gap-4 pt-4">
                   <button
                     type="submit"
-                    className="h-12 px-8 bg-primary text-white font-bold rounded-lg shadow-[0px_4px_8px_0px_#00000014] hover:bg-primary-hover transition-colors"
+                    disabled={isSubmitting}
+                    className="h-12 px-8 bg-primary text-white font-bold rounded-lg shadow-[0px_4px_8px_0px_#00000014] hover:bg-primary-hover transition-colors disabled:opacity-60"
                   >
-                    Submit Request
+                    {isSubmitting ? "Submitting..." : "Submit Request"}
                   </button>
                   <button
                     type="button"
-                    className="h-12 px-8 border border-ink text-ink font-bold rounded-lg hover:bg-gray-50 transition-colors"
+                    disabled={isSubmitting}
+                    onClick={handleSaveDraft}
+                    className="h-12 px-8 border border-ink text-ink font-bold rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-60"
                   >
                     Save Draft
                   </button>
@@ -163,42 +298,36 @@ export default function ConsignmentRequestPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
-                    <tr className="table-row-hover">
-                      <td className="px-6 py-4 text-[14px] font-semibold">PR-2024-001</td>
-                      <td className="px-6 py-4 text-[14px] text-muted">Logitech MX Master 3S</td>
-                      <td className="px-6 py-4 text-[14px] text-muted">5</td>
-                      <td className="px-6 py-4 text-[14px] text-muted">HCM Hub</td>
-                      <td className="px-6 py-4">
-                        <span className="status-badge bg-warning-bg text-warning-text">Pending</span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <img src="./assets/IMG_4.svg" alt="Actions" className="w-[18px] h-[18px] cursor-pointer" />
-                      </td>
-                    </tr>
-                    <tr className="table-row-hover">
-                      <td className="px-6 py-4 text-[14px] font-semibold">PR-2024-002</td>
-                      <td className="px-6 py-4 text-[14px] text-muted">Dell UltraSharp 27"</td>
-                      <td className="px-6 py-4 text-[14px] text-muted">2</td>
-                      <td className="px-6 py-4 text-[14px] text-muted">Hanoi DC</td>
-                      <td className="px-6 py-4">
-                        <span className="status-badge bg-success-bg text-success-text">Approved</span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <img src="./assets/IMG_4.svg" alt="Actions" className="w-[18px] h-[18px] cursor-pointer" />
-                      </td>
-                    </tr>
-                    <tr className="table-row-hover">
-                      <td className="px-6 py-4 text-[14px] font-semibold">PR-2024-003</td>
-                      <td className="px-6 py-4 text-[14px] text-muted">Keychron K8 Pro</td>
-                      <td className="px-6 py-4 text-[14px] text-muted">10</td>
-                      <td className="px-6 py-4 text-[14px] text-muted">Bangkok Gateway</td>
-                      <td className="px-6 py-4">
-                        <span className="status-badge bg-info-bg text-info-text">Processing</span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <img src="./assets/IMG_4.svg" alt="Actions" className="w-[18px] h-[18px] cursor-pointer" />
-                      </td>
-                    </tr>
+                    {isLoading ? (
+                      <tr>
+                        <td colSpan={6} className="px-6 py-8 text-center text-sm text-muted">
+                          Đang tải yêu cầu...
+                        </td>
+                      </tr>
+                    ) : requests.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="px-6 py-8 text-center text-sm text-muted">
+                          Chưa có yêu cầu nào.
+                        </td>
+                      </tr>
+                    ) : (
+                      requests.map((row) => (
+                        <tr key={row.id} className="table-row-hover">
+                          <td className="px-6 py-4 text-[14px] font-semibold">{row.id}</td>
+                          <td className="px-6 py-4 text-[14px] text-muted">{row.productName}</td>
+                          <td className="px-6 py-4 text-[14px] text-muted">{row.quantity}</td>
+                          <td className="px-6 py-4 text-[14px] text-muted">{row.destination}</td>
+                          <td className="px-6 py-4">
+                            <span className={`status-badge ${row.statusClass || STATUS_CLASS[row.status] || ""}`}>
+                              {row.status}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <img src="./assets/IMG_4.svg" alt="Actions" className="w-[18px] h-[18px] cursor-pointer" />
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>

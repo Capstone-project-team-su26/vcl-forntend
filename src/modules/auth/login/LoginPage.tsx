@@ -5,6 +5,9 @@ import Link from "next/link";
 import { useState } from "react";
 import AppLogo from "@/shared/components/AppLogo";
 import colors from "@/shared/constants/colors";
+import { useAuth } from "@/shared/hooks/useAuth";
+import { ApiError } from "@/shared/types/api";
+import { getErrorMessage } from "@/shared/utils/apiError";
 
 const features = [
   { icon: "lucide:shield-check", title: "Secure Transfers", desc: "Enterprise-grade encryption" },
@@ -17,10 +20,42 @@ const avatarColors = [colors.primary, colors.secondary, colors.accent, colors.pr
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const { loginWithCredentials } = useAuth();
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError("");
+
+    const form = e.currentTarget;
+    const email = form.email?.value?.trim();
+    const password = form.password?.value;
+
+    if (!email || !password) {
+      setError("Vui lòng nhập email và mật khẩu.");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      await loginWithCredentials({ email, password });
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        setError("Email hoặc mật khẩu không đúng.");
+      } else if (err instanceof ApiError && err.status === 403) {
+        setError("Bạn không có quyền truy cập.");
+      } else {
+        setError(getErrorMessage(err, "Đăng nhập thất bại. Vui lòng thử lại."));
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
   return (
     <div className="min-h-screen w-full flex flex-col lg:flex-row bg-white font-sans">
-      {/* Marketing panel */}
       <aside className="relative hidden lg:flex lg:w-[58%] bg-surface-soft flex-col justify-between p-10 xl:p-14 overflow-hidden">
         <div className="relative z-10">
           <AppLogo variant="auth" className="mb-10" />
@@ -73,7 +108,6 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Hero image */}
         <div className="absolute top-0 right-0 w-[42%] h-full pointer-events-none">
           <div className="absolute inset-0 bg-gradient-to-r from-surface-soft via-surface-soft/80 to-transparent z-10" />
           <img
@@ -84,10 +118,8 @@ export default function LoginPage() {
         </div>
       </aside>
 
-      {/* Login form */}
       <main className="flex-1 flex flex-col justify-center px-6 py-12 sm:px-12 lg:px-16 xl:px-20">
         <div className="w-full max-w-[420px] mx-auto lg:mx-0 lg:ml-auto lg:mr-auto xl:mr-16">
-          {/* Mobile logo */}
           <AppLogo variant="auth" className="lg:hidden mb-8" />
 
           <header className="mb-8">
@@ -97,7 +129,19 @@ export default function LoginPage() {
             </p>
           </header>
 
-          <form className="space-y-5" onSubmit={(e) => e.preventDefault()}>
+          {error ? (
+            <div className="mb-5 rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
+              {error}
+            </div>
+          ) : null}
+
+          <form
+            className="space-y-5"
+            onSubmit={handleSubmit}
+            onInput={() => {
+              if (error) setError("");
+            }}
+          >
             <div className="space-y-2">
               <label htmlFor="email" className="text-sm font-semibold text-ink">
                 Email Address
@@ -109,7 +153,10 @@ export default function LoginPage() {
                 />
                 <input
                   id="email"
+                  name="email"
                   type="email"
+                  autoComplete="email"
+                  required
                   placeholder="alex.h@swiftship.com"
                   className="w-full h-12 pl-11 pr-4 bg-white border border-border-muted rounded-lg text-sm text-ink input-focus-ring"
                 />
@@ -121,9 +168,9 @@ export default function LoginPage() {
                 <label htmlFor="password" className="text-sm font-semibold text-ink">
                   Password
                 </label>
-                <button type="button" className="text-xs font-semibold text-primary hover:text-secondary">
+                <Link href="/forgot-password" className="text-xs font-semibold text-primary hover:text-secondary">
                   Forgot Password?
-                </button>
+                </Link>
               </div>
               <div className="relative">
                 <Icon
@@ -132,7 +179,10 @@ export default function LoginPage() {
                 />
                 <input
                   id="password"
+                  name="password"
                   type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  required
                   placeholder="••••••••"
                   className="w-full h-12 pl-11 pr-11 bg-white border border-border-muted rounded-lg text-sm text-ink input-focus-ring"
                 />
@@ -157,47 +207,20 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              className="w-full h-12 bg-primary hover:bg-primary-hover text-white font-bold rounded-lg flex items-center justify-center gap-2 shadow-sm transition-colors"
+              disabled={isSubmitting}
+              className="w-full h-12 bg-primary hover:bg-primary-hover disabled:opacity-60 text-white font-bold rounded-lg flex items-center justify-center gap-2 shadow-sm transition-colors"
             >
-              Sign In to Dashboard
-              <Icon icon="lucide:arrow-right" className="w-4 h-4" />
+              {isSubmitting ? "Signing in..." : "Sign In to Dashboard"}
+              {!isSubmitting ? <Icon icon="lucide:arrow-right" className="w-4 h-4" /> : null}
             </button>
           </form>
-
-          <div className="flex items-center gap-4 my-7">
-            <div className="flex-1 h-px bg-border-muted" />
-            <span className="text-[10px] font-bold tracking-[0.14em] text-faint uppercase">
-              Or continue with
-            </span>
-            <div className="flex-1 h-px bg-border-muted" />
-          </div>
-
-          <button
-            type="button"
-            className="w-full h-11 flex items-center justify-center gap-2 border border-border-muted rounded-lg text-sm font-semibold text-ink hover:bg-surface transition-colors"
-          >
-            <Icon icon="logos:google-icon" className="w-4 h-4" />
-            Google
-          </button>
 
           <p className="mt-8 text-center text-sm text-muted">
             Don&apos;t have an account?{" "}
             <Link href="/register" className="font-bold text-primary hover:text-secondary">
-              Request Access
+              Sign Up
             </Link>
           </p>
-
-          <div className="mt-10 pt-6 border-t border-surface-muted flex flex-wrap justify-center gap-x-6 gap-y-2">
-            <button type="button" className="text-xs text-faint hover:text-muted">
-              Privacy Policy
-            </button>
-            <button type="button" className="text-xs text-faint hover:text-muted">
-              Terms of Service
-            </button>
-            <button type="button" className="text-xs text-faint hover:text-muted">
-              Help Center
-            </button>
-          </div>
         </div>
       </main>
     </div>

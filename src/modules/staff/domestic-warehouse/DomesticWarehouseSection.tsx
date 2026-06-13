@@ -1,16 +1,15 @@
 "use client";
 
-const domesticStats = [
-  { icon: "./assets/IMG_15.svg", label: "Awaiting Put-away", value: "08", trend: "On schedule", iconBg: "bg-transparent", iconColor: "text-ink" },
-  { icon: "./assets/IMG_16.svg", label: "Ready for Handover", value: "05", trend: "Carrier pickup", iconBg: "bg-secondary/20", iconColor: "text-secondary" },
-];
-
-const domesticTransfers = [
-  { id: "SS-7731", status: "Delivered", route: ["London", "Bengaluru"], type: "FREIGHT", typeIcon: "./assets/IMG_19.svg", eta: "21 Oct" },
-  { id: "SS-5510", status: "Out for Delivery", route: ["Kolkata", "Paris"], type: "STANDARD", typeIcon: "./assets/IMG_18.svg", eta: "Today" },
-];
+import { useEffect, useState } from "react";
+import * as staffService from "@/shared/services/staffService";
 
 export default function DomesticWarehouseSection() {
+  const [data, setData] = useState({ stats: [], outboundShipments: [] });
+
+  useEffect(() => {
+    staffService.getDomesticWarehouseData().then(setData);
+  }, []);
+
   return (
     <div className="space-y-8">
       <section>
@@ -23,8 +22,8 @@ export default function DomesticWarehouseSection() {
       </section>
 
       <section className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        {domesticStats.map((stat, idx) => (
-          <div key={idx} className="bg-white p-6 rounded-xl shadow-sm border border-gray-50 flex flex-col justify-between h-40">
+        {data.stats.map((stat) => (
+          <div key={stat.label} className="bg-white p-6 rounded-xl shadow-sm border border-gray-50 flex flex-col justify-between h-40">
             <div className="flex justify-between items-start">
               <div className={`w-9 h-9 ${stat.iconBg} rounded-lg flex items-center justify-center`}>
                 <img src={stat.icon} alt={stat.label} className={`w-5 h-5 ${stat.iconColor}`} />
@@ -65,13 +64,15 @@ export default function DomesticWarehouseSection() {
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-muted">
-              {domesticTransfers.map((row, idx) => (
-                <tr key={idx} className="group hover:bg-gray-50/50 transition-colors">
+              {data.outboundShipments.map((row) => (
+                <tr key={row.id} className="group hover:bg-gray-50/50 transition-colors">
                   <td className="py-4 text-sm font-bold text-primary">{row.id}</td>
                   <td className="py-4">
-                    <span className={`inline-block px-3 py-1 rounded-lg text-[12px] font-semibold ${
-                      row.status === "Out for Delivery" ? "bg-primary text-white" : "border border-surface-muted text-ink"
-                    }`}>
+                    <span
+                      className={`inline-block px-3 py-1 rounded-lg text-[12px] font-semibold ${
+                        row.status === "Out for Delivery" ? "bg-primary text-white" : "border border-surface-muted text-ink"
+                      }`}
+                    >
                       {row.status}
                     </span>
                   </td>

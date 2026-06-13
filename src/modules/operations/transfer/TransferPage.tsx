@@ -1,10 +1,40 @@
 "use client"
 import { Icon } from '@iconify/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import AppLogo from "@/shared/components/AppLogo";
+import * as operationsService from "@/shared/services/operationsService";
+import { getErrorMessage } from "@/shared/utils/apiError";
 
 export default function TransferPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [transfer, setTransfer] = useState(null);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    operationsService.getTransferOptions().then(setTransfer);
+  }, []);
+
+  async function handleConfirm() {
+    setError("");
+    setMessage("");
+    setIsSubmitting(true);
+
+    try {
+      const response = await operationsService.confirmTransfer({
+        recipientName: "Alex Henderson",
+        city: "Ho Chi Minh City",
+      });
+      setMessage(`${response.message} Tracking: ${response.trackingId}`);
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  const summary = transfer?.summary;
 
   return (
     <div className="flex min-h-screen bg-white font-['Open_Sans'] text-muted">
@@ -92,6 +122,18 @@ export default function TransferPage() {
           <p className="text-lg text-muted mb-10">
             Fill in the details below to generate your shipping label and schedule a pickup.
           </p>
+
+          {error ? (
+            <div className="mb-4 rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
+              {error}
+            </div>
+          ) : null}
+
+          {message ? (
+            <div className="mb-4 rounded-lg border border-success/30 bg-success-bg px-4 py-3 text-sm text-success-text">
+              {message}
+            </div>
+          ) : null}
 
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
             {/* Form Section */}
@@ -197,25 +239,25 @@ export default function TransferPage() {
                 </div>
 
                 <div className="p-6 space-y-4">
-                  <SummaryRow label="Package Type:" value="small box" />
-                  <SummaryRow label="Service Level:" value="standard" valueClass="text-secondary" />
+                  <SummaryRow label="Package Type:" value={summary?.packageType || "small box"} />
+                  <SummaryRow label="Service Level:" value={summary?.serviceLevel || "standard"} valueClass="text-secondary" />
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-muted">Est. Delivery:</span>
                     <div className="flex items-center font-semibold text-ink">
                       <img src="./assets/IMG_12.svg" alt="Calendar" className="w-3 h-3 mr-1.5" />
-                      Oct 24, 2024
+                      {summary?.estDelivery || "Oct 24, 2024"}
                     </div>
                   </div>
                   
                   <hr className="border-surface-muted my-2" />
 
-                  <SummaryRow label="Base Rate" value="$24.80" />
-                  <SummaryRow label="Fuel Surcharge" value="$2.40" />
-                  <SummaryRow label="Handling Fee" value="$0.00" />
+                  <SummaryRow label="Base Rate" value={`$${summary?.baseRate?.toFixed(2) || "24.80"}`} />
+                  <SummaryRow label="Fuel Surcharge" value={`$${summary?.fuelSurcharge?.toFixed(2) || "2.40"}`} />
+                  <SummaryRow label="Handling Fee" value={`$${summary?.handlingFee?.toFixed(2) || "0.00"}`} />
 
                   <div className="flex justify-between items-center pt-2">
                     <span className="text-sm font-bold text-secondary">Total Due</span>
-                    <span className="text-xl font-bold font-[Oswald] text-secondary">$27.20</span>
+                    <span className="text-xl font-bold font-[Oswald] text-secondary">${summary?.total?.toFixed(2) || "27.20"}</span>
                   </div>
 
                   <div className="bg-accent/30 border border-accent/50 rounded-lg p-3 flex gap-3">
@@ -227,8 +269,13 @@ export default function TransferPage() {
                 </div>
 
                 <div className="p-6 bg-white/40">
-                  <button className="w-full bg-primary text-white py-3.5 rounded-lg font-black text-lg flex items-center justify-center gap-3 shadow-lg shadow-primary/30 hover:bg-primary-hover transition-all active:scale-[0.98]">
-                    Confirm & Pay
+                  <button
+                    type="button"
+                    disabled={isSubmitting}
+                    onClick={handleConfirm}
+                    className="w-full bg-primary text-white py-3.5 rounded-lg font-black text-lg flex items-center justify-center gap-3 shadow-lg shadow-primary/30 hover:bg-primary-hover transition-all active:scale-[0.98] disabled:opacity-60"
+                  >
+                    {isSubmitting ? "Processing..." : "Confirm & Pay"}
                     <img src="./assets/IMG_14.svg" alt="Arrow" className="w-5 h-5" />
                   </button>
                 </div>

@@ -3,9 +3,32 @@
 import { Icon } from '@iconify/react';
 import { useRouter } from "next/navigation";
 import AppLogo from "@/shared/components/AppLogo";
+import UserNavMenu from "@/shared/components/UserNavMenu";
+import { useAuth } from "@/shared/hooks/useAuth";
+
+import { useState } from "react";
+import * as operationsService from "@/shared/services/operationsService";
 
 export default function Homepage() {
   const router = useRouter();
+  const { isLoggedIn } = useAuth();
+  const [destination, setDestination] = useState("");
+  const [estimatedPrice, setEstimatedPrice] = useState(45);
+  const [isEstimating, setIsEstimating] = useState(false);
+
+  async function handleEstimate() {
+    setIsEstimating(true);
+    try {
+      const result = await operationsService.estimatePrice({
+        destination: destination || "Vietnam",
+        packageType: "small-box",
+      });
+      setEstimatedPrice(result.estimatedPrice);
+    } finally {
+      setIsEstimating(false);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-surface-muted font-['Open_Sans'] text-ink-deep">
       {/* Header */}
@@ -32,12 +55,16 @@ export default function Homepage() {
               </button>
             </nav>
 
-            <button
-              onClick={() => router.push("/login")}
-              className="h-10 px-5 bg-primary text-white text-[14px] font-bold rounded-lg hover:bg-primary-hover transition-colors"
-            >
-              Sign In
-            </button>
+            {isLoggedIn ? (
+              <UserNavMenu displayName="SwiftShip User" roleLabel="MEMBER" />
+            ) : (
+              <button
+                onClick={() => router.push("/login")}
+                className="h-10 px-5 bg-primary text-white text-[14px] font-bold rounded-lg hover:bg-primary-hover transition-colors"
+              >
+                Sign In
+              </button>
+            )}
 
             {/* Mobile Menu Toggle */}
             <button className="md:hidden p-2">
@@ -84,9 +111,12 @@ export default function Homepage() {
               <div>
                 <label className="block text-[12px] font-bold text-subtle uppercase mb-2">Destination</label>
                 <div className="bg-surface border border-border-muted p-3">
-                  <input 
-                    type="text" 
-                    placeholder="Enter City or Country" 
+                  <input
+                    type="text"
+                    value={destination}
+                    onChange={(e) => setDestination(e.target.value)}
+                    onBlur={handleEstimate}
+                    placeholder="Enter City or Country"
                     className="w-full bg-transparent outline-none text-[16px]"
                   />
                 </div>
@@ -99,11 +129,15 @@ export default function Homepage() {
 
               <div className="pt-4 border-t border-surface-muted flex justify-between items-center">
                 <span className="text-[14px] font-semibold">Estimated Price:</span>
-                <span className="text-[24px] font-bold">$45.00</span>
+                <span className="text-[24px] font-bold">${estimatedPrice.toFixed(2)}</span>
               </div>
 
-              <button className="w-full py-3 bg-secondary text-white text-[14px] font-[900] uppercase hover:bg-secondary-hover transition-colors">
-                Confirm Shipment
+              <button
+                type="button"
+                onClick={() => router.push("/transfer")}
+                className="w-full py-3 bg-secondary text-white text-[14px] font-[900] uppercase hover:bg-secondary-hover transition-colors"
+              >
+                {isEstimating ? "Calculating..." : "Confirm Shipment"}
               </button>
             </div>
           </div>
