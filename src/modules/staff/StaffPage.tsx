@@ -6,13 +6,15 @@ import SalesSection from "./sales/SalesSection";
 import GlobalWarehouseSection from "./global-warehouse/GlobalWarehouseSection";
 import DomesticWarehouseSection from "./domestic-warehouse/DomesticWarehouseSection";
 import AppLogo from "@/shared/components/AppLogo";
+import TransferHistory from "./transfer-history/TransferHistory";
 
-type StaffSection = "sales" | "global-warehouse" | "domestic-warehouse";
+type StaffSection = "sales" | "global-warehouse" | "domestic-warehouse" | "transfer-history";
 
 const sectionNav: { id: StaffSection; label: string; icon: string }[] = [
   { id: "sales", label: "Sales", icon: "./assets/IMG_2.svg" },
   { id: "global-warehouse", label: "Global Warehouse", icon: "./assets/IMG_4.svg" },
   { id: "domestic-warehouse", label: "Domestic Warehouse", icon: "./assets/IMG_3.svg" },
+  { id: "transfer-history", label: "Transfer History", icon: "./assets/IMG_3.svg" },
 ];
 
 export default function StaffPage() {
@@ -27,6 +29,8 @@ export default function StaffPage() {
         return <GlobalWarehouseSection />;
       case "domestic-warehouse":
         return <DomesticWarehouseSection />;
+      case "transfer-history":
+        return <TransferHistory/>;
       default:
         return <SalesSection />;
     }
