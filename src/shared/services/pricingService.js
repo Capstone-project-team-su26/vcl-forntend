@@ -1,7 +1,9 @@
+import { isMockMode } from "@/shared/config/dataSource";
 import { mockDelay } from "@/shared/mocks/mockDelay";
 import { getMockStore } from "@/shared/mocks/mockStore";
+import { apiRequest } from "@/shared/services/apiClient";
 
-export async function getPricingPlans() {
+async function getPricingPlansMock() {
   await mockDelay();
   const { pricing } = getMockStore();
   return {
@@ -10,7 +12,22 @@ export async function getPricingPlans() {
   };
 }
 
-export async function selectPricingPlan(tier) {
+async function selectPricingPlanMock(tier) {
   await mockDelay();
   return { message: `Đã chọn gói ${tier}. (Mock — chưa có API thanh toán.)` };
+}
+
+export async function getPricingPlans() {
+  if (isMockMode()) return getPricingPlansMock();
+
+  return apiRequest("/api/Pricing/plans");
+}
+
+export async function selectPricingPlan(tier) {
+  if (isMockMode()) return selectPricingPlanMock(tier);
+
+  return apiRequest("/api/Pricing/select", {
+    method: "POST",
+    body: JSON.stringify({ tier }),
+  });
 }

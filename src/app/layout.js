@@ -1,4 +1,5 @@
 import { Geist, Geist_Mono } from "next/font/google";
+import DataSourceDevTools from "@/shared/components/DataSourceDevTools";
 import { SITE_DESCRIPTION, SITE_NAME } from "@/shared/constants/site";
 import "./globals.css";
 
@@ -23,7 +24,10 @@ export default function RootLayout({ children }) {
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {children}
+        <DataSourceDevTools />
+      </body>
     </html>
   );
 }
