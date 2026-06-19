@@ -7,11 +7,23 @@ import Link from "next/link";
 import UserNavMenu from "@/shared/components/UserNavMenu";
 import { useAuth } from "@/shared/hooks/useAuth";
 
-type AdminNavId = "dashboard" | "users" | "alerts" | "settings";
+type AdminNavId = "dashboard" | "users" | "restricted-items" | "pricing-rules" | "alerts" | "settings";
 
 const navItems: { id: AdminNavId; label: string; icon: string; href?: string }[] = [
   { id: "dashboard", label: "Dashboard", icon: "lucide:layout-dashboard" },
   { id: "users", label: "Users", icon: "lucide:users", href: "/admin/users" },
+  {
+    id: "restricted-items",
+    label: "Hàng cấm",
+    icon: "lucide:shield-alert",
+    href: "/admin/restricted-items",
+  },
+  {
+    id: "pricing-rules",
+    label: "Bảng giá",
+    icon: "lucide:receipt",
+    href: "/admin/pricing-rules",
+  },
   { id: "alerts", label: "Alerts", icon: "lucide:bell" },
   { id: "settings", label: "Settings", icon: "lucide:settings" },
 ];

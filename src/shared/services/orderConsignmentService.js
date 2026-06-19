@@ -2,6 +2,7 @@ import { isMockMode } from "@/shared/config/dataSource";
 import { mockDelay } from "@/shared/mocks/mockDelay";
 import { getMockStore } from "@/shared/mocks/mockStore";
 import { apiRequest } from "@/shared/services/apiClient";
+import { ApiError } from "@/shared/utils/apiError";
 
 export const CONSIGNMENT_TYPE_LABELS = {
   PURCHASE_ORDER: "Mua hộ",
@@ -14,6 +15,8 @@ export const CONSIGNMENT_STATUS_LABELS = {
   APPROVED: "Đã duyệt",
   REJECTED: "Từ chối",
   IN_PROGRESS: "Đang xử lý",
+  IN_WAREHOUSE: "Đã nhập kho",
+  CANCELLED: "Đã hủy",
   COMPLETED: "Hoàn tất",
 };
 
@@ -22,15 +25,26 @@ export const CONSIGNMENT_STATUS_STYLES = {
   APPROVED: "bg-success-bg text-success-text",
   REJECTED: "bg-danger/10 text-danger",
   IN_PROGRESS: "bg-info-bg text-info-text",
+  IN_WAREHOUSE: "bg-info-bg text-info-text",
+  CANCELLED: "bg-surface text-muted",
   COMPLETED: "bg-surface text-muted",
 };
+
+/** Chỉ PENDING_REVIEW mới được Staff duyệt / từ chối. */
+export const CONSIGNMENT_UPDATABLE_STATUS = "PENDING_REVIEW";
+
+export function canStaffUpdateConsignmentStatus(status) {
+  return status === CONSIGNMENT_UPDATABLE_STATUS;
+}
 
 const STATUS_SORT_ORDER = {
   PENDING_REVIEW: 0,
   IN_PROGRESS: 1,
+  IN_WAREHOUSE: 1,
   APPROVED: 2,
   REJECTED: 3,
-  COMPLETED: 4,
+  CANCELLED: 4,
+  COMPLETED: 5,
 };
 
 function buildQuery({ page, pageSize, status, search }) {
@@ -89,9 +103,62 @@ async function getStaffConsignmentMock(id) {
   await mockDelay();
   const item = getMockStore().staffConsignments.find((entry) => entry.id === id);
   if (!item) {
-    throw new Error("Không tìm thấy yêu cầu ký gửi.");
+    throw new ApiError(404, { message: "Không tìm thấy yêu cầu ký gửi." });
   }
   return { ...item };
+}
+
+function generateMockTrackingCode() {
+  return `SW-${Math.floor(Math.random() * 90000 + 10000)}`;
+}
+
+async function updateStaffConsignmentStatusMock(orderId, { status, rejectionReason }) {
+  await mockDelay();
+
+  const item = getMockStore().staffConsignments.find((entry) => entry.id === orderId);
+  if (!item) {
+    throw new ApiError(404, { message: "Không tìm thấy yêu cầu ký gửi." });
+  }
+
+  if (!canStaffUpdateConsignmentStatus(item.status)) {
+    throw new ApiError(400, {
+      message:
+        "Không thể cập nhật yêu cầu đã hủy, đã nhập kho hoặc đã được xử lý trước đó.",
+    });
+  }
+
+  if (status === "REJECTED") {
+    const reason = rejectionReason?.trim();
+    if (!reason) {
+      throw new ApiError(400, { message: "Vui lòng nhập lý do từ chối." });
+    }
+    item.status = "REJECTED";
+    item.rejectionReason = reason;
+    item.trackingCode = undefined;
+
+    return {
+      message: "Đã từ chối yêu cầu ký gửi.",
+      status: item.status,
+      rejectionReason: reason,
+      consignment: { ...item },
+    };
+  }
+
+  if (status === "APPROVED") {
+    const trackingCode = generateMockTrackingCode();
+    item.status = "APPROVED";
+    item.trackingCode = trackingCode;
+    item.rejectionReason = undefined;
+
+    return {
+      message: "Duyệt yêu cầu thành công.",
+      status: item.status,
+      trackingCode,
+      consignment: { ...item },
+    };
+  }
+
+  throw new ApiError(400, { message: "Trạng thái cập nhật không hợp lệ." });
 }
 
 /**
@@ -112,6 +179,19 @@ export async function getStaffConsignment(id) {
   if (isMockMode()) return getStaffConsignmentMock(id);
 
   return apiRequest(`/api/orders/consignments/${id}`);
+}
+
+/**
+ * @param {string} orderId
+ * @param {{ status: "APPROVED" | "REJECTED"; rejectionReason?: string }} payload
+ */
+export async function updateStaffConsignmentStatus(orderId, payload) {
+  if (isMockMode()) return updateStaffConsignmentStatusMock(orderId, payload);
+
+  return apiRequest(`/api/orders/consignments/${orderId}/status`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
 }
 
 export function formatConsignmentDate(isoDate) {
