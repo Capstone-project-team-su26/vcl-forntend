@@ -134,7 +134,7 @@ export default function UserManagementPage() {
           </div>
         ) : null}
 
-        <div className="bg-white rounded-xl border border-border-muted shadow-sm overflow-hidden">
+        <div className="bg-surface-elevated rounded-xl border border-border-muted shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[800px] text-left">
               <thead>
@@ -192,7 +192,7 @@ export default function UserManagementPage() {
                         </button>
 
                         {openMenuId === user.id ? (
-                          <div className="absolute right-6 top-12 z-20 w-44 rounded-xl border border-border-muted bg-white shadow-lg py-2 text-left">
+                          <div className="absolute right-6 top-12 z-20 w-44 rounded-xl border border-border-muted bg-surface-elevated shadow-lg py-2 text-left">
                             <button
                               type="button"
                               disabled={pendingUserId === user.id}

@@ -2,6 +2,7 @@ import { isMockMode } from "@/shared/config/dataSource";
 import { mockDelay } from "@/shared/mocks/mockDelay";
 import { getMockStore } from "@/shared/mocks/mockStore";
 import { apiRequest } from "@/shared/services/apiClient";
+import { normalizeUserFromApi } from "@/shared/services/apiMappers";
 
 async function listUsersMock() {
   await mockDelay();
@@ -31,7 +32,9 @@ async function unlockUserMock(userId) {
 export async function listUsers() {
   if (isMockMode()) return listUsersMock();
 
-  return apiRequest("/api/User");
+  const raw = await apiRequest("/api/User");
+  const users = Array.isArray(raw) ? raw : raw?.data ?? [];
+  return users.map(normalizeUserFromApi);
 }
 
 export function lockUser(userId) {

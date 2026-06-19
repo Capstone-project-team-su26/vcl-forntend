@@ -174,13 +174,13 @@ export default function PricingRulesPage() {
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               placeholder="Tìm theo loại dịch vụ hoặc tuyến vận chuyển..."
-              className="w-full h-11 pl-10 pr-4 rounded-lg border border-border-muted bg-white text-sm input-focus-ring"
+              className="w-full h-11 pl-10 pr-4 rounded-lg border border-border-muted bg-surface-elevated text-sm input-focus-ring"
             />
           </div>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="h-11 px-4 rounded-lg border border-border-muted bg-white text-sm font-medium input-focus-ring lg:min-w-[200px]"
+            className="h-11 px-4 rounded-lg border border-border-muted bg-surface-elevated text-sm font-medium input-focus-ring lg:min-w-[200px]"
           >
             {STATUS_FILTER_OPTIONS.map((option) => (
               <option key={option.value || "all"} value={option.value}>
@@ -202,7 +202,7 @@ export default function PricingRulesPage() {
           </div>
         ) : null}
 
-        <div className="bg-white rounded-xl border border-border-muted shadow-sm overflow-hidden">
+        <div className="bg-surface-elevated rounded-xl border border-border-muted shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[1100px] text-left">
               <thead>

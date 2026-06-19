@@ -73,8 +73,14 @@ export function resetPassword(payload) {
 export function adminRegisterEmployee(payload) {
   if (isMockMode()) return mockAdminRegisterEmployee(payload);
 
-  return apiRequest("/api/Auth/admin/register", {
+  return apiRequest("/api/User", {
     method: "POST",
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      fullName: payload.fullName,
+      email: payload.email,
+      password: payload.password,
+      phone: payload.phone,
+      role: payload.role,
+    }),
   });
 }

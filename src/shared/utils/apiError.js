@@ -1,6 +1,12 @@
 export class ApiError extends Error {
   constructor(status, body = {}) {
-    super(body.message || body.error || "Request failed");
+    super(
+      body.message ||
+        body.detail ||
+        body.error ||
+        body.title ||
+        "Request failed"
+    );
     this.name = "ApiError";
     this.status = status;
     this.body = body;
@@ -14,6 +20,13 @@ export async function parseApiError(response) {
     body = await response.json();
   } catch {
     body = { message: response.statusText || "Request failed" };
+  }
+
+  if (!body.message && body.errors) {
+    const first = Object.values(body.errors)[0];
+    if (Array.isArray(first) && first[0]) {
+      body.message = first[0];
+    }
   }
 
   return new ApiError(response.status, body);

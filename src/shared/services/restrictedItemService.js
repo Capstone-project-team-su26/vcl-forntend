@@ -2,6 +2,10 @@ import { isMockMode } from "@/shared/config/dataSource";
 import { mockDelay } from "@/shared/mocks/mockDelay";
 import { getMockStore, nextMockId } from "@/shared/mocks/mockStore";
 import { apiRequest } from "@/shared/services/apiClient";
+import {
+  normalizeRestrictedItemFromApi,
+  toApiRestrictedItemPayload,
+} from "@/shared/services/apiMappers";
 import { ApiError } from "@/shared/utils/apiError";
 
 export const RESTRICTION_TYPE_LABELS = {
@@ -99,25 +103,41 @@ async function deleteRestrictedItemMock(id) {
 export async function listRestrictedItems(params = {}) {
   if (isMockMode()) return listRestrictedItemsMock(params);
 
-  return apiRequest(`/api/restricted-items${buildQuery(params)}`);
+  const raw = await apiRequest(`/api/restricted-items${buildQuery(params)}`);
+  const items = Array.isArray(raw) ? raw : raw?.data ?? [];
+  return items.map(normalizeRestrictedItemFromApi);
 }
 
 export async function createRestrictedItem(payload) {
   if (isMockMode()) return createRestrictedItemMock(payload);
 
-  return apiRequest("/api/restricted-items", {
+  const raw = await apiRequest("/api/restricted-items", {
     method: "POST",
-    body: JSON.stringify(payload),
+    body: JSON.stringify(toApiRestrictedItemPayload(payload)),
   });
+
+  const item = normalizeRestrictedItemFromApi(raw?.item ?? raw?.data ?? raw);
+  return { message: raw?.message || "Thêm mặt hàng thành công.", item };
 }
 
 export async function updateRestrictedItem(id, payload) {
   if (isMockMode()) return updateRestrictedItemMock(id, payload);
 
-  return apiRequest(`/api/restricted-items/${id}`, {
-    method: "PUT",
-    body: JSON.stringify(payload),
+  const body = toApiRestrictedItemPayload({
+    name: payload.name,
+    country: payload.country,
+    restrictionType: payload.restrictionType,
+    notes: payload.notes,
+    isActive: payload.isActive,
   });
+
+  const raw = await apiRequest(`/api/restricted-items/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+
+  const item = normalizeRestrictedItemFromApi(raw?.item ?? raw?.data ?? { ...body, id });
+  return { message: raw?.message || "Cập nhật mặt hàng thành công.", item };
 }
 
 export async function deleteRestrictedItem(id) {

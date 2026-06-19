@@ -29,6 +29,7 @@ const PAGE_SIZE = 10;
 
 type ConsignmentItem = {
   id: string;
+  consignmentCode?: string | null;
   customerName: string;
   consignmentType: string;
   status: string;
@@ -203,7 +204,9 @@ export default function ConsignmentListPanel() {
                     className="hover:bg-gray-50 transition-colors cursor-pointer"
                     onClick={() => router.push(`/staff/consignments/${item.id}`)}
                   >
-                    <td className="px-6 py-4 text-sm font-bold text-secondary">{item.id}</td>
+                    <td className="px-6 py-4 text-sm font-bold text-secondary">
+                      {item.consignmentCode || `${item.id.slice(0, 8)}…`}
+                    </td>
                     <td className="px-6 py-4 text-sm font-medium">{item.customerName}</td>
                     <td className="px-6 py-4 text-sm text-muted">
                       {CONSIGNMENT_TYPE_LABELS[item.consignmentType] || item.consignmentType}

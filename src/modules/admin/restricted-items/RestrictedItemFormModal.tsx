@@ -47,11 +47,13 @@ export default function RestrictedItemFormModal({
 
     const form = e.currentTarget;
     const payload = {
-      name: form.name.value.trim(),
-      country: form.country.value.trim() || null,
-      restrictionType: form.restrictionType.value,
-      notes: form.notes.value.trim(),
-      isActive: form.isActive.checked,
+      name: (form.elements.namedItem("name") as HTMLInputElement).value.trim(),
+      country:
+        (form.elements.namedItem("country") as HTMLInputElement).value.trim() || null,
+      restrictionType: (form.elements.namedItem("restrictionType") as HTMLSelectElement)
+        .value,
+      notes: (form.elements.namedItem("notes") as HTMLTextAreaElement).value.trim(),
+      isActive: (form.elements.namedItem("isActive") as HTMLInputElement).checked,
     };
 
     setIsSubmitting(true);
@@ -80,7 +82,7 @@ export default function RestrictedItemFormModal({
         onClick={onClose}
         aria-label="Đóng"
       />
-      <div className="relative w-full max-w-lg bg-white rounded-xl border border-border-muted shadow-xl">
+      <div className="relative w-full max-w-lg bg-surface-elevated rounded-xl border border-border-muted shadow-xl">
         <div className="flex items-center justify-between px-6 py-4 border-b border-border-muted">
           <h2 className="text-lg font-bold text-ink">
             {mode === "create" ? "Thêm hàng cấm/hạn chế" : "Chỉnh sửa mặt hàng"}

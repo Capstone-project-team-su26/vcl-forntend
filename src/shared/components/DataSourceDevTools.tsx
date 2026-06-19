@@ -10,11 +10,13 @@ import {
 } from "@/shared/config/dataSource";
 
 export default function DataSourceDevTools() {
-  const [source, setSource] = useState(() => getDataSource());
+  const [source, setSource] = useState<"mock" | "api">(
+    () => getDataSource() as "mock" | "api"
+  );
 
   useEffect(() => {
     function handleChange() {
-      setSource(getDataSource());
+      setSource(getDataSource() as "mock" | "api");
     }
 
     window.addEventListener(DATA_SOURCE_CHANGE_EVENT, handleChange);
@@ -26,7 +28,7 @@ export default function DataSourceDevTools() {
   }
 
   function toggle() {
-    const next = source === DataSource.MOCK ? DataSource.API : DataSource.MOCK;
+    const next: "mock" | "api" = source === "mock" ? "api" : "mock";
     setDataSourceOverride(next);
     window.location.reload();
   }
@@ -39,7 +41,7 @@ export default function DataSourceDevTools() {
   const isMock = source === DataSource.MOCK;
 
   return (
-    <div className="fixed bottom-4 right-4 z-9999 flex items-center gap-2 rounded-lg border border-surface-muted bg-white px-3 py-2 text-xs shadow-lg">
+    <div className="fixed bottom-4 right-4 z-9999 flex items-center gap-2 rounded-lg border border-border-muted bg-white dark:bg-surface-elevated px-3 py-2 text-xs shadow-lg">
       <span className="text-muted">Data:</span>
       <button
         type="button"

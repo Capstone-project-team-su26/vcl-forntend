@@ -2,6 +2,10 @@ import { isMockMode } from "@/shared/config/dataSource";
 import { mockDelay } from "@/shared/mocks/mockDelay";
 import { getMockStore, nextMockId } from "@/shared/mocks/mockStore";
 import { apiRequest } from "@/shared/services/apiClient";
+import {
+  normalizePricingRuleFromApi,
+  toApiPricingRulePayload,
+} from "@/shared/services/apiMappers";
 import { CONSIGNMENT_TYPE_LABELS } from "@/shared/services/orderConsignmentService";
 import { ApiError } from "@/shared/utils/apiError";
 
@@ -128,23 +132,40 @@ async function deletePricingRuleMock(id) {
  */
 export async function listPricingRules(params = {}) {
   if (isMockMode()) return listPricingRulesMock(params);
-  return apiRequest(`/api/pricing-rules${buildQuery(params)}`);
+
+  const raw = await apiRequest(`/api/pricing-rules${buildQuery(params)}`);
+  const items = Array.isArray(raw) ? raw : raw?.data ?? [];
+  return items.map(normalizePricingRuleFromApi);
 }
 
 export async function createPricingRule(payload) {
   if (isMockMode()) return createPricingRuleMock(payload);
-  return apiRequest("/api/pricing-rules", {
+
+  const data = normalizePricingPayload(payload);
+  validatePricingPayload(data);
+
+  const raw = await apiRequest("/api/pricing-rules", {
     method: "POST",
-    body: JSON.stringify(payload),
+    body: JSON.stringify(toApiPricingRulePayload(data)),
   });
+
+  const item = normalizePricingRuleFromApi(raw?.item ?? raw?.data ?? raw);
+  return { message: raw?.message || "Thêm cấu hình giá thành công.", item };
 }
 
 export async function updatePricingRule(id, payload) {
   if (isMockMode()) return updatePricingRuleMock(id, payload);
-  return apiRequest(`/api/pricing-rules/${id}`, {
+
+  const data = normalizePricingPayload(payload);
+  validatePricingPayload(data);
+
+  const raw = await apiRequest(`/api/pricing-rules/${id}`, {
     method: "PUT",
-    body: JSON.stringify(payload),
+    body: JSON.stringify(toApiPricingRulePayload(data)),
   });
+
+  const item = normalizePricingRuleFromApi(raw?.item ?? raw?.data ?? { ...data, id });
+  return { message: raw?.message || "Cập nhật cấu hình giá thành công.", item };
 }
 
 export async function deletePricingRule(id) {

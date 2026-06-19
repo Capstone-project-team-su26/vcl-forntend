@@ -69,7 +69,7 @@ export default function AdminLayout({ activeNav, children }: AdminLayoutProps) {
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-border-muted flex flex-col transition-transform duration-300 lg:translate-x-0 lg:static ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-surface-elevated border-r border-border-muted flex flex-col transition-transform duration-300 lg:translate-x-0 lg:static ${
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -114,7 +114,7 @@ export default function AdminLayout({ activeNav, children }: AdminLayoutProps) {
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-16 bg-white border-b border-border-muted flex items-center gap-4 px-4 lg:px-8 shrink-0">
+        <header className="h-16 bg-surface-elevated border-b border-border-muted flex items-center gap-4 px-4 lg:px-8 shrink-0">
           <button
             type="button"
             className="lg:hidden p-2 text-muted"

@@ -196,13 +196,13 @@ export default function RestrictedItemsPage() {
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               placeholder="Tìm theo tên mặt hàng..."
-              className="w-full h-11 pl-10 pr-4 rounded-lg border border-border-muted bg-white text-sm input-focus-ring"
+              className="w-full h-11 pl-10 pr-4 rounded-lg border border-border-muted bg-surface-elevated text-sm input-focus-ring"
             />
           </div>
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
-            className="h-11 px-4 rounded-lg border border-border-muted bg-white text-sm font-medium input-focus-ring lg:min-w-[220px]"
+            className="h-11 px-4 rounded-lg border border-border-muted bg-surface-elevated text-sm font-medium input-focus-ring lg:min-w-[220px]"
           >
             {TYPE_FILTER_OPTIONS.map((option) => (
               <option key={option.value || "all"} value={option.value}>
@@ -224,7 +224,7 @@ export default function RestrictedItemsPage() {
           </div>
         ) : null}
 
-        <div className="bg-white rounded-xl border border-border-muted shadow-sm overflow-hidden">
+        <div className="bg-surface-elevated rounded-xl border border-border-muted shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[960px] text-left">
               <thead>

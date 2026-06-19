@@ -2,6 +2,11 @@ import { isMockMode } from "@/shared/config/dataSource";
 import { mockDelay } from "@/shared/mocks/mockDelay";
 import { getMockStore } from "@/shared/mocks/mockStore";
 import { apiRequest } from "@/shared/services/apiClient";
+import {
+  normalizeConsignmentDetail,
+  normalizeConsignmentListResponse,
+  normalizeConsignmentStatusUpdate,
+} from "@/shared/services/apiMappers";
 import { ApiError } from "@/shared/utils/apiError";
 
 export const CONSIGNMENT_TYPE_LABELS = {
@@ -49,10 +54,10 @@ const STATUS_SORT_ORDER = {
 
 function buildQuery({ page, pageSize, status, search }) {
   const params = new URLSearchParams();
-  params.set("page", String(page));
+  params.set("pageNumber", String(page));
   params.set("pageSize", String(pageSize));
   if (status) params.set("status", status);
-  if (search) params.set("search", search);
+  if (search) params.set("searchCode", search);
   return params.toString();
 }
 
@@ -167,18 +172,25 @@ async function updateStaffConsignmentStatusMock(orderId, { status, rejectionReas
 export async function listStaffConsignments(params = {}) {
   if (isMockMode()) return listStaffConsignmentsMock(params);
 
-  return apiRequest(`/api/orders/consignments?${buildQuery({
-    page: params.page ?? 1,
-    pageSize: params.pageSize ?? 10,
-    status: params.status,
-    search: params.search,
-  })}`);
+  const page = params.page ?? 1;
+  const pageSize = params.pageSize ?? 10;
+  const raw = await apiRequest(
+    `/api/orders/consignments?${buildQuery({
+      page,
+      pageSize,
+      status: params.status,
+      search: params.search,
+    })}`
+  );
+
+  return normalizeConsignmentListResponse(raw, { page, pageSize });
 }
 
 export async function getStaffConsignment(id) {
   if (isMockMode()) return getStaffConsignmentMock(id);
 
-  return apiRequest(`/api/orders/consignments/${id}`);
+  const raw = await apiRequest(`/api/orders/consignments/${id}`);
+  return normalizeConsignmentDetail(raw);
 }
 
 /**
@@ -188,10 +200,12 @@ export async function getStaffConsignment(id) {
 export async function updateStaffConsignmentStatus(orderId, payload) {
   if (isMockMode()) return updateStaffConsignmentStatusMock(orderId, payload);
 
-  return apiRequest(`/api/orders/consignments/${orderId}/status`, {
+  const raw = await apiRequest(`/api/orders/consignments/${orderId}/status`, {
     method: "PUT",
     body: JSON.stringify(payload),
   });
+
+  return normalizeConsignmentStatusUpdate(raw);
 }
 
 export function formatConsignmentDate(isoDate) {
