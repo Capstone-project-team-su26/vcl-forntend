@@ -2,7 +2,7 @@
 import { Icon } from '@iconify/react';
 import { useState } from 'react';
 
-export function CusSup() {
+export default function CusSup() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (

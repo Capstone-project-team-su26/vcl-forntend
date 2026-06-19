@@ -2,41 +2,29 @@
 
 import { Icon } from "@iconify/react";
 import { useState } from "react";
-import SalesSection from "./sales/SalesSection";
-import GlobalWarehouseSection from "./global-warehouse/GlobalWarehouseSection";
-import DomesticWarehouseSection from "./domestic-warehouse/DomesticWarehouseSection";
+import CusSup from "./support-request/cus-sup";
 import AppLogo from "@/shared/components/AppLogo";
-import TransferHistory from "./transfer-history/TransferHistory";
-import Tracking from "./domestic-warehouse/Tracking";
+import Tracking from "./tracking/Tracking";
 
-type StaffSection = "sales" | "global-warehouse" | "domestic-warehouse" | "transfer-history" | "tracking";
+type CustomerSection = "customer-support" | "tracking";
 
-const sectionNav: { id: StaffSection; label: string; icon: string }[] = [
-  { id: "sales", label: "Sales", icon: "./assets/IMG_2.svg" },
-  { id: "global-warehouse", label: "International Warehouse", icon: "./assets/IMG_4.svg" },
-  { id: "domestic-warehouse", label: "Domestic Warehouse", icon: "./assets/IMG_3.svg" },
-  { id: "transfer-history", label: "Transfer History", icon: "./assets/IMG_3.svg" },
-  { id: "tracking", label: "Track package", icon: "./assets/IMG_3.svg" },
+const sectionNav: { id: CustomerSection; label: string; icon: string }[] = [
+  { id: "customer-support", label: "Customer Support", icon: "./assets/IMG_2.svg" },
+  { id: "tracking", label: "Track Package", icon: "./assets/IMG_4.svg" }
 ];
 
 export default function StaffPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [activeSection, setActiveSection] = useState<StaffSection>("sales");
+  const [activeSection, setActiveSection] = useState<CustomerSection>("tracking");
 
   const renderSection = () => {
     switch (activeSection) {
-      case "sales":
-        return <SalesSection />;
-      case "global-warehouse":
-        return <GlobalWarehouseSection />;
-      case "domestic-warehouse":
-        return <DomesticWarehouseSection />;
-      case "transfer-history":
-        return <TransferHistory/>;
+      case "customer-support":
+        return <CusSup />;
       case "tracking":
         return <Tracking/>;
       default:
-        return <SalesSection />;
+        return <Tracking/>;
     }
   };
 

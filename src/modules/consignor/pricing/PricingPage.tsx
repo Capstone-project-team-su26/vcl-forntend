@@ -9,66 +9,75 @@ export default function PricingPage() {
 
    return (
     <div className="flex min-h-screen bg-white font-['Open_Sans'] text-[#575E6B]">
-      {/* Sidebar - Desktop */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#F9FAFB] border-r border-[#f3f4f6] transition-transform duration-300 lg:translate-x-0 lg:static lg:inset-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <div className="flex flex-col h-full">
-          {/* Logo */}
-          <div className="h-16 flex items-center px-6 border-b border-[#f3f4f6]">
-            <div className="w-8 h-8 bg-[#9ECAD6] rounded-md flex items-center justify-center mr-3">
-              <img src="./assets/IMG_1.svg" alt="Logo" className="w-[22px] h-[22px]" />
-            </div>
-            <span className="font-['Oswald'] text-xl font-black text-[#9ECAD6] tracking-wider">SwiftShip</span>
-          </div>
-
-          {/* Navigation */}
-          <nav className="flex-1 px-4 py-6 space-y-2">
-            <NavItem icon="./assets/IMG_2.svg" label="Dashboard" />
-            <NavItem icon="./assets/IMG_3.svg" label="Transfer Package" />
-            <NavItem icon="./assets/IMG_4.svg" label="Track & Receive" />
-            <NavItem icon="./assets/IMG_5.svg" label="Pricing & Services" active />
-          </nav>
-
-          {/* Bottom Actions */}
-          <div className="p-4 border-t border-[#f3f4f6] space-y-2">
-            <button className="flex items-center w-full px-4 py-2 text-sm font-medium hover:bg-gray-100 rounded-lg transition-colors">
-              <img src="./assets/IMG_6.svg" alt="Settings" className="w-5 h-5 mr-3" />
-              Settings
-            </button>
-            <button className="flex items-center w-full px-4 py-2 text-sm font-medium text-[#D92644] hover:bg-red-50 rounded-lg transition-colors">
-              <img src="./assets/IMG_7.svg" alt="Sign Out" className="w-5 h-5 mr-3" />
-              Sign Out
-            </button>
-          </div>
-        </div>
-      </aside>
-
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Header */}
         <header className="h-16 bg-white border-b border-[#f3f4f6] flex items-center justify-between px-4 lg:px-8 shrink-0">
-          <button 
-            className="lg:hidden p-2 rounded-md hover:bg-gray-100"
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          >
-            <Icon icon="lucide:menu" className="w-6 h-6" />
-          </button>
 
-          <div className="flex items-center ml-auto space-x-6">
+          {/* LEFT SECTION */}
+          <div className="flex items-center min-w-fit">
+
+            {/* Mobile menu */}
+            <button
+              className="lg:hidden p-2 rounded-md hover:bg-gray-100 mr-3"
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            >
+              <Icon icon="lucide:menu" className="w-6 h-6" />
+            </button>
+
+            {/* Logo */}
+            <div className="flex items-center">
+              <img src="./assets/logo.svg" alt="Logo" className="w-10 h-10" />
+              <span className="ml-2 font-bold text-lg whitespace-nowrap">
+                NexusLogistics
+              </span>
+            </div>
+          </div>
+
+
+          {/* CENTER SECTION */}
+          <nav className="hidden lg:flex flex-1 justify-center gap-12">
+            <button className="text-gray-700 hover:text-black">Home</button>
+            <button className="text-gray-700 hover:text-black">Tracking</button>
+            <button className="text-gray-700 hover:text-black">Pricing</button>
+            <button className="text-gray-700 hover:text-black">location</button>
+          </nav>
+
+
+          {/* RIGHT SECTION */}
+          <div className="flex items-center min-w-fit space-x-6">
+
             <div className="relative">
-              <img src="./assets/IMG_9.svg" alt="Notifications" className="w-5 h-5" />
+              <img
+                src="./assets/IMG_9.svg"
+                alt="Notifications"
+                className="w-5 h-5"
+              />
               <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-[#D92644] border-2 border-white rounded-full" />
             </div>
+
             <div className="h-8 w-px bg-[#f3f4f6]" />
+
             <div className="flex items-center text-right">
               <div className="mr-3 hidden sm:block">
-                <p className="text-sm font-bold text-[#16181D] leading-none">Alex Henderson</p>
-                <p className="text-[12px] text-[#575E6B] mt-1">Premium Member</p>
+                <p className="text-sm font-bold text-[#16181D] leading-none">
+                  Alex Henderson
+                </p>
+                <p className="text-[12px] text-[#575E6B] mt-1">
+                  Premium Member
+                </p>
               </div>
+
               <div className="relative">
-                <img src="./assets/IMG_8.webp" alt="Avatar" className="w-9 h-9 rounded-full object-cover" />
+                <img
+                  src="./assets/IMG_8.webp"
+                  alt="Avatar"
+                  className="w-9 h-9 rounded-full object-cover"
+                />
                 <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#22C358] border-2 border-white rounded-full" />
               </div>
             </div>
+
           </div>
         </header>
 
