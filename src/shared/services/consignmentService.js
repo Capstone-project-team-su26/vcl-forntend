@@ -1,5 +1,7 @@
+import { isMockMode } from "@/shared/config/dataSource";
 import { mockDelay } from "@/shared/mocks/mockDelay";
 import { getMockStore, nextMockId } from "@/shared/mocks/mockStore";
+import { apiRequest } from "@/shared/services/apiClient";
 
 const STATUS_STYLES = {
   Pending: "bg-warning-bg text-warning-text",
@@ -8,12 +10,12 @@ const STATUS_STYLES = {
   Draft: "bg-surface text-muted",
 };
 
-export async function listPurchaseRequests() {
+async function listPurchaseRequestsMock() {
   await mockDelay();
   return getMockStore().purchaseRequests.map((item) => ({ ...item }));
 }
 
-export async function createPurchaseRequest(payload) {
+async function createPurchaseRequestMock(payload) {
   await mockDelay();
 
   const request = {
@@ -31,11 +33,32 @@ export async function createPurchaseRequest(payload) {
   return { message: "Gửi yêu cầu mua hàng thành công.", request };
 }
 
-export async function savePurchaseRequestDraft(payload) {
-  await mockDelay();
-  return createPurchaseRequest({ ...payload, status: "Draft" });
+export async function listPurchaseRequests() {
+  if (isMockMode()) return listPurchaseRequestsMock();
+
+  return apiRequest("/api/PurchaseRequest");
 }
 
-export function getWarehouses() {
-  return getMockStore().transfer.warehouses;
+export async function createPurchaseRequest(payload) {
+  if (isMockMode()) return createPurchaseRequestMock(payload);
+
+  return apiRequest("/api/PurchaseRequest", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function savePurchaseRequestDraft(payload) {
+  if (isMockMode()) return createPurchaseRequestMock({ ...payload, status: "Draft" });
+
+  return apiRequest("/api/PurchaseRequest/draft", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function getWarehouses() {
+  if (isMockMode()) return getMockStore().transfer.warehouses;
+
+  return apiRequest("/api/Warehouse");
 }

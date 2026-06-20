@@ -10,7 +10,7 @@ import {
 } from "@/shared/services/authSession";
 import * as authService from "@/shared/services/authService";
 import { getErrorMessage } from "@/shared/utils/apiError";
-import { getHomeRouteByRole, isAdminRole } from "@/shared/utils/routing";
+import { getHomeRouteByRole, isAdminRole, isSaleRole, isStaffRole } from "@/shared/utils/routing";
 
 export function useAuth() {
   const router = useRouter();
@@ -52,6 +52,8 @@ export function useAuth() {
     isLoggedIn: Boolean(session?.token),
     isReady,
     isAdmin: isAdminRole(session?.role),
+    isStaff: isStaffRole(session?.role),
+    isSale: isSaleRole(session?.role),
     loginWithCredentials,
     saveAuthSession,
     logout,

@@ -1,10 +1,22 @@
 "use client";
 import { Icon } from '@iconify/react';
 import { useEffect, useState } from "react";
+import ConsignmentListPanel from "@/modules/staff/consignments/ConsignmentListPanel";
+import type { SalesTab } from "@/modules/staff/staffSections";
 import * as staffService from "@/shared/services/staffService";
 import Link from "next/link";
 
-export default function SalesSection() {
+type SalesSectionProps = {
+  activeTab?: SalesTab;
+  onTabChange?: (tab: SalesTab) => void;
+};
+
+const salesTabs: { id: SalesTab; label: string }[] = [
+  { id: "overview", label: "Tổng quan" },
+  { id: "consignments", label: "Quản lý ký gửi" },
+];
+
+export default function SalesSection({ activeTab = "overview", onTabChange }: SalesSectionProps) {
   const [data, setData] = useState(null);
 
   useEffect(() => {

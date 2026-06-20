@@ -1,6 +1,18 @@
+import { isMockMode } from "@/shared/config/dataSource";
+import {
+  mockAdminRegisterEmployee,
+  mockForgotPassword,
+  mockLogin,
+  mockRegisterCustomer,
+  mockResendCustomerOtp,
+  mockResetPassword,
+  mockVerifyCustomerOtp,
+} from "@/shared/mocks/authMocks";
 import { apiRequest } from "@/shared/services/apiClient";
 
 export function registerCustomer(payload) {
+  if (isMockMode()) return mockRegisterCustomer(payload);
+
   return apiRequest("/api/Auth/customer/register", {
     method: "POST",
     body: JSON.stringify(payload),
@@ -9,6 +21,8 @@ export function registerCustomer(payload) {
 }
 
 export function verifyCustomerOtp(payload) {
+  if (isMockMode()) return mockVerifyCustomerOtp(payload);
+
   return apiRequest("/api/Auth/customer/verify-otp", {
     method: "POST",
     body: JSON.stringify(payload),
@@ -17,6 +31,8 @@ export function verifyCustomerOtp(payload) {
 }
 
 export function resendCustomerOtp(email) {
+  if (isMockMode()) return mockResendCustomerOtp(email);
+
   return apiRequest("/api/Auth/customer/resend-otp", {
     method: "POST",
     body: JSON.stringify({ email }),
@@ -25,6 +41,8 @@ export function resendCustomerOtp(email) {
 }
 
 export function login(payload) {
+  if (isMockMode()) return mockLogin(payload);
+
   return apiRequest("/api/Auth/login", {
     method: "POST",
     body: JSON.stringify(payload),
@@ -33,6 +51,8 @@ export function login(payload) {
 }
 
 export function forgotPassword(payload) {
+  if (isMockMode()) return mockForgotPassword(payload);
+
   return apiRequest("/api/Auth/forgot-password", {
     method: "POST",
     body: JSON.stringify(payload),
@@ -41,6 +61,8 @@ export function forgotPassword(payload) {
 }
 
 export function resetPassword(payload) {
+  if (isMockMode()) return mockResetPassword(payload);
+
   return apiRequest("/api/Auth/reset-password", {
     method: "POST",
     body: JSON.stringify(payload),
@@ -49,8 +71,16 @@ export function resetPassword(payload) {
 }
 
 export function adminRegisterEmployee(payload) {
-  return apiRequest("/api/Auth/admin/register", {
+  if (isMockMode()) return mockAdminRegisterEmployee(payload);
+
+  return apiRequest("/api/User", {
     method: "POST",
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      fullName: payload.fullName,
+      email: payload.email,
+      password: payload.password,
+      phone: payload.phone,
+      role: payload.role,
+    }),
   });
 }

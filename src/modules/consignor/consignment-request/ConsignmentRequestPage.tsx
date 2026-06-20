@@ -26,10 +26,13 @@ export default function ConsignmentRequestPage() {
 
     async function load() {
       try {
-        const data = await consignmentService.listPurchaseRequests();
+        const [data, warehouseList] = await Promise.all([
+          consignmentService.listPurchaseRequests(),
+          consignmentService.getWarehouses(),
+        ]);
         if (active) {
           setRequests(data);
-          setWarehouses(consignmentService.getWarehouses());
+          setWarehouses(warehouseList);
         }
       } catch (err) {
         if (active) setError(getErrorMessage(err));

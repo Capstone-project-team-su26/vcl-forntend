@@ -7,11 +7,23 @@ import Link from "next/link";
 import UserNavMenu from "@/shared/components/UserNavMenu";
 import { useAuth } from "@/shared/hooks/useAuth";
 
-type AdminNavId = "dashboard" | "users" | "alerts" | "settings";
+type AdminNavId = "dashboard" | "users" | "restricted-items" | "pricing-rules" | "alerts" | "settings";
 
 const navItems: { id: AdminNavId; label: string; icon: string; href?: string }[] = [
   { id: "dashboard", label: "Dashboard", icon: "lucide:layout-dashboard" },
   { id: "users", label: "Users", icon: "lucide:users", href: "/admin/users" },
+  {
+    id: "restricted-items",
+    label: "Hàng cấm",
+    icon: "lucide:shield-alert",
+    href: "/admin/restricted-items",
+  },
+  {
+    id: "pricing-rules",
+    label: "Bảng giá",
+    icon: "lucide:receipt",
+    href: "/admin/pricing-rules",
+  },
   { id: "alerts", label: "Alerts", icon: "lucide:bell" },
   { id: "settings", label: "Settings", icon: "lucide:settings" },
 ];
@@ -57,7 +69,7 @@ export default function AdminLayout({ activeNav, children }: AdminLayoutProps) {
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-border-muted flex flex-col transition-transform duration-300 lg:translate-x-0 lg:static ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-surface-elevated border-r border-border-muted flex flex-col transition-transform duration-300 lg:translate-x-0 lg:static ${
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -102,7 +114,7 @@ export default function AdminLayout({ activeNav, children }: AdminLayoutProps) {
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-16 bg-white border-b border-border-muted flex items-center gap-4 px-4 lg:px-8 shrink-0">
+        <header className="h-16 bg-surface-elevated border-b border-border-muted flex items-center gap-4 px-4 lg:px-8 shrink-0">
           <button
             type="button"
             className="lg:hidden p-2 text-muted"

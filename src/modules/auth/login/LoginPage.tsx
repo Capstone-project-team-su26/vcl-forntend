@@ -2,10 +2,12 @@
 
 import { Icon } from "@iconify/react";
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import AppLogo from "@/shared/components/AppLogo";
 import colors from "@/shared/constants/colors";
+import { isMockMode } from "@/shared/config/dataSource";
 import { useAuth } from "@/shared/hooks/useAuth";
+import { MOCK_TEST_ACCOUNTS } from "@/shared/mocks/mockAccounts";
 import { ApiError } from "@/shared/types/api";
 import { getErrorMessage } from "@/shared/utils/apiError";
 
@@ -22,7 +24,21 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const formRef = useRef<HTMLFormElement>(null);
   const { loginWithCredentials } = useAuth();
+  const mockMode = isMockMode();
+
+  function fillMockAccount(email: string) {
+    const form = formRef.current;
+    if (!form) return;
+
+    const emailInput = form.elements.namedItem("email") as HTMLInputElement | null;
+    const passwordInput = form.elements.namedItem("password") as HTMLInputElement | null;
+
+    if (emailInput) emailInput.value = email;
+    if (passwordInput) passwordInput.value = "mock123";
+    setError("");
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -135,7 +151,31 @@ export default function LoginPage() {
             </div>
           ) : null}
 
+          {mockMode ? (
+            <div className="mb-5 rounded-lg border border-warning-bg bg-warning-bg/40 px-4 py-3 text-sm text-ink space-y-3">
+              <p className="font-semibold">Chế độ Mock — mật khẩu bất kỳ</p>
+              <div className="flex flex-wrap gap-2">
+                {MOCK_TEST_ACCOUNTS.map((account) => (
+                  <button
+                    key={account.email}
+                    type="button"
+                    onClick={() => fillMockAccount(account.email)}
+                    className="inline-flex flex-col items-start px-3 py-2 rounded-lg border border-surface-muted bg-white hover:bg-surface text-left transition-colors"
+                  >
+                    <span className="text-xs font-bold text-primary">{account.label}</span>
+                    <span className="text-[11px] text-muted">{account.email}</span>
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-muted">
+                Test task ký gửi: chọn <strong>Sale</strong> → Sales → tab{" "}
+                <strong>Quản lý ký gửi</strong>
+              </p>
+            </div>
+          ) : null}
+
           <form
+            ref={formRef}
             className="space-y-5"
             onSubmit={handleSubmit}
             onInput={() => {

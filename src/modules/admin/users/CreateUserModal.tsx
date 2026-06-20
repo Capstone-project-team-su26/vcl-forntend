@@ -100,7 +100,7 @@ export default function CreateUserModal({ open, onClose, onCreated }: CreateUser
         onClick={onClose}
       />
 
-      <div className="relative w-full max-w-lg bg-white rounded-2xl border border-border-muted shadow-xl p-6">
+      <div className="relative w-full max-w-lg bg-surface-elevated rounded-2xl border border-border-muted shadow-xl p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-xl font-bold text-ink">Thêm nhân viên</h2>
@@ -171,7 +171,7 @@ export default function CreateUserModal({ open, onClose, onCreated }: CreateUser
                 name="employeeRole"
                 required
                 defaultValue="Sale"
-                className="w-full h-11 px-4 border border-border-muted rounded-lg text-sm input-focus-ring bg-white"
+                className="w-full h-11 px-4 border border-border-muted rounded-lg text-sm input-focus-ring bg-surface-elevated"
               >
                 {EMPLOYEE_ROLES.map((item) => (
                   <option key={item.value} value={item.value}>

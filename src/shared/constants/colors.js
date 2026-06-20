@@ -42,6 +42,14 @@ export const colors = {
   infoText: "#1D4ED8",
   white: "#ffffff",
   black: "#000000",
+
+  /** Dark mode palette — pastel neon */
+  darkPalette: {
+    lavender: "#B983FF",
+    cornflower: "#94B3FD",
+    sky: "#94DAFF",
+    cyan: "#99FEFF",
+  },
 };
 
 /** Dùng khi cần truyền hex vào prop style (PricingCard, chart, v.v.). */

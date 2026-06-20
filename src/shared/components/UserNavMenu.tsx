@@ -60,7 +60,7 @@ export default function UserNavMenu({
       {open && (
         <div
           role="menu"
-          className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl border border-border-muted shadow-lg py-2 z-50"
+          className="absolute right-0 top-full mt-2 w-56 bg-surface-elevated rounded-xl border border-border-muted shadow-lg py-2 z-50"
         >
           <div className="px-4 py-3 border-b border-border-muted">
             <p className="text-sm font-bold text-ink truncate">{name}</p>

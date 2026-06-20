@@ -7,11 +7,12 @@ const insecureHttpsAgent =
     : undefined;
 
 function getApiBase() {
-  return (
+  const raw =
     process.env.API_URL ||
     process.env.API_PROXY_TARGET ||
-    "https://localhost:7237"
-  ).replace(/\/$/, "");
+    "https://localhost:7237";
+
+  return raw.replace(/\/$/, "").replace(/\/api$/, "");
 }
 
 function nodeRequest(url, { method, headers, body }) {

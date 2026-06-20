@@ -1,12 +1,14 @@
+import { isMockMode } from "@/shared/config/dataSource";
 import { mockDelay } from "@/shared/mocks/mockDelay";
 import { getMockStore } from "@/shared/mocks/mockStore";
+import { apiRequest } from "@/shared/services/apiClient";
 
-export async function getSalesWorkspace() {
+async function getSalesWorkspaceMock() {
   await mockDelay();
   return { ...getMockStore().staff.sales };
 }
 
-export async function getGlobalWarehouseData() {
+async function getGlobalWarehouseDataMock() {
   await mockDelay();
   const data = getMockStore().staff.globalWarehouse;
   return {
@@ -15,11 +17,29 @@ export async function getGlobalWarehouseData() {
   };
 }
 
-export async function getDomesticWarehouseData() {
+async function getDomesticWarehouseDataMock() {
   await mockDelay();
   const data = getMockStore().staff.domesticWarehouse;
   return {
     stats: data.stats.map((item) => ({ ...item })),
     outboundShipments: data.outboundShipments.map((item) => ({ ...item })),
   };
+}
+
+export async function getSalesWorkspace() {
+  if (isMockMode()) return getSalesWorkspaceMock();
+
+  return apiRequest("/api/Staff/sales");
+}
+
+export async function getGlobalWarehouseData() {
+  if (isMockMode()) return getGlobalWarehouseDataMock();
+
+  return apiRequest("/api/Staff/global-warehouse");
+}
+
+export async function getDomesticWarehouseData() {
+  if (isMockMode()) return getDomesticWarehouseDataMock();
+
+  return apiRequest("/api/Staff/domestic-warehouse");
 }

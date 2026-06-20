@@ -1,4 +1,7 @@
 import { Geist, Geist_Mono } from "next/font/google";
+import DataSourceDevTools from "@/shared/components/DataSourceDevTools";
+import ThemeProvider from "@/shared/components/ThemeProvider";
+import ThemeToggle from "@/shared/components/ThemeToggle";
 import { SITE_DESCRIPTION, SITE_NAME } from "@/shared/constants/site";
 import "./globals.css";
 
@@ -17,13 +20,35 @@ export const metadata = {
   description: SITE_DESCRIPTION,
 };
 
+const themeInitScript = `
+(function () {
+  try {
+    var stored = localStorage.getItem("vcl:theme");
+    var dark =
+      stored === "dark" ||
+      (stored !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    if (dark) document.documentElement.classList.add("dark");
+  } catch (e) {}
+})();
+`;
+
 export default function RootLayout({ children }) {
   return (
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
+      <body className="min-h-full flex flex-col bg-background text-ink">
+        <ThemeProvider>
+          {children}
+          <ThemeToggle />
+          <DataSourceDevTools />
+        </ThemeProvider>
+      </body>
     </html>
   );
 }

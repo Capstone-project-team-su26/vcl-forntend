@@ -1,7 +1,9 @@
+import { isMockMode } from "@/shared/config/dataSource";
 import { mockDelay } from "@/shared/mocks/mockDelay";
 import { getMockStore } from "@/shared/mocks/mockStore";
+import { apiRequest } from "@/shared/services/apiClient";
 
-export async function getOperationalDashboard() {
+async function getOperationalDashboardMock() {
   await mockDelay();
   const { dashboard } = getMockStore();
   return {
@@ -13,7 +15,7 @@ export async function getOperationalDashboard() {
   };
 }
 
-export async function getTransferOptions() {
+async function getTransferOptionsMock() {
   await mockDelay();
   const { transfer } = getMockStore();
   return {
@@ -23,7 +25,7 @@ export async function getTransferOptions() {
   };
 }
 
-export async function confirmTransfer(payload) {
+async function confirmTransferMock(payload) {
   await mockDelay();
   const trackingId = `SW-${Math.floor(Math.random() * 90000 + 10000)}`;
 
@@ -43,7 +45,7 @@ export async function confirmTransfer(payload) {
   };
 }
 
-export async function estimatePrice({ destination, packageType }) {
+async function estimatePriceMock({ destination, packageType }) {
   await mockDelay();
   const base = packageType === "pallet" ? 85 : packageType === "envelope" ? 12.5 : 24.8;
   const multiplier = destination?.toLowerCase().includes("international") ? 1.35 : 1;
@@ -54,4 +56,34 @@ export async function estimatePrice({ destination, packageType }) {
     currency: "USD",
     etaDays: packageType === "pallet" ? "7-10" : "2-3",
   };
+}
+
+export async function getOperationalDashboard() {
+  if (isMockMode()) return getOperationalDashboardMock();
+
+  return apiRequest("/api/Operations/dashboard");
+}
+
+export async function getTransferOptions() {
+  if (isMockMode()) return getTransferOptionsMock();
+
+  return apiRequest("/api/Operations/transfer/options");
+}
+
+export async function confirmTransfer(payload) {
+  if (isMockMode()) return confirmTransferMock(payload);
+
+  return apiRequest("/api/Operations/transfer", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function estimatePrice(payload) {
+  if (isMockMode()) return estimatePriceMock(payload);
+
+  return apiRequest("/api/Operations/estimate-price", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 }

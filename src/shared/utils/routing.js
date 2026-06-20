@@ -6,6 +6,7 @@ export function getHomeRouteByRole(role) {
     case "Customer":
       return "/profile";
     case "Sale":
+      return "/staff?salesTab=consignments";
     case "WarehouseStaff":
     case "OperationsManager":
       return "/staff";
@@ -16,4 +17,14 @@ export function getHomeRouteByRole(role) {
 
 export function isAdminRole(role) {
   return role === "Admin";
+}
+
+const STAFF_ROLES = ["Sale", "WarehouseStaff", "OperationsManager"];
+
+export function isStaffRole(role) {
+  return STAFF_ROLES.includes(role);
+}
+
+export function isSaleRole(role) {
+  return role === "Sale";
 }
