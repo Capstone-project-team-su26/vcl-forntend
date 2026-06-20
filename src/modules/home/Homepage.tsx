@@ -92,8 +92,8 @@ export default function Homepage() {
                 Request Purchase
               </button>
               <button
-                onClick={() => router.push("/track-package")} 
-                className="px-8 py-3 bg-white border border-black text-black text-[18px] font-bold hover:bg-gray-50 transition-colors">
+                onClick={() => router.push("/purchaserequest")}
+                className="px-8 py-3 bg-black text-white text-[18px] font-bold hover:bg-gray-800 transition-colors">
                 Track Package
               </button>
             </div>
@@ -190,55 +190,6 @@ export default function Homepage() {
               <p className="text-[12px] text-subtle">Specialized care for delicate items</p>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* Recent Transfers */}
-      <section className="py-20 container mx-auto px-4 lg:px-[152px]">
-        <div className="flex justify-between items-end mb-8">
-          <h2 className="text-[30px] font-[900] uppercase">Recent Transfers</h2>
-          <button className="flex items-center gap-2 text-[14px] font-bold hover:underline">
-            View All <img src="./assets/IMG_10.svg" alt="Arrow" className="w-4 h-4" />
-          </button>
-        </div>
-
-        <div className="bg-white border border-border-muted shadow-sm overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[800px]">
-            <thead>
-              <tr className="bg-surface border-b border-border-muted">
-                <th className="px-6 py-4 text-[12px] font-[900] uppercase">Tracking ID</th>
-                <th className="px-6 py-4 text-[12px] font-[900] uppercase">Destination</th>
-                <th className="px-6 py-4 text-[12px] font-[900] uppercase">Type</th>
-                <th className="px-6 py-4 text-[12px] font-[900] uppercase">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-surface-muted">
-              <tr className="table-row-hover">
-                <td className="px-6 py-5 font-bold">#SW-29384</td>
-                <td className="px-6 py-5">Singapore</td>
-                <td className="px-6 py-5">Small Box</td>
-                <td className="px-6 py-5">
-                  <span className="status-badge bg-accent-subtle text-secondary">In Transit</span>
-                </td>
-              </tr>
-              <tr className="table-row-hover">
-                <td className="px-6 py-5 font-bold">#SW-29385</td>
-                <td className="px-6 py-5">Thailand</td>
-                <td className="px-6 py-5">Envelope</td>
-                <td className="px-6 py-5">
-                  <span className="status-badge bg-primary text-white">Delivered</span>
-                </td>
-              </tr>
-              <tr className="table-row-hover">
-                <td className="px-6 py-5 font-bold">#SW-29386</td>
-                <td className="px-6 py-5">Malaysia</td>
-                <td className="px-6 py-5">Pallet</td>
-                <td className="px-6 py-5">
-                  <span className="status-badge bg-accent text-secondary">Processing</span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
         </div>
       </section>
 

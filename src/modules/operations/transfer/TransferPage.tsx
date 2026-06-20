@@ -142,7 +142,7 @@ export default function TransferPage() {
               <section>
                 <div className="flex items-center mb-6">
                   <div className="step-number">1</div>
-                  <h2 className="text-xl font-bold text-ink normal-case tracking-normal">What are you sending?</h2>
+                  <h2 className="text-xl font-bold text-ink normal-case tracking-normal">Package type</h2>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <PackageCard icon="./assets/IMG_15.svg" label="Envelope" sub="Up to 0.5kg" />
@@ -158,7 +158,7 @@ export default function TransferPage() {
               <section>
                 <div className="flex items-center mb-6">
                   <div className="step-number">2</div>
-                  <h2 className="text-xl font-bold text-ink normal-case tracking-normal">Where is it going?</h2>
+                  <h2 className="text-xl font-bold text-ink normal-case tracking-normal">Destination Information</h2>
                 </div>
                 <div className="bg-white border border-surface-muted rounded-xl p-6 space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -184,7 +184,7 @@ export default function TransferPage() {
               <section>
                 <div className="flex items-center mb-6">
                   <div className="step-number">3</div>
-                  <h2 className="text-xl font-bold text-ink normal-case tracking-normal">Choose your service level</h2>
+                  <h2 className="text-xl font-bold text-ink normal-case tracking-normal">Transfer service</h2>
                 </div>
                 <div className="space-y-4">
                   <ServiceOption 
@@ -216,7 +216,7 @@ export default function TransferPage() {
                   <img src="./assets/IMG_21.svg" alt="Shield" className="w-6 h-6 text-primary" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-base font-bold text-ink normal-case tracking-normal mb-1">Add Shipment Insurance</h3>
+                  <h3 className="text-base font-bold text-ink normal-case tracking-normal mb-1">Shipment Insurance</h3>
                   <p className="text-sm text-muted mb-4">
                     Protect your package up to $500 for just $4.99. Recommended for fragile or high-value items.
                   </p>

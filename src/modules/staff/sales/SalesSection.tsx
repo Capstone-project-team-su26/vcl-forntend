@@ -1,9 +1,10 @@
 "use client";
-
+import { Icon } from '@iconify/react';
 import { useEffect, useState } from "react";
 import ConsignmentListPanel from "@/modules/staff/consignments/ConsignmentListPanel";
 import type { SalesTab } from "@/modules/staff/staffSections";
 import * as staffService from "@/shared/services/staffService";
+import Link from "next/link";
 
 type SalesSectionProps = {
   activeTab?: SalesTab;
@@ -19,170 +20,229 @@ export default function SalesSection({ activeTab = "overview", onTabChange }: Sa
   const [data, setData] = useState(null);
 
   useEffect(() => {
-    if (activeTab === "overview") {
-      staffService.getSalesWorkspace().then(setData);
-    }
-  }, [activeTab]);
+    staffService.getSalesWorkspace().then(setData);
+  }, []);
+   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap gap-2 border-b border-surface-muted pb-1">
-        {salesTabs.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => onTabChange?.(tab.id)}
-            className={`px-4 py-2.5 text-sm font-bold rounded-t-lg transition-colors ${
-              activeTab === tab.id
-                ? "bg-primary/10 text-primary border-b-2 border-primary -mb-px"
-                : "text-muted hover:text-ink hover:bg-gray-50"
-            }`}
-          >
-            {tab.label}
+  const navItems = [
+    { icon: './assets/IMG_2.svg', label: 'Dashboard', active: false },
+    { icon: './assets/IMG_3.svg', label: 'Transfer Package', active: false },
+    { icon: './assets/IMG_4.svg', label: 'Track & Receive', active: false },
+    { icon: './assets/IMG_5.svg', label: 'Pricing & Services', active: false },
+  ];
+
+  const stats = [
+    { label: 'PURCHASE ORDER', value: '12', subtext: '4 arriving today', icon: './assets/IMG_11.svg', color: 'bg-[#9ECAD6]/20', iconColor: 'text-[#9ECAD6]' },
+    { label: 'IN STORAGE', value: '03', subtext: 'Scheduled for tomorrow', icon: './assets/IMG_10.svg', color: 'bg-[#748DAE]/20', iconColor: 'text-[#748DAE]' },
+    { label: 'IN SHIPMENT', value: '03', subtext: 'Scheduled for tomorrow', icon: './assets/IMG_10.svg', color: 'bg-[#748DAE]/20', iconColor: 'text-[#748DAE]' },
+  ];
+
+  const activities = [
+    { id: 'SW-90234', recipient: 'Sarah Jenkins', destination: 'London, UK', status: 'In Transit', date: 'Oct 24, 2024', statusColor: 'bg-[#9ECAD6]/15 text-[#9ECAD6]' },
+    { id: 'SW-90112', recipient: 'TechnoCorp Ltd', destination: 'Tokyo, JP', status: 'Delivered', date: 'Oct 22, 2024', statusColor: 'text-[#16181D]' },
+    { id: 'SW-89982', recipient: 'Michael Chen', destination: 'San Francisco, US', status: 'Pending', date: 'Oct 25, 2024', statusColor: 'text-[#16181D]' },
+    { id: 'SW-89551', recipient: 'Global Logistics', destination: 'Berlin, DE', status: 'On Hold', date: 'Oct 21, 2024', statusColor: 'bg-[#F5CBCB]/15 text-[#F5CBCB]' },
+    { id: 'SW-89400', recipient: 'Anna Schmidt', destination: 'Munich, DE', status: 'Delivered', date: 'Oct 20, 2024', statusColor: 'text-[#16181D]' },
+  ];
+
+ return (
+    <div className="flex min-h-screen bg-white font-['Open_Sans']">
+    
+      {/* Mobile Menu Overlay */}
+      {isMobileMenuOpen && (
+        <div className="lg:hidden fixed inset-0 bg-black/50 z-40" onClick={() => setIsMobileMenuOpen(false)} />
+      )}
+
+      {/* Mobile Sidebar */}
+      <aside className={`lg:hidden fixed inset-y-0 left-0 w-64 bg-[#F9FAFB] z-50 transform transition-transform duration-300 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="h-16 flex items-center px-6 border-b border-[#f3f4f6]">
+          <span className="font-['Oswald'] text-xl font-black text-[#9ECAD6]">SwiftShip</span>
+          <button onClick={() => setIsMobileMenuOpen(false)} className="ml-auto">
+            <Icon icon="lucide:x" className="w-6 h-6 text-gray-500" />
           </button>
-        ))}
-      </div>
+        </div>
+        <nav className="p-4 space-y-2">
+          {navItems.map((item, idx) => (
+            <button key={idx} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg ${item.active ? 'bg-[#9ECAD6]/10 text-[#9ECAD6]' : 'text-[#575E6B]'}`}>
+              <img src={item.icon} className="w-5 h-5" alt="" />
+              <span className="text-sm font-semibold">{item.label}</span>
+            </button>
+          ))}
+        </nav>
+      </aside>
 
-      {activeTab === "consignments" ? (
-        <ConsignmentListPanel />
-      ) : (
-        <div className="space-y-8">
-          <section className="relative bg-surface-alt rounded-xl border border-primary/20 p-6 lg:p-10 overflow-hidden">
-            <div className="relative z-10 max-w-2xl">
-              <div className="inline-flex items-center px-3 py-1 rounded-full bg-white/50 border border-primary/30 mb-6">
-                <span className="text-[10px] lg:text-[12px] font-bold text-primary tracking-wider uppercase">
-                  Sales Workspace
-                </span>
+      {/* Main Content Area */}
+      <main className="flex-1 lg:ml-64 flex flex-col min-w-0">
+        {/* Header */}
+        <header className="h-16 bg-white border-b border-[#f3f4f6] flex items-center justify-between px-4 lg:px-8 sticky top-0 z-10">
+          <button className="lg:hidden p-2" onClick={() => setIsMobileMenuOpen(true)}>
+            <Icon icon="lucide:menu" className="w-6 h-6 text-gray-600" />
+          </button>
+
+        </header>
+
+        {/* Content */}
+        <div className="p-4 lg:p-8 space-y-8 overflow-x-hidden">
+          {/* Welcome Section */}
+          <section>
+            <h1 className="text-4xl font-black tracking-tight text-[#16181D] font-['Oswald']">
+              Welcome back, <span className="text-[#748DAE] font-['Open_Sans'] uppercase-none">Alex</span>
+            </h1>
+            <p className="text-lg font-medium text-[#575E6B] mt-2">
+              You have <span className="text-[#9ECAD6] font-bold">12 Purchase Order</span> in transit today.
+            </p>
+          </section>
+
+          {/* Stats Grid */}
+          <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {stats.map((stat, idx) => (
+              <div key={idx} className="bg-white p-6 rounded-[10px] shadow-sm border border-gray-50 flex justify-between items-start">
+                <div>
+                  <p className="text-[14px] font-medium text-[#575E6B] tracking-wider uppercase">{stat.label}</p>
+                  <p className="text-3xl font-bold text-[#16181D] font-['Oswald'] mt-2">{stat.value}</p>
+                  <p className="text-[12px] font-medium text-[#575E6B] mt-2">{stat.subtext}</p>
+                </div>
+                <div className={`w-14 h-14 rounded-full ${stat.color} flex items-center justify-center`}>
+                  <img src={stat.icon} className={`w-6 h-6 ${stat.iconColor}`} alt="" />
+                </div>
               </div>
-              <h1 className="font-oswald text-3xl lg:text-[36px] font-black leading-tight tracking-tight mb-4">
-                Customer orders &amp; declarations
-              </h1>
-              <p className="text-muted text-base lg:text-lg font-medium mb-8">
-                Create customer profiles, open consignment orders, verify unidentified parcels, and
-                notify customers about order status.
-              </p>
+            ))}
+          </section>
 
-              <div className="flex flex-col sm:flex-row gap-4">
-                <button
-                  type="button"
-                  onClick={() => onTabChange?.("consignments")}
-                  className="flex items-center gap-4 bg-primary text-white p-4 rounded-xl shadow-lg shadow-primary/20 hover:bg-primary-hover transition-all group"
-                >
-                  <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center shrink-0">
-                    <img src="./assets/IMG_11.svg" alt="Plus" className="w-6 h-6" />
-                  </div>
-                  <div className="text-left">
-                    <p className="font-bold text-lg leading-none mb-1">Quản lý ký gửi</p>
-                    <p className="text-xs text-white/80">Xem và duyệt yêu cầu từ khách hàng</p>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  className="flex items-center gap-4 bg-white border border-surface-muted p-4 rounded-xl hover:border-primary/30 transition-all group"
-                >
-                  <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center shrink-0">
-                    <img src="./assets/IMG_12.svg" alt="Customer" className="w-6 h-6 text-primary" />
-                  </div>
-                  <div className="text-left">
-                    <p className="font-bold text-lg leading-none mb-1">Verify Unidentified Parcel</p>
-                    <p className="text-xs text-muted/80">Match inbound parcels to customers</p>
-                  </div>
-                </button>
+          {/* Action Cards */}
+          <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-[#9ECAD6] rounded-xl p-6 flex items-center gap-6 cursor-pointer hover:opacity-95 transition-opacity group">
+              <div className="w-16 h-16 bg-white/20 rounded-lg flex items-center justify-center shrink-0">
+                <img src="./assets/IMG_12.svg" className="w-8 h-8 text-white" alt="" />
               </div>
+              <Link href="/transfer" className="flex-1">
+                <h3 className="text-xl font-bold text-white font-['Oswald']">
+                  Start New Transfer
+                </h3>
+
+                <p className="text-sm font-medium text-white/80">
+                  Calculate rates and ship your package instantly.
+                </p>
+              </Link>
+              <img src="./assets/IMG_13.svg" className="w-6 h-6 text-white/50 group-hover:translate-x-1 transition-transform" alt="" />
             </div>
 
-            <div className="absolute top-10 right-10 hidden lg:block">
-              <div className="relative w-[340px] h-[260px] bg-primary/10 rounded-xl border-4 border-dashed border-primary/20 flex items-center justify-center">
-                <img src="./assets/IMG_1.svg" alt="Package" className="w-32 h-32 opacity-45 text-primary" />
-                <div className="absolute -top-4 -left-4 bg-white shadow-xl rounded-lg px-4 py-2 border border-surface-muted flex items-center gap-2">
-                  <img src="./assets/IMG_10.svg" alt="Clock" className="w-4 h-4" />
-                  <span className="text-xs font-bold">Customs Update</span>
+            <div className="bg-[#748DAE] rounded-xl p-6 flex items-center gap-6 cursor-pointer hover:opacity-95 transition-opacity group">
+              <div className="w-16 h-16 bg-white/20 rounded-lg flex items-center justify-center shrink-0">
+                <img src="./assets/IMG_14.svg" className="w-8 h-8 text-white" alt="" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-xl font-bold text-white font-['Oswald']">Track Shipment</h3>
+                <p className="text-sm font-medium text-white/80">Enter a tracking ID to get real-time updates.</p>
+              </div>
+              <img src="./assets/IMG_13.svg" className="w-6 h-6 text-white/50 group-hover:translate-x-1 transition-transform" alt="" />
+            </div>
+          </section>
+
+          {/* Recent Activity Table */}
+          <section className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-extrabold text-[#16181D] font-['Oswald']">Recent Activity</h2>
+              <button className="px-4 py-2 border border-[#748DAE]/30 rounded-lg text-sm font-bold text-[#748DAE] hover:bg-gray-50 transition-colors">
+                View All Activity
+              </button>
+            </div>
+            <div className="bg-white rounded-[10px] shadow-sm border border-gray-50 overflow-x-auto custom-scrollbar">
+              <table className="w-full text-left border-collapse min-w-[800px]">
+                <thead>
+                  <tr className="border-b border-gray-100">
+                    <th className="px-6 py-4 text-sm font-bold text-[#16181D]">Tracking ID</th>
+                    <th className="px-6 py-4 text-sm font-bold text-[#16181D]">Recipient</th>
+                    <th className="px-6 py-4 text-sm font-bold text-[#16181D]">Destination</th>
+                    <th className="px-6 py-4 text-sm font-bold text-[#16181D]">Status</th>
+                    <th className="px-6 py-4 text-sm font-bold text-[#16181D] text-right">Est. Delivery</th>
+                    <th className="px-6 py-4 text-sm font-semibold text-[#565d6d] font-['Oswald']">87 ₫</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {activities.map((row, idx) => (
+                    <tr key={idx} className="table-row-hover border-b border-gray-50 last:border-0">
+                      <td className="px-6 py-4 text-sm font-bold text-[#748DAE]">{row.id}</td>
+                      <td className="px-6 py-4 text-sm font-medium text-[#16181D]">{row.recipient}</td>
+                      <td className="px-6 py-4 text-sm text-[#575E6B]">{row.destination}</td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex items-center px-3 py-0.5 rounded-full text-[12px] font-bold ${row.statusColor}`}>
+                          {row.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm font-medium text-[#16181D] text-right">{row.date}</td>
+                      <td className="px-6 py-4"></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          {/* Reports Section */}
+          <section className="space-y-4">
+            <h2 className="text-2xl font-extrabold text-[#16181D] font-['Oswald']">Report</h2>
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              {/* Chart 1 */}
+              <div className="bg-[#F4F9FA] p-6 rounded-[10px] shadow-sm border border-gray-50">
+                <div className="relative h-[170px] mb-6">
+                  <img src="./assets/IMG_15.svg" className="w-full h-full object-contain" alt="Chart" />
+                  {/* Chart Labels Overlay */}
+                  <div className="absolute inset-0 flex flex-col justify-between text-[11px] text-[#171a1f] py-1">
+                    <span>16</span><span>12</span><span>8</span><span>4</span><span>0</span>
+                  </div>
+                  <div className="absolute bottom-[-20px] left-0 right-0 flex justify-between px-8 text-[11px] text-[#16181D]">
+                    <span>Jun</span><span>Jul</span><span>Aug</span><span>Sep</span><span>Oct</span>
+                  </div>
                 </div>
-                <div className="absolute -bottom-4 -right-4 bg-white shadow-xl rounded-lg px-4 py-2 border border-surface-muted flex items-center gap-2">
-                  <img src="./assets/IMG_13.svg" alt="Shield" className="w-4 h-4" />
-                  <span className="text-xs font-bold">Payment Confirm</span>
+                <div className="flex items-center gap-2 mt-8">
+                  <img src="./assets/IMG_16.svg" className="w-5 h-5 text-[#2C5B68]" alt="" />
+                  <span className="text-lg font-bold text-[#2C5B68] tracking-tight">Monthly Shipment</span>
+                </div>
+              </div>
+
+              {/* Chart 2 */}
+              <div className="bg-[#F4F9FA] p-6 rounded-[10px] shadow-sm border border-gray-50">
+                <div className="relative h-[170px] mb-6">
+                  <img src="./assets/IMG_15.svg" className="w-full h-full object-contain" alt="Chart" />
+                  <div className="absolute inset-0 flex flex-col justify-between text-[11px] text-[#171a1f] py-1">
+                    <span>16</span><span>12</span><span>8</span><span>4</span><span>0</span>
+                  </div>
+                  <div className="absolute bottom-[-20px] left-0 right-0 flex justify-between px-8 text-[11px] text-[#16181D]">
+                    <span>Jun</span><span>Jul</span><span>Aug</span><span>Sep</span><span>Oct</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 mt-8">
+                  <img src="./assets/IMG_16.svg" className="w-5 h-5 text-[#2C5B68]" alt="" />
+                  <span className="text-lg font-bold text-[#2C5B68] tracking-tight">Monthly Purchase request</span>
                 </div>
               </div>
             </div>
           </section>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <section className="bg-surface-tint rounded-xl p-6 shadow-sm">
-              <div className="flex items-center gap-3 mb-2">
-                <img src="./assets/IMG_15.svg" alt="Trending" className="w-5 h-5 text-primary" />
-                <h2 className="font-oswald text-lg font-bold uppercase tracking-tight">
-                  Pricing Insights
-                </h2>
-              </div>
-              <p className="text-sm text-muted mb-6">
-                Live fuel surcharges &amp; promo rates for customer quotes
-              </p>
-
-              <div className="bg-white/60 rounded-xl p-4 border border-primary/10 mb-4">
-                <div className="flex justify-between items-center mb-3">
-                  <span className="text-[10px] font-bold text-muted tracking-wider">
-                    FUEL SURCHARGE
-                  </span>
-                  <span className="text-[12px] font-black text-danger">
-                    {data?.fuelSurcharge || "+4.2%"}
-                  </span>
-                </div>
-                <div className="h-1.5 w-full bg-surface-muted rounded-full overflow-hidden">
-                  <div className="h-full bg-danger" style={{ width: "42%" }} />
-                </div>
-              </div>
-
-              <div className="space-y-4 mb-6">
-                {(data?.rates || []).map((rate, index) => (
-                  <div
-                    key={rate.label}
-                    className={`flex items-center justify-between ${index === 0 ? "pb-4 border-b border-primary/10" : ""}`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 ${rate.iconBg} rounded flex items-center justify-center`}>
-                        <img src="./assets/IMG_11.svg" alt={rate.label} className="w-4 h-4 text-primary" />
-                      </div>
-                      <span className="text-sm font-bold">{rate.label}</span>
-                    </div>
-                    <span className="text-sm font-black">{rate.price}</span>
-                  </div>
-                ))}
-              </div>
-
-              <button
-                type="button"
-                className="w-full py-2.5 bg-white border border-primary/30 rounded-lg text-primary font-bold text-sm hover:bg-gray-50 transition-colors"
-              >
-                Compare All Services
-              </button>
-            </section>
-
-            <section className="relative bg-surface-panel rounded-xl p-6 shadow-sm overflow-hidden">
-              <div className="absolute -top-5 -right-5 w-24 h-24 bg-secondary/10 rounded-full" />
-              <h2 className="font-oswald text-lg font-bold mb-4 text-ink">Customer Notifications</h2>
-              <p className="text-sm font-medium text-muted leading-relaxed mb-6">
-                Notify{" "}
-                <span className="text-ink font-black">{data?.pendingNotifications ?? 3} customers</span>{" "}
-                about pending payment confirmations and customs declaration updates.
-              </p>
-              <div className="flex items-center gap-4">
-                <div className="flex-1 h-3 bg-secondary/20 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-secondary"
-                    style={{
-                      width: `${((data?.pendingNotifications ?? 3) / (data?.totalNotifications ?? 5)) * 100}%`,
-                    }}
-                  />
-                </div>
-                <span className="text-xs font-black text-ink">
-                  {data?.pendingNotifications ?? 3}/{data?.totalNotifications ?? 5}
-                </span>
-              </div>
-            </section>
-          </div>
         </div>
-      )}
+      </main>
+
+      <style>{`
+        .table-row-hover:hover {
+          background-color: rgba(241, 245, 249, 0.5);
+          transition: background-color 0.2s ease;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
+          height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #cbd5e1;
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #94a3b8;
+        }
+      `}</style>
     </div>
   );
+
 }
