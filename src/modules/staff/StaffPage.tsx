@@ -4,19 +4,17 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import StaffShell from "@/modules/staff/components/StaffShell";
 import DomesticWarehouseSection from "./domestic-warehouse/DomesticWarehouseSection";
-import AppLogo from "@/shared/components/AppLogo";
+import GlobalWarehouseSection from "./global-warehouse/GlobalWarehouseSection";
+import SalesSection from "./sales/SalesSection";
 import TransferHistory from "./transfer-history/TransferHistory";
 import Tracking from "./domestic-warehouse/Tracking";
-
-type StaffSection = "sales" | "global-warehouse" | "domestic-warehouse" | "transfer-history" | "tracking";
-
-const sectionNav: { id: StaffSection; label: string; icon: string }[] = [
-  { id: "sales", label: "Sales", icon: "./assets/IMG_2.svg" },
-  { id: "global-warehouse", label: "International Warehouse", icon: "./assets/IMG_4.svg" },
-  { id: "domestic-warehouse", label: "Domestic Warehouse", icon: "./assets/IMG_3.svg" },
-  { id: "transfer-history", label: "Transfer History", icon: "./assets/IMG_3.svg" },
-  { id: "tracking", label: "Track package", icon: "./assets/IMG_3.svg" },
-];
+import {
+  getDefaultStaffSection,
+  getStaffSectionsForRole,
+  type SalesTab,
+  type StaffSection,
+} from "@/modules/staff/staffSections";
+import { useAuth } from "@/shared/hooks/useAuth";
 
 export default function StaffPage() {
   const router = useRouter();

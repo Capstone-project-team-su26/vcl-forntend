@@ -1,6 +1,11 @@
 import { isSaleRole, isStaffRole } from "@/shared/utils/routing";
 
-export type StaffSection = "sales" | "global-warehouse" | "domestic-warehouse";
+export type StaffSection =
+  | "sales"
+  | "global-warehouse"
+  | "domestic-warehouse"
+  | "transfer-history"
+  | "tracking";
 
 export type SalesTab = "overview" | "consignments";
 

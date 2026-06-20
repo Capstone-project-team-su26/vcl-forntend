@@ -15,6 +15,8 @@ const SECTION_META: Record<StaffSection, { label: string; icon: string }> = {
   sales: { label: "Sales", icon: "./assets/IMG_2.svg" },
   "global-warehouse": { label: "Global Warehouse", icon: "./assets/IMG_4.svg" },
   "domestic-warehouse": { label: "Domestic Warehouse", icon: "./assets/IMG_3.svg" },
+  "transfer-history": { label: "Transfer History", icon: "./assets/IMG_3.svg" },
+  tracking: { label: "Track package", icon: "./assets/IMG_3.svg" },
 };
 
 type StaffShellProps = {
