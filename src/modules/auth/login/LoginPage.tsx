@@ -105,24 +105,7 @@ export default function LoginPage() {
               </div>
             ))}
           </div>
-        </div>
-
-        <div className="relative z-10 flex items-center gap-3 mt-10">
-          <div className="flex -space-x-2">
-            {avatarColors.map((color, i) => (
-              <div
-                key={i}
-                className="w-8 h-8 rounded-full border-2 border-white flex items-center justify-center text-[10px] font-bold text-white"
-                style={{ backgroundColor: color }}
-              >
-                {String.fromCharCode(65 + i)}
-              </div>
-            ))}
-          </div>
-          <p className="text-sm text-muted">
-            Joined by <span className="font-semibold text-ink">12,000+</span> businesses worldwide
-          </p>
-        </div>
+        </div>       
 
         <div className="absolute top-0 right-0 w-[42%] h-full pointer-events-none">
           <div className="absolute inset-0 bg-gradient-to-r from-surface-soft via-surface-soft/80 to-transparent z-10" />

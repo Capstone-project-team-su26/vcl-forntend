@@ -5,12 +5,16 @@ import { useState } from "react";
 import CusSup from "./support-request/cus-sup";
 import AppLogo from "@/shared/components/AppLogo";
 import Tracking from "./tracking/Tracking";
+import TransferService from "./transfer-service/TransferService";
+import HomePage from "./homepage/HomePage";
 
-type CustomerSection = "customer-support" | "tracking";
+type CustomerSection = "customer-support" | "tracking" | "transfer-service" | "homepage";
 
 const sectionNav: { id: CustomerSection; label: string; icon: string }[] = [
   { id: "customer-support", label: "Customer Support", icon: "./assets/IMG_2.svg" },
-  { id: "tracking", label: "Track Package", icon: "./assets/IMG_4.svg" }
+  { id: "tracking", label: "Track Package", icon: "./assets/IMG_4.svg" },
+  { id: "transfer-service", label: "Create Transfer Order", icon: "./assets/IMG_4.svg" },
+  { id: "homepage", label: "Home Page", icon: "./assets/IMG_4.svg" }
 ];
 
 export default function StaffPage() {
@@ -23,8 +27,10 @@ export default function StaffPage() {
         return <CusSup />;
       case "tracking":
         return <Tracking/>;
+      case "transfer-service":
+        return <TransferService/>;
       default:
-        return <Tracking/>;
+        return <HomePage/>;
     }
   };
 
