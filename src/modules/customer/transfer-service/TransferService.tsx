@@ -28,7 +28,7 @@ export default function TransferService() {
   const tierPrices: Record<string, number> = {
     Standard: 12.50,
     Express: 24.90,
-    Freight: 85.00
+    Consolidation: 85.00
   };
 
   // Handle nested item state changes safely
@@ -44,6 +44,8 @@ export default function TransferService() {
     e.preventDefault();
     setIsLoading(true);
     setStatus(null);
+
+    const token = localStorage.getItem('accessToken')
 
     // Formulate payload according to your API JSON Schema
     const payload = {
@@ -65,11 +67,14 @@ export default function TransferService() {
       ]
     };
 
+    console.log("🚀 Payload being sent to API:", JSON.stringify(payload, null, 2));
+
     try {
-      const response = await fetch('https://api-vcl.purintech.id.vn/api/orders/cosignments', {
+      const response = await fetch('https://api-vcl.purintech.id.vn/api/orders/consignments', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(payload),
       });
@@ -107,22 +112,13 @@ export default function TransferService() {
                 Transparent Pricing for <span className="text-[#748DAE] font-sans">Global Logistics</span>
               </h1>
               <p className="text-lg text-[#575E6B] max-w-2xl mx-auto">
-                Choose the service level that fits your timeline and budget. No hidden fees, just pure efficiency.
+                Shipping options
               </p>
             </div>
 
             {/* Pricing Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
-              <div onClick={() => setShippingOption("Standard")} className="cursor-pointer">
-                <PricingCard 
-                  tier="Standard"
-                  price="12.50"
-                  description="Reliable shipping for non-urgent deliveries across all major cities."
-                  features={["5-7 Business Days", "Basic Tracking", "Drop-off at Point", "Standard Packaging"]}
-                  accentColor="bg-[#9ECAD6]"
-                  highlighted={shippingOption === "Standard"}
-                />
-              </div>
+              
               <div onClick={() => setShippingOption("Express")} className="cursor-pointer">
                 <PricingCard 
                   tier="Express"
@@ -134,14 +130,14 @@ export default function TransferService() {
                   highlighted={shippingOption === "Express"}
                 />
               </div>
-              <div onClick={() => setShippingOption("Freight")} className="cursor-pointer">
+              <div onClick={() => setShippingOption("Consolidation")} className="cursor-pointer">
                 <PricingCard 
-                  tier="Freight"
+                  tier="Consolidation"
                   price="85.00"
                   description="Heavy-duty transit for bulky items, pallets, and large cargo."
                   features={["7-10 Business Days", "Dedicated Support", "Palletization Included", "Custom Clearance Assist", "Lift-gate Service"]}
                   accentColor="bg-[#F5CBCB]"
-                  highlighted={shippingOption === "Freight"}
+                  highlighted={shippingOption === "Consolidation"}
                 />
               </div>
             </div>
@@ -255,7 +251,7 @@ export default function TransferService() {
 
                   {/* Reference URL */}
                   <div className="col-span-1 md:col-span-2 space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-wider text-[#575E6B]">Product Reference URL</label>
+                    <label className="text-xs font-bold uppercase tracking-wider text-[#575E6B]">Product Reference URL(optional)</label>
                     <input 
                       type="url" 
                       value={itemDetails.referenceUrl}
