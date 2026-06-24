@@ -1,6 +1,5 @@
 const SESSION_KEY = "swiftship_session";
 const ACCESS_TOKEN_KEY = "accessToken";
-const PENDING_EMAIL_KEY = "swiftship_pending_email";
 const ROLE_COOKIE = "vcl_role";
 const AUTH_COOKIE = "vcl_auth";
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
@@ -67,21 +66,6 @@ export function clearSession() {
 
 export function isLoggedIn() {
   return Boolean(getAccessToken());
-}
-
-export function setPendingRegisterEmail(email) {
-  if (typeof window === "undefined") return;
-  sessionStorage.setItem(PENDING_EMAIL_KEY, email);
-}
-
-export function getPendingRegisterEmail() {
-  if (typeof window === "undefined") return null;
-  return sessionStorage.getItem(PENDING_EMAIL_KEY);
-}
-
-export function clearPendingRegisterEmail() {
-  if (typeof window === "undefined") return;
-  sessionStorage.removeItem(PENDING_EMAIL_KEY);
 }
 
 /** Map AuthResponse từ backend sang session FE. */

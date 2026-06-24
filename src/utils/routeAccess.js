@@ -1,29 +1,23 @@
+import { ROUTES, ADMIN_PATH_PREFIX, SALES_PATH_PREFIX, OPERATIONS_PATH_PREFIX } from "@/utils/appRoutes";
 import { getHomeRouteByRole } from "@/utils/routing";
 
 /** Role groups dùng chung middleware + AuthGuard. */
 export const ROLE_GROUPS = {
   ADMIN: ["Admin"],
-  STAFF: ["Sale", "WarehouseStaff", "OperationsManager"],
-  CUSTOMER: ["Customer"],
+  SALE: ["Sale"],
   OPS: ["OperationsManager"],
 };
-
-const AUTH_PREFIXES = [
-  "/login",
-  "/register",
-  "/forgot-password",
-  "/reset-password",
-  "/verify-email",
-];
 
 /** Route công khai — không cần đăng nhập. */
 export function isPublicPath(pathname) {
   if (!pathname) return true;
   if (pathname === "/") return true;
   if (pathname.startsWith("/api")) return true;
-  if (pathname.startsWith("/customer")) return true;
-  if (pathname.startsWith("/pricing")) return true;
-  if (AUTH_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
+  if (pathname === ROUTES.auth.login || pathname.startsWith(`${ROUTES.auth.login}/`)) return true;
+  if (pathname === ROUTES.auth.forgotPassword || pathname.startsWith(`${ROUTES.auth.forgotPassword}/`)) {
+    return true;
+  }
+  if (pathname === ROUTES.auth.resetPassword || pathname.startsWith(`${ROUTES.auth.resetPassword}/`)) {
     return true;
   }
   return false;
@@ -33,13 +27,9 @@ export function isPublicPath(pathname) {
 export function getRequiredRoles(pathname) {
   if (!pathname || isPublicPath(pathname)) return null;
 
-  if (pathname.startsWith("/admin")) return ROLE_GROUPS.ADMIN;
-  if (pathname.startsWith("/staff")) return ROLE_GROUPS.STAFF;
-  if (pathname.startsWith("/operational-dashboard")) return ROLE_GROUPS.OPS;
-  if (pathname.startsWith("/transfer")) return ROLE_GROUPS.STAFF;
-  if (pathname.startsWith("/profile") || pathname.startsWith("/purchaserequest")) {
-    return ROLE_GROUPS.CUSTOMER;
-  }
+  if (pathname.startsWith(ADMIN_PATH_PREFIX)) return ROLE_GROUPS.ADMIN;
+  if (pathname.startsWith(SALES_PATH_PREFIX)) return ROLE_GROUPS.SALE;
+  if (pathname.startsWith(OPERATIONS_PATH_PREFIX)) return ROLE_GROUPS.OPS;
 
   return null;
 }
@@ -68,12 +58,12 @@ export function resolvePostLoginPath(role, nextPath) {
 }
 
 export function getForbiddenRedirect(role) {
-  return getHomeRouteByRole(role) || "/";
+  return getHomeRouteByRole(role) || ROUTES.auth.login;
 }
 
 export function buildLoginUrl(returnPath) {
   if (returnPath && isSafeInternalPath(returnPath) && !isPublicPath(returnPath)) {
-    return `/login?next=${encodeURIComponent(returnPath)}`;
+    return `${ROUTES.auth.login}?next=${encodeURIComponent(returnPath)}`;
   }
-  return "/login";
+  return ROUTES.auth.login;
 }

@@ -16,23 +16,13 @@ export async function mockLogin({ email }) {
   await mockDelay();
 
   const account = resolveMockAccount(email);
+  if (!account) {
+    const error = new Error("Email không thuộc tài khoản nhân viên.");
+    error.status = 401;
+    throw error;
+  }
+
   return mockAuthResponse(account);
-}
-
-export async function mockRegisterCustomer() {
-  await mockDelay();
-  return { message: "Đăng ký thành công. Vui lòng nhập mã OTP.", requiresOtp: true };
-}
-
-export async function mockVerifyCustomerOtp({ email }) {
-  await mockDelay();
-  const account = resolveMockAccount(email);
-  return mockAuthResponse({ ...account, role: "Customer" });
-}
-
-export async function mockResendCustomerOtp() {
-  await mockDelay();
-  return { message: "Đã gửi lại mã OTP." };
 }
 
 export async function mockForgotPassword() {

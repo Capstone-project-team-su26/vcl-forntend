@@ -4,6 +4,20 @@ import { Icon } from "@iconify/react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { ROUTES } from "@/utils/appRoutes";
+
+const ROLE_LABELS = {
+  Sale: "Sales",
+  OperationsManager: "Operations",
+  Admin: "Admin",
+};
+
+function formatRoleLabel(sessionRole, fallback) {
+  if (sessionRole && ROLE_LABELS[sessionRole]) return ROLE_LABELS[sessionRole];
+  if (sessionRole) return sessionRole;
+  return fallback;
+}
+
 function UserNavMenu({
   displayName = "User",
   roleLabel = "USER",
@@ -13,7 +27,7 @@ function UserNavMenu({
   const menuRef = useRef(null);
   const { session, isLoggedIn, logout } = useAuth();
   const name = session?.displayName || displayName;
-  const role = session?.role || roleLabel;
+  const role = formatRoleLabel(session?.role, roleLabel);
   const email = session?.email;
   useEffect(() => {
     function handleClickOutside(event) {
@@ -77,7 +91,7 @@ function UserNavMenu({
           ) : /* @__PURE__ */ jsxs(
             Link,
             {
-              href: "/login",
+              href: ROUTES.auth.login,
               role: "menuitem",
               onClick: () => setOpen(false),
               className: "w-full flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-secondary hover:bg-primary/10 transition-colors",

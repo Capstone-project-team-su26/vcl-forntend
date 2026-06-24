@@ -1,4 +1,5 @@
 import { getMockStore } from "@/utils/mocks/mockStore";
+import { ROUTES } from "@/utils/appRoutes";
 
 /** Tài khoản mock cố định — mật khẩu bất kỳ khi NEXT_PUBLIC_DATA_SOURCE=mock */
 export const MOCK_TEST_ACCOUNTS = [
@@ -7,28 +8,21 @@ export const MOCK_TEST_ACCOUNTS = [
     role: "Sale",
     fullName: "Nguyen Van Sale",
     label: "Sale",
-    hint: "Sales → /staff (tab Ký gửi)",
-  },
-  {
-    email: "customer@example.com",
-    role: "Customer",
-    fullName: "Alex Henderson",
-    label: "Customer",
-    hint: "Hồ sơ khách hàng → /profile",
+    hint: `Ký gửi → ${ROUTES.sales.consignments}`,
   },
   {
     email: "admin@vcl.com",
     role: "Admin",
     fullName: "Mock Admin",
     label: "Admin",
-    hint: "Quản trị → /admin/users",
+    hint: `Quản trị → ${ROUTES.admin.users}`,
   },
   {
-    email: "warehouse@vcl.com",
-    role: "WarehouseStaff",
-    fullName: "Tran Warehouse",
-    label: "Warehouse",
-    hint: "Staff workspace → /staff",
+    email: "ops@vcl.com",
+    role: "OperationsManager",
+    fullName: "Le Van Ops",
+    label: "Operations",
+    hint: `Vận hành → ${ROUTES.operations.dashboard}`,
   },
 ];
 
@@ -66,14 +60,6 @@ export function resolveMockAccount(email) {
       label: "Sale",
     };
   }
-  if (normalized.includes("warehouse")) {
-    return {
-      email: normalized,
-      role: "WarehouseStaff",
-      fullName: "Tran Warehouse",
-      label: "Warehouse",
-    };
-  }
   if (normalized.includes("ops")) {
     return {
       email: normalized,
@@ -83,10 +69,5 @@ export function resolveMockAccount(email) {
     };
   }
 
-  return {
-    email: normalized,
-    role: "Customer",
-    fullName: getMockStore().profile.fullName,
-    label: "Customer",
-  };
+  return null;
 }

@@ -51,9 +51,9 @@ const seed = {
     userName: "Alex",
     activeShipments: 12,
     stats: [
-      { label: "Active Shipments", value: "12", sub: "4 arriving today", icon: "./assets/IMG_11.svg", bg: "bg-primary/20", iconColor: "text-primary" },
-      { label: "Pending Pickups", value: "03", sub: "Scheduled for tomorrow", icon: "./assets/IMG_12.svg", bg: "bg-secondary/20", iconColor: "text-secondary" },
-      { label: "Loyalty Points", value: "4,850", sub: "250 points to Gold status", icon: "./assets/IMG_13.svg", bg: "bg-accent/20", iconColor: "text-accent" },
+      { label: "Active Shipments", value: "12", sub: "4 arriving today", icon: "/assets/IMG_11.svg", bg: "bg-primary/20", iconColor: "text-primary" },
+      { label: "Pending Pickups", value: "03", sub: "Scheduled for tomorrow", icon: "/assets/IMG_12.svg", bg: "bg-secondary/20", iconColor: "text-secondary" },
+      { label: "Loyalty Points", value: "4,850", sub: "250 points to Gold status", icon: "/assets/IMG_13.svg", bg: "bg-accent/20", iconColor: "text-accent" },
     ],
     recentActivity: [
       { id: "SW-90234", recipient: "Sarah Jenkins", destination: "London, UK", status: "In Transit", date: "Oct 24, 2024", statusColor: "text-primary bg-primary/15" },
@@ -66,10 +66,10 @@ const seed = {
   },
   transfer: {
     packageTypes: [
-      { id: "envelope", label: "Envelope", sub: "Up to 0.5kg", icon: "./assets/IMG_15.svg" },
-      { id: "small-box", label: "Small Box", sub: "Up to 5kg", icon: "./assets/IMG_16.svg", active: true },
-      { id: "large-box", label: "Large Box", sub: "Up to 20kg", icon: "./assets/IMG_17.svg" },
-      { id: "pallet", label: "Pallet", sub: "Over 50kg", icon: "./assets/IMG_18.svg" },
+      { id: "envelope", label: "Envelope", sub: "Up to 0.5kg", icon: "/assets/IMG_15.svg" },
+      { id: "small-box", label: "Small Box", sub: "Up to 5kg", icon: "/assets/IMG_16.svg", active: true },
+      { id: "large-box", label: "Large Box", sub: "Up to 20kg", icon: "/assets/IMG_17.svg" },
+      { id: "pallet", label: "Pallet", sub: "Over 50kg", icon: "/assets/IMG_18.svg" },
     ],
     serviceLevels: [
       { id: "economy", title: "Economy Ground", desc: "Affordable shipping for non-urgent deliveries.", price: 12.5, est: "Est. 5-7 Business Days" },
@@ -117,10 +117,10 @@ const seed = {
       },
     ],
     additionalServices: [
-      { icon: "./assets/IMG_14.svg", title: "Shipping Insurance", description: "Protect against damage or loss up to $5,000 value.", price: "+$5.00" },
-      { icon: "./assets/IMG_15.svg", title: "Eco-Friendly Delivery", description: "100% carbon offset for your package's transit route.", price: "+$1.50" },
-      { icon: "./assets/IMG_16.svg", title: "Fragile Handling", description: "Specialized sorting and shock-absorbent mounting.", price: "+$3.25" },
-      { icon: "./assets/IMG_17.svg", title: "Express Customs", description: "Priority documentation processing for international routes.", price: "+$12.00" },
+      { icon: "/assets/IMG_14.svg", title: "Shipping Insurance", description: "Protect against damage or loss up to $5,000 value.", price: "+$5.00" },
+      { icon: "/assets/IMG_15.svg", title: "Eco-Friendly Delivery", description: "100% carbon offset for your package's transit route.", price: "+$1.50" },
+      { icon: "/assets/IMG_16.svg", title: "Fragile Handling", description: "Specialized sorting and shock-absorbent mounting.", price: "+$3.25" },
+      { icon: "/assets/IMG_17.svg", title: "Express Customs", description: "Priority documentation processing for international routes.", price: "+$12.00" },
     ],
   },
   staff: {
@@ -135,23 +135,23 @@ const seed = {
     },
     globalWarehouse: {
       stats: [
-        { icon: "./assets/IMG_1.svg", label: "Parcels Awaiting Receipt", value: "12", trend: "+2 this week", iconBg: "bg-primary/20", iconColor: "text-primary" },
-        { icon: "./assets/IMG_10.svg", label: "Unidentified Parcels", value: "04", trend: "Needs matching", iconBg: "bg-transparent", iconColor: "text-ink" },
+        { icon: "/assets/IMG_1.svg", label: "Parcels Awaiting Receipt", value: "12", trend: "+2 this week", iconBg: "bg-primary/20", iconColor: "text-primary" },
+        { icon: "/assets/IMG_10.svg", label: "Unidentified Parcels", value: "04", trend: "Needs matching", iconBg: "bg-transparent", iconColor: "text-ink" },
       ],
       inboundShipments: [
-        { id: "SS-9402", status: "In Transit", route: ["Mumbai", "Dubai"], type: "EXPRESS", typeIcon: "./assets/IMG_16.svg", eta: "24 Oct" },
-        { id: "SS-8122", status: "Processing", route: ["Chennai", "Singapore"], type: "STANDARD", typeIcon: "./assets/IMG_18.svg", eta: "26 Oct" },
-        { id: "SS-6549", status: "Pending", route: ["New York", "New Delhi"], type: "EXPRESS", typeIcon: "./assets/IMG_16.svg", eta: "28 Oct" },
+        { id: "SS-9402", status: "In Transit", route: ["Mumbai", "Dubai"], type: "EXPRESS", typeIcon: "/assets/IMG_16.svg", eta: "24 Oct" },
+        { id: "SS-8122", status: "Processing", route: ["Chennai", "Singapore"], type: "STANDARD", typeIcon: "/assets/IMG_18.svg", eta: "26 Oct" },
+        { id: "SS-6549", status: "Pending", route: ["New York", "New Delhi"], type: "EXPRESS", typeIcon: "/assets/IMG_16.svg", eta: "28 Oct" },
       ],
     },
     domesticWarehouse: {
       stats: [
-        { icon: "./assets/IMG_15.svg", label: "Awaiting Put-away", value: "08", trend: "On schedule", iconBg: "bg-transparent", iconColor: "text-ink" },
-        { icon: "./assets/IMG_16.svg", label: "Ready for Handover", value: "05", trend: "Carrier pickup", iconBg: "bg-secondary/20", iconColor: "text-secondary" },
+        { icon: "/assets/IMG_15.svg", label: "Awaiting Put-away", value: "08", trend: "On schedule", iconBg: "bg-transparent", iconColor: "text-ink" },
+        { icon: "/assets/IMG_16.svg", label: "Ready for Handover", value: "05", trend: "Carrier pickup", iconBg: "bg-secondary/20", iconColor: "text-secondary" },
       ],
       outboundShipments: [
-        { id: "SS-7731", status: "Delivered", route: ["London", "Bengaluru"], type: "FREIGHT", typeIcon: "./assets/IMG_19.svg", eta: "21 Oct" },
-        { id: "SS-5510", status: "Out for Delivery", route: ["Kolkata", "Paris"], type: "STANDARD", typeIcon: "./assets/IMG_18.svg", eta: "Today" },
+        { id: "SS-7731", status: "Delivered", route: ["London", "Bengaluru"], type: "FREIGHT", typeIcon: "/assets/IMG_19.svg", eta: "21 Oct" },
+        { id: "SS-5510", status: "Out for Delivery", route: ["Kolkata", "Paris"], type: "STANDARD", typeIcon: "/assets/IMG_18.svg", eta: "Today" },
       ],
     },
   },
@@ -403,12 +403,12 @@ const seed = {
     },
     {
       id: "mock-user-002",
-      name: "Tran Warehouse",
-      email: "warehouse@vcl.com",
-      role: "WarehouseStaff",
+      name: "Mock Admin",
+      email: "admin@vcl.com",
+      role: "Admin",
       status: "ACTIVE",
       lastSeen: "Hôm qua",
-      avatar: "TW",
+      avatar: "MA",
     },
     {
       id: "mock-user-003",

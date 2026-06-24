@@ -11,8 +11,9 @@ import {
 } from "@/utils/authSession";
 import * as authService from "@/utils/authService";
 import { getErrorMessage } from "@/utils/apiError";
-import { getHomeRouteByRole, isAdminRole, isSaleRole, isStaffRole } from "@/utils/routing";
-import { resolvePostLoginPath } from "@/utils/routeAccess";
+import { ROUTES } from "@/utils/appRoutes";
+import { getHomeRouteByRole, isAdminRole, isSaleRole, isOpsRole, isStaffRole } from "@/utils/routing";
+import { isPublicPath, resolvePostLoginPath } from "@/utils/routeAccess";
 
 export function useAuth() {
   const router = useRouter();
@@ -32,7 +33,12 @@ export function useAuth() {
       const nextSession = createSessionFromAuthResponse(auth, email);
       setSession(nextSession);
       setSessionState(nextSession);
-      router.push(resolvePostLoginPath(auth.role, redirectTo));
+      const path = resolvePostLoginPath(auth.role, redirectTo);
+      if (typeof window !== "undefined" && !isPublicPath(path)) {
+        window.location.assign(path);
+      } else {
+        router.push(path);
+      }
       return auth;
     },
     [router]
@@ -48,7 +54,7 @@ export function useAuth() {
   const logout = useCallback(() => {
     clearSession();
     setSessionState(null);
-    router.push("/login");
+    router.push(ROUTES.auth.login);
   }, [router]);
 
   return {
@@ -58,6 +64,7 @@ export function useAuth() {
     isAdmin: isAdminRole(session?.role),
     isStaff: isStaffRole(session?.role),
     isSale: isSaleRole(session?.role),
+    isOps: isOpsRole(session?.role),
     loginWithCredentials,
     saveAuthSession,
     logout,

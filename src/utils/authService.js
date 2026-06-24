@@ -3,42 +3,9 @@ import {
   mockAdminRegisterEmployee,
   mockForgotPassword,
   mockLogin,
-  mockRegisterCustomer,
-  mockResendCustomerOtp,
   mockResetPassword,
-  mockVerifyCustomerOtp,
 } from "@/utils/mocks/authMocks";
 import { apiRequest } from "@/utils/apiClient";
-
-export function registerCustomer(payload) {
-  if (isMockMode()) return mockRegisterCustomer(payload);
-
-  return apiRequest("/api/Auth/customer/register", {
-    method: "POST",
-    body: JSON.stringify(payload),
-    skipAuth: true,
-  });
-}
-
-export function verifyCustomerOtp(payload) {
-  if (isMockMode()) return mockVerifyCustomerOtp(payload);
-
-  return apiRequest("/api/Auth/customer/verify-otp", {
-    method: "POST",
-    body: JSON.stringify(payload),
-    skipAuth: true,
-  });
-}
-
-export function resendCustomerOtp(email) {
-  if (isMockMode()) return mockResendCustomerOtp(email);
-
-  return apiRequest("/api/Auth/customer/resend-otp", {
-    method: "POST",
-    body: JSON.stringify({ email }),
-    skipAuth: true,
-  });
-}
 
 export function login(payload) {
   if (isMockMode()) return mockLogin(payload);

@@ -12,9 +12,6 @@ export { getMockStore, nextMockId, resetMockStore } from "./mockStore";
 export { MOCK_TEST_ACCOUNTS, resolveMockAccount } from "./mockAccounts";
 export {
   mockLogin,
-  mockRegisterCustomer,
-  mockVerifyCustomerOtp,
-  mockResendCustomerOtp,
   mockForgotPassword,
   mockResetPassword,
   mockAdminRegisterEmployee,

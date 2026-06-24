@@ -6,9 +6,39 @@ import {
   getRequiredRoles,
   isPublicPath,
 } from "@/utils/routeAccess";
+import { ROUTES } from "@/utils/appRoutes";
+
+/** Chuyển route staff cũ → sales (đồng bộ sau refactor). */
+function resolveLegacyStaffRedirect(request) {
+  const { pathname, searchParams } = request.nextUrl;
+
+  if (pathname === "/staff" || pathname === "/pages/staff") {
+    if (searchParams.get("salesTab") === "consignments") {
+      return new URL(ROUTES.sales.consignments, request.url);
+    }
+    return new URL(ROUTES.sales.home, request.url);
+  }
+
+  if (pathname.startsWith("/staff/")) {
+    const next = pathname.replace(/^\/staff/, ROUTES.sales.home);
+    return new URL(next, request.url);
+  }
+
+  if (pathname.startsWith("/pages/staff/")) {
+    const next = pathname.replace(/^\/pages\/staff/, ROUTES.sales.home);
+    return new URL(next, request.url);
+  }
+
+  return null;
+}
 
 export function middleware(request) {
   const { pathname } = request.nextUrl;
+
+  const legacyRedirect = resolveLegacyStaffRedirect(request);
+  if (legacyRedirect) {
+    return NextResponse.redirect(legacyRedirect);
+  }
 
   if (isPublicPath(pathname)) {
     return NextResponse.next();
