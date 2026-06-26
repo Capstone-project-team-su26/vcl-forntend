@@ -1,8 +1,9 @@
 import { Geist, Geist_Mono } from "next/font/google";
-import DataSourceDevTools from "@/shared/components/DataSourceDevTools";
-import ThemeProvider from "@/shared/components/ThemeProvider";
-import ThemeToggle from "@/shared/components/ThemeToggle";
-import { SITE_DESCRIPTION, SITE_NAME } from "@/shared/constants/site";
+import DataSourceDevTools from "@/app/components/DataSourceDevTools";
+import ClientRootExtras from "@/app/components/ClientRootExtras";
+import ThemeProvider from "@/app/components/ThemeProvider";
+import ThemeToggle from "@/app/components/ThemeToggle";
+import { SITE_DESCRIPTION, SITE_NAME } from "@/utils/site";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -44,6 +45,7 @@ export default function RootLayout({ children }) {
       </head>
       <body className="min-h-full flex flex-col bg-background text-ink">
         <ThemeProvider>
+          <ClientRootExtras />
           {children}
           <ThemeToggle />
           <DataSourceDevTools />

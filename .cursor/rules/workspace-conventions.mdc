@@ -13,9 +13,9 @@ Bản đầy đủ và cập nhật nhất: file **`AGENTS.md`** ở thư mục 
 
 ## vcl-forntend (Next.js)
 
-- **`src/app/`**: route/layout **mỏng**.
-- **`src/modules/<feature>/`**: UI + logic theo domain, export qua `index.js`.
-- **`src/shared/`**: chỉ code dùng chung thực sự — không chứa logic riêng một domain.
+- **`src/app/`**: route + **`components/`** colocated theo từng route (kiểu App Router colocation).
+- **`src/app/components/`**: component dùng chung toàn app (logo, theme, layout phụ…).
+- **`src/hooks/`**, **`src/utils/`**: hook, API/service và helper dùng chung.
 
 ## vcl-mobile (Expo)
 

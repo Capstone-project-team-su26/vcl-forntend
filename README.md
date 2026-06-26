@@ -1,8 +1,10 @@
-# vcl-forntend — Web (Next.js)
+# vcl-forntend — Hệ thống nội bộ (Next.js)
 
-**Quy ước chung monorepo + agent:** file [`../AGENTS.md`](../AGENTS.md) tại thư mục `FrameProject`.
+**Quy ổc chung monorepo + agent:** file [`../AGENTS.md`](../AGENTS.md) tại thư mục `FrameProject`.
 
-Frontend web dùng **Next.js** (App Router), **JavaScript**, **Tailwind CSS**, và **kiến trúc module-based**. Package manager mặc định của dự án là **Bun**.
+Web **nội bộ** cho nhân viên VCL — **Admin**, **Sale**, **Operations**. **Khách hàng** dùng repo/app riêng (mobile hoặc web customer tách biệt).
+
+Stack: **Next.js** (App Router), **JavaScript**, **Tailwind CSS**. Package manager mặc định: **Bun**.
 
 ## Yêu cầu môi trường
 
@@ -11,8 +13,6 @@ Frontend web dùng **Next.js** (App Router), **JavaScript**, **Tailwind CSS**, v
 
 ## Cài đặt lần đầu
 
-Từ thư mục project:
-
 ```bash
 cd vcl-forntend
 bun install
@@ -20,7 +20,7 @@ cp .env.example .env.local
 bun dev
 ```
 
-URL mặc định: [http://localhost:3000](http://localhost:3000).
+URL mặc định: [http://localhost:3000](http://localhost:3000) → chuyển tới `/pages/auth/login`.
 
 > Nếu không dùng Bun: `npm install`, `npm run dev`, `npm run build`, v.v.
 
@@ -28,7 +28,7 @@ URL mặc định: [http://localhost:3000](http://localhost:3000).
 
 ## Chế độ Mock (khuyến nghị cho nhóm FE)
 
-Nhóm FE có thể **chạy app không cần backend** bằng dữ liệu giả trong repo. Đây là cách làm việc mặc định khi dev UI, demo, hoặc backend chưa sẵn sàng.
+Nhóm FE có thể **chạy app không cần backend** bằng dữ liệu giả trong repo.
 
 ### Bật Mock
 
@@ -41,22 +41,21 @@ NEXT_PUBLIC_DATA_SOURCE=mock
 
 3. Restart dev server: `bun dev`.
 
-Trang login sẽ hiện hộp **“Chế độ Mock — mật khẩu bất kỳ”** và các nút chọn role nhanh.
+Trang login hiện hộp **“Chế độ Mock — mật khẩu bất kỳ”** và các nút chọn role nhân viên nhanh.
 
 ### Tài khoản Mock
 
-| Email | Role | Sau login đi tới | Ghi chú |
-|-------|------|------------------|---------|
-| `sale@vcl.com` | Sale | `/staff?salesTab=consignments` | Duyệt / từ chối ký gửi |
-| `admin@vcl.com` | Admin | `/admin/users` | Users, Hàng cấm, Bảng giá |
-| `warehouse@vcl.com` | Warehouse Staff | `/staff` | Kho (không thấy tab Sales) |
-| `customer@example.com` | Customer | `/profile` | Hồ sơ, purchase request mock |
+| Email | Role | Sau login đi tới |
+|-------|------|------------------|
+| `sale@vcl.com` | Sale | `/pages/sales/consignments` |
+| `admin@vcl.com` | Admin | `/pages/admin/users` |
+| `ops@vcl.com` | Operations | `/pages/operations` |
 
 **Mật khẩu:** nhập bất kỳ (vd. `123456`).
 
-**Email linh hoạt:** nếu email chứa từ khóa thì tự map role — `admin`, `sale`, `warehouse`, `ops` → role tương ứng; còn lại → Customer.
+**Email linh hoạt:** nếu email chứa từ khóa thì tự map role — `admin`, `sale`, `ops` → role tương ứng.
 
-Danh sách preset: `src/shared/mocks/mockAccounts.js`.
+Danh sách preset: `src/utils/mocks/mockAccounts.js`.
 
 ### Chuyển Mock ↔ API khi dev
 
@@ -69,16 +68,14 @@ Góc **dưới phải** màn hình (chỉ môi trường dev):
 
 | Khu vực | Route ví dụ | Service / dữ liệu |
 |---------|-------------|-------------------|
-| Đăng nhập / đăng ký / OTP | `/login`, `/register` | `authMocks.js` |
-| Admin — Users | `/admin/users` | `userService.js` + `mockStore.users` |
-| Admin — Hàng cấm | `/admin/restricted-items` | `restrictedItemService.js` |
-| Admin — Bảng giá | `/admin/pricing-rules` | `pricingRuleService.js` |
-| Staff — Ký gửi | `/staff?salesTab=consignments` | `orderConsignmentService.js` |
-| Customer — Profile | `/profile` | `profileService.js` |
-| Purchase request | `/purchaserequest` | `mockStore.purchaseRequests` |
-| Operations dashboard | `/operational-dashboard` | `operationsService.js` |
-| Staff workspace | `/staff` | `staffService.js` |
-| Pricing / Transfer (UI) | `/pricing`, `/transfer` | `mockStore` |
+| Đăng nhập / quên mật khẩu | `/pages/auth/login`, `/pages/auth/forgot-password` | `authMocks.js` |
+| Admin — Users | `/pages/admin/users` | `userService.js` + `mockStore.users` |
+| Admin — Hàng cấm | `/pages/admin/restricted-items` | `restrictedItemService.js` |
+| Admin — Bảng giá | `/pages/admin/pricing-rules` | `pricingRuleService.js` |
+| Sales — Ký gửi | `/pages/sales/consignments` | `orderConsignmentService.js` |
+| Operations dashboard | `/pages/operations` | `operationsService.js` |
+| Sales workspace | `/pages/sales` | `staffService.js` |
+| Transfer (sales) | `/pages/sales/transfer` | `operationsService.js` |
 
 ### Tính năng cần API thật
 
@@ -101,22 +98,24 @@ Swagger: `https://api-vcl.purintech.id.vn/swagger/v1/swagger.json`
 ### Thêm / sửa dữ liệu Mock
 
 ```
-src/shared/mocks/
+src/utils/mocks/
 ├── mockStore.js      ← seed chính (users, ký gửi, hàng cấm, bảng giá, …)
 ├── mockAccounts.js   ← email / role đăng nhập nhanh
 ├── mockDelay.js      ← giả lập độ trễ mạng
-└── authMocks.js      ← register, OTP, forgot password
+├── authMocks.js      ← login, forgot password
+├── dataSource.js     ← bật/tắt mock vs API
+└── index.js          ← export gộp (import `@/utils/mocks`)
 ```
 
 **Quy trình khi làm feature mới:**
 
-1. Thêm seed vào `mockStore.js` (hoặc file mock riêng nếu lớn).
-2. Trong `src/shared/services/<tên>Service.js`:
+1. Thêm seed vào `mockStore.js` (hoặc file mock riêng trong `mocks/` nếu lớn).
+2. Trong `src/utils/<tên>Service.js`:
    - `if (isMockMode()) return ...Mock(...)`
    - `else return apiRequest(...)`
 3. Kiểm tra với `NEXT_PUBLIC_DATA_SOURCE=mock` trước khi nối API.
 
-Helper: `isMockMode()` từ `src/shared/config/dataSource.js`.
+Helper: `isMockMode()` từ `src/utils/mocks/dataSource.js` (hoặc `import { isMockMode } from "@/utils/mocks"`).
 
 ### Dark mode
 
@@ -133,26 +132,55 @@ Nút **mặt trăng / mặt trời** góc dưới trái — theme lưu `localSto
 | Chạy bản đã build (sau `build`) | `bun run start` |
 | Lint | `bun run lint` |
 
-## Cấu trúc module-based (quan trọng)
+## Cấu trúc project (colocation theo route)
 
-- **`src/app/`** — Route/layout của Next (**chỉ nên giữ layer mỏng**): import UI từ module.
-- **`src/modules/<tên-module>/`** — Logic & component theo tính năng (vd. `home`). Export công khai qua **`index.js`** của module đó.
-- **`src/shared/`** — Code dùng chung giữa các module (constants, UI nhỏ, utils, services, mocks, …).
+- **`src/app/pages/`** — Toàn bộ page, chia theo role:
+  - **`auth/`** — đăng nhập, quên/đặt lại mật khẩu (công khai)
+  - **`admin/`** — Admin
+  - **`sales/`** — Sale (ký gửi, transfer)
+  - **`operations/`** — Operations (dashboard vận hành)
+- **`src/app/components/`** — UI dùng chung toàn app (logo, theme, auth guard, …).
+- **`src/hooks/`** — React hooks dùng chung (vd. `useAuth`).
+- **`src/utils/`** — API client, services, mocks, `appRoutes.js`, `routeAccess.js`.
 
-Ví dụ: trang chủ import từ module `home`:
+Ví dụ:
 
-- Route: `src/app/page.js`
-- UI module: `src/modules/home/components/HomePage.js`
+```
+src/app/pages/
+├── auth/login/page.jsx
+├── admin/users/page.jsx
+├── sales/page.jsx
+├── sales/transfer/page.jsx
+└── operations/page.jsx
+```
 
-Constants chung web (tên app, mô tả): `src/shared/constants/site.js`
+Constants đường dẫn: `src/utils/appRoutes.js` — import `ROUTES` khi link/navigate.
+Constants site: `src/utils/site.js`
+
+## Phân quyền theo role (FE)
+
+| Route | Role được phép |
+|-------|----------------|
+| `/pages/admin/*` | Admin |
+| `/pages/sales/*` | Sale |
+| `/pages/operations` | OperationsManager |
+| `/`, `/pages/auth/*` | Công khai |
+
+- **`src/middleware.js`** — chặn route sớm (đọc cookie `vcl_role`, `vcl_auth`).
+- **`src/app/components/AuthGuard.jsx`** — guard phía client trong layout từng khu vực.
+- **`src/utils/routeAccess.js`** — map route ↔ role (sửa tại đây khi thêm route mới).
+- **API 401** → đăng xuất, chuyển `/pages/auth/login?next=...`. **API 403** → về trang home của role + banner cảnh báo.
+
+Cookie đồng bộ từ session khi login/logout (`src/utils/authSession.js`).
 
 ## Việc cần nhớ khi làm feature mới
 
-1. Tạo thư mục `src/modules/<tên-feature>/` (component, hook riêng feature nếu cần).
-2. Export từ `src/modules/<tên-feature>/index.js`.
-3. Thêm route trong `src/app/...` và import component từ `@/modules/...`.
-4. Thứ có thể tái sử dụng ở nhiều module → đặt vào `src/shared/`.
-5. Service layer: hỗ trợ **mock + API** qua `isMockMode()` (xem mục Mock ở trên).
+1. Thêm route trong `src/app/pages/<role>/<tên-route>/page.jsx`.
+2. Đặt component của route vào `components/` cùng cấp route.
+3. Cập nhật `src/utils/appRoutes.js` và `src/utils/routeAccess.js` nếu thêm khu vực mới.
+4. Hook / service dùng nhiều nơi → `src/hooks/`, `src/utils/`.
+5. UI dùng toàn app → `src/app/components/`.
+6. Service layer: hỗ trợ **mock + API** qua `isMockMode()` (xem mục Mock ở trên).
 
 ## Alias import
 
@@ -160,7 +188,8 @@ Alias **`@/`** trỏ tới **`src/`** (cấu hình trong `jsconfig.json`).
 
 ## Repository liên quan
 
-Mobile (Expo) nằm song song trong cùng workspace: **`../vcl-mobile`** — xem README trong đó cho lệnh & cấu trúc React Native.
+- **Customer app** — repo riêng (web/mobile khách hàng), không nằm trong repo này.
+- **Mobile (Expo)** trong cùng workspace: **`../vcl-mobile`** — xem README trong đó.
 
 ## Tài liệu thêm
 
