@@ -20,6 +20,7 @@ export const ROUTES = {
   },
   operations: {
     dashboard: `${PAGES}/operations`,
+    consolidation: `${PAGES}/operations/consolidation`,
   },
 };
 
