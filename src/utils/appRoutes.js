@@ -16,7 +16,7 @@ export const ROUTES = {
     home: `${PAGES}/sales`,
     consignments: `${PAGES}/sales/consignments`,
     consignment: (id) => `${PAGES}/sales/consignments/${id}`,
-    transfer: `${PAGES}/sales/transfer`,
+    receivingNote: (id) => `${PAGES}/sales/consignments/${id}/receiving-note`,
   },
   operations: {
     dashboard: `${PAGES}/operations`,

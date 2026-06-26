@@ -289,3 +289,39 @@ button:focus {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--theme-faint);
 }
+
+/* ─── In phiếu tiếp nhận kho (offline warehouse) ─── */
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  #receiving-note-print-sheet {
+    display: block !important;
+    visibility: visible !important;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    box-shadow: none;
+  }
+
+  #receiving-note-print-sheet * {
+    visibility: visible !important;
+    color: #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

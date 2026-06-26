@@ -61,20 +61,15 @@ export default function SalesSection() {
         ))}
       </section>
 
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <section>
         <Link
           href={ROUTES.sales.consignments}
-          className="rounded-xl bg-primary p-6 text-white hover:opacity-95 transition-opacity"
+          className="block rounded-xl bg-primary p-6 text-white hover:opacity-95 transition-opacity max-w-xl"
         >
           <h3 className="text-lg font-bold font-['Oswald']">Quản lý ký gửi</h3>
-          <p className="text-sm text-white/80 mt-1">Duyệt và xử lý yêu cầu từ khách hàng.</p>
-        </Link>
-        <Link
-          href={ROUTES.sales.transfer}
-          className="rounded-xl bg-secondary p-6 text-white hover:opacity-95 transition-opacity"
-        >
-          <h3 className="text-lg font-bold font-['Oswald']">Transfer</h3>
-          <p className="text-sm text-white/80 mt-1">Tạo và theo dõi chuyển phát.</p>
+          <p className="text-sm text-white/80 mt-1">
+            Duyệt yêu cầu và tạo phiếu tiếp nhận kho cho đơn đã APPROVED.
+          </p>
         </Link>
       </section>
     </div>

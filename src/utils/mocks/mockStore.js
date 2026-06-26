@@ -87,6 +87,24 @@ const seed = {
     },
     warehouses: ["HCM Hub", "Hanoi DC", "Bangkok Gateway", "Singapore Hub"],
   },
+  warehouses: [
+    { id: "wh-hcm", name: "Kho HCM Hub", code: "VN-HCM" },
+    { id: "wh-hn", name: "Kho Hà Nội", code: "VN-HN" },
+    { id: "wh-dn", name: "Kho Đà Nẵng", code: "VN-DN" },
+    { id: "wh-bkk", name: "Kho Bangkok Gateway", code: "TH-BKK" },
+  ],
+  warehouseReceivingNotes: [
+    {
+      id: "WRN-MOCK-001",
+      receivingNoteCode: "WRN-20241026-001",
+      consignmentOrderId: "CG-2024-004",
+      warehouseId: "wh-hcm",
+      warehouseName: "Kho HCM Hub",
+      warehouseNote: "Hàng dễ vỡ — cần kiểm tra kỹ",
+      status: "ACTIVE",
+      createdAt: "2024-10-27T08:00:00Z",
+    },
+  ],
   pricing: {
     tiers: [
       {
@@ -200,6 +218,10 @@ const seed = {
       destination: "HCM Hub",
       notes: "",
       trackingCode: "SW-48291",
+      items: [
+        { productName: "iPhone 15 Pro Max", quantity: 2, weight: 0.4 },
+        { productName: "Ốp lưng MagSafe", quantity: 1, weight: 0.05 },
+      ],
     },
     {
       id: "CG-2024-005",
@@ -223,6 +245,19 @@ const seed = {
       quantity: 2,
       destination: "HCM Hub",
       notes: "",
+    },
+    {
+      id: "CG-2024-010",
+      customerName: "Nguyen Thi H",
+      consignmentType: "CONSIGNMENT",
+      status: "APPROVED",
+      createdAt: "2024-10-24T11:00:00Z",
+      productName: "AirPods Pro 2",
+      quantity: 5,
+      destination: "Hanoi DC",
+      notes: "Giao trong giờ hành chính",
+      trackingCode: "SW-55102",
+      items: [{ productName: "AirPods Pro 2", quantity: 5, weight: 0.25 }],
     },
     {
       id: "CG-2024-007",

@@ -99,6 +99,48 @@ export function normalizeConsignmentStatusUpdate(raw) {
   };
 }
 
+export function normalizeWarehouseFromApi(item) {
+  return {
+    id: item.id ?? item.warehouseId,
+    name: item.name ?? item.warehouseName ?? "—",
+    code: item.code ?? item.warehouseCode ?? null,
+  };
+}
+
+export function normalizeReceivingNoteFromApi(raw) {
+  const item = raw?.data ?? raw;
+  if (!item || (!item.id && !item.receivingNoteId && !item.receivingNoteCode)) {
+    return null;
+  }
+
+  return {
+    id: item.id ?? item.receivingNoteId,
+    receivingNoteCode: item.receivingNoteCode ?? item.code ?? item.noteCode,
+    consignmentOrderId: item.consignmentOrderId ?? item.orderId,
+    warehouseId: item.warehouseId,
+    warehouseName: item.warehouseName ?? item.warehouse?.name,
+    warehouseNote: item.warehouseNote ?? item.note ?? "",
+    status: item.status,
+    createdAt: item.createdAt,
+  };
+}
+
+export function normalizeReceivingNoteCreateResponse(raw) {
+  const note = normalizeReceivingNoteFromApi(raw);
+  return {
+    message: raw?.message ?? "Tạo phiếu tiếp nhận kho thành công.",
+    receivingNote: note,
+  };
+}
+
+export function toApiReceivingNotePayload({ consignmentOrderId, warehouseId, warehouseNote }) {
+  return {
+    consignmentOrderId,
+    warehouseId,
+    warehouseNote: warehouseNote?.trim() || null,
+  };
+}
+
 export function normalizeRestrictedItemFromApi(item) {
   const typeKey = String(item.restrictionType || "").toLowerCase();
 

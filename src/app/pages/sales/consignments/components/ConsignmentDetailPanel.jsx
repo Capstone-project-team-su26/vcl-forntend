@@ -191,6 +191,23 @@ function ConsignmentDetailPanel({
           detail.rejectionReason ? /* @__PURE__ */ jsx(DetailRow, { label: "L\xFD do t\u1EEB ch\u1ED1i", value: detail.rejectionReason }) : null
         ] })
       ] }),
+      detail.status === "APPROVED" ? /* @__PURE__ */ jsxs("div", { className: "bg-white rounded-xl border border-secondary/20 p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4", children: [
+        /* @__PURE__ */ jsxs("div", { children: [
+          /* @__PURE__ */ jsx("h3", { className: "text-lg font-extrabold font-['Oswald']", children: "Phi\u1EBFu ti\u1EBFp nh\u1EADn kho" }),
+          /* @__PURE__ */ jsx("p", { className: "text-sm text-muted mt-1", children: "T\u1EA1o phi\u1EBFu chuy\u1EC3n th\u00F4ng tin sang b\u1ED9 ph\u1EADn kho \u0111\u1EC3 scan tr\u00EAn mobile." })
+        ] }),
+        /* @__PURE__ */ jsxs(
+          Link,
+          {
+            href: ROUTES.sales.receivingNote(detail.id),
+            className: "inline-flex items-center justify-center gap-2 h-11 px-5 rounded-lg bg-secondary text-white text-sm font-bold hover:opacity-90 transition-opacity",
+            children: [
+              /* @__PURE__ */ jsx(Icon, { icon: "lucide:clipboard-plus", className: "w-4 h-4" }),
+              "T\u1EA1o / xem phi\u1EBFu ti\u1EBFp nh\u1EADn"
+            ]
+          }
+        )
+      ] }) : null,
       canUpdate ? /* @__PURE__ */ jsxs("div", { className: "bg-white rounded-xl border border-surface-muted p-6 space-y-5", children: [
         /* @__PURE__ */ jsx("h3", { className: "text-lg font-extrabold font-['Oswald']", children: "X\u1EED l\xFD y\xEAu c\u1EA7u" }),
         /* @__PURE__ */ jsx("div", { className: "flex flex-col sm:flex-row gap-3", children: /* @__PURE__ */ jsxs(

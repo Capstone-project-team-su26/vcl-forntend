@@ -14,12 +14,6 @@ export const SALES_NAV = [
     href: ROUTES.sales.consignments,
     icon: "/assets/IMG_4.svg",
   },
-  {
-    id: "transfer",
-    label: "Transfer",
-    href: ROUTES.sales.transfer,
-    icon: "/assets/IMG_3.svg",
-  },
 ];
 
 export const SALE_NAV_IDS = SALES_NAV.map((item) => item.id);
