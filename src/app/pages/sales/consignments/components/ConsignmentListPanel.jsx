@@ -81,6 +81,7 @@ function ConsignmentListPanel() {
   const totalPages = data?.totalPages ?? 1;
   const totalCount = data?.totalCount ?? 0;
   const showSaleApiEmptyHint =
+    process.env.NODE_ENV === "development" &&
     !isMockMode() &&
     session?.role === "Sale" &&
     !isLoading &&
