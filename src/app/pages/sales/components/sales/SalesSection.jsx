@@ -9,16 +9,32 @@ import { ROUTES } from "@/utils/appRoutes";
 export default function SalesSection() {
   const { session } = useAuth();
   const [data, setData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    staffService.getSalesWorkspace().then(setData);
+    let active = true;
+    staffService
+      .getSalesWorkspace()
+      .then((result) => {
+        if (active) setData(result);
+      })
+      .catch(() => {
+        if (active) setData(null);
+      })
+      .finally(() => {
+        if (active) setIsLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   const displayName = session?.fullName?.split(" ")?.[0] || session?.displayName?.split(" ")?.[0] || "Sale";
   const stats = data?.stats ?? [
-    { label: "PURCHASE ORDER", value: "12", subtext: "4 arriving today" },
-    { label: "IN STORAGE", value: "03", subtext: "Scheduled for tomorrow" },
-    { label: "IN SHIPMENT", value: "03", subtext: "Scheduled for tomorrow" },
+    { label: "CHỜ DUYỆT", value: isLoading ? "…" : "00", subtext: "Đang tải từ API ký gửi" },
+    { label: "ĐANG XỬ LÝ", value: isLoading ? "…" : "00", subtext: "Đang tải từ API ký gửi" },
+    { label: "TỔNG YÊU CẦU", value: isLoading ? "…" : "00", subtext: "Đang tải từ API ký gửi" },
   ];
 
   return (

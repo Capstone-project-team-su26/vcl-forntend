@@ -13,6 +13,9 @@ export const CONSIGNMENT_TYPE_LABELS = {
   PURCHASE_ORDER: "Mua hộ",
   CONSIGNMENT: "Ký gửi hàng",
   PURCHASE_AND_SHIP: "Mua hộ + Vận chuyển",
+  Express: "Ký gửi — Express",
+  Standard: "Ký gửi — Standard",
+  Economy: "Ký gửi — Economy",
 };
 
 export const CONSIGNMENT_STATUS_LABELS = {
@@ -21,6 +24,7 @@ export const CONSIGNMENT_STATUS_LABELS = {
   REJECTED: "Từ chối",
   IN_PROGRESS: "Đang xử lý",
   IN_WAREHOUSE: "Đã nhập kho",
+  WAREHOUSE_RECEIVED: "Đã nhận tại kho",
   CANCELLED: "Đã hủy",
   COMPLETED: "Hoàn tất",
 };
@@ -31,6 +35,7 @@ export const CONSIGNMENT_STATUS_STYLES = {
   REJECTED: "bg-danger/10 text-danger",
   IN_PROGRESS: "bg-info-bg text-info-text",
   IN_WAREHOUSE: "bg-info-bg text-info-text",
+  WAREHOUSE_RECEIVED: "bg-info-bg text-info-text",
   CANCELLED: "bg-surface text-muted",
   COMPLETED: "bg-surface text-muted",
 };
@@ -46,6 +51,7 @@ const STATUS_SORT_ORDER = {
   PENDING_REVIEW: 0,
   IN_PROGRESS: 1,
   IN_WAREHOUSE: 1,
+  WAREHOUSE_RECEIVED: 1,
   APPROVED: 2,
   REJECTED: 3,
   CANCELLED: 4,

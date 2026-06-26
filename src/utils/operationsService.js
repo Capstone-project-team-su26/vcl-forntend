@@ -1,7 +1,8 @@
 import { isMockMode } from "@/utils/mocks/dataSource";
 import { mockDelay } from "@/utils/mocks/mockDelay";
 import { getMockStore } from "@/utils/mocks/mockStore";
-import { apiRequest } from "@/utils/apiClient";
+import { ApiError } from "@/utils/apiError";
+import { apiRequest, apiRequestWithMockFallback } from "@/utils/apiClient";
 
 async function getOperationalDashboardMock() {
   await mockDelay();
@@ -61,29 +62,51 @@ async function estimatePriceMock({ destination, packageType }) {
 export async function getOperationalDashboard() {
   if (isMockMode()) return getOperationalDashboardMock();
 
-  return apiRequest("/api/Operations/dashboard");
+  return apiRequestWithMockFallback("/api/Operations/dashboard", {}, getOperationalDashboardMock);
 }
 
 export async function getTransferOptions() {
   if (isMockMode()) return getTransferOptionsMock();
 
-  return apiRequest("/api/Operations/transfer/options");
+  return apiRequestWithMockFallback(
+    "/api/Operations/transfer/options",
+    {},
+    getTransferOptionsMock
+  );
 }
 
 export async function confirmTransfer(payload) {
   if (isMockMode()) return confirmTransferMock(payload);
 
-  return apiRequest("/api/Operations/transfer", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
+  try {
+    return await apiRequest("/api/Operations/transfer", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) {
+      throw new ApiError(404, {
+        message: "Chức năng chuyển phát chưa khả dụng trên server.",
+      });
+    }
+    throw err;
+  }
 }
 
 export async function estimatePrice(payload) {
   if (isMockMode()) return estimatePriceMock(payload);
 
-  return apiRequest("/api/Operations/estimate-price", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
+  try {
+    return await apiRequest("/api/Operations/estimate-price", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) {
+      throw new ApiError(404, {
+        message: "Chức năng ước tính giá chưa khả dụng trên server.",
+      });
+    }
+    throw err;
+  }
 }

@@ -39,7 +39,8 @@ export function normalizeConsignmentSummary(item) {
     id: orderId,
     consignmentCode: item.consignmentCode || null,
     customerName: item.customerName ?? item.customer?.fullName ?? "—",
-    consignmentType: item.orderType ?? item.consignmentType ?? "—",
+    consignmentType:
+      item.orderType ?? item.consignmentType ?? item.shippingOption ?? "—",
     status: item.status,
     totalWeight: item.totalWeight,
     totalVolume: item.totalVolume,
@@ -51,12 +52,15 @@ export function normalizeConsignmentListResponse(raw, { page = 1, pageSize = 10 
   const data = raw?.data ?? raw;
   const items = (data?.items ?? []).map(normalizeConsignmentSummary);
 
+  const totalCount = data?.totalCount ?? items.length;
+  const totalPages = Math.max(1, data?.totalPages ?? 1);
+
   return {
     items,
     page: data?.pageNumber ?? page,
     pageSize: data?.pageSize ?? pageSize,
-    totalCount: data?.totalCount ?? items.length,
-    totalPages: data?.totalPages ?? 1,
+    totalCount,
+    totalPages: totalCount === 0 ? 1 : totalPages,
   };
 }
 
@@ -68,7 +72,8 @@ export function normalizeConsignmentDetail(raw) {
     id: item.orderId ?? item.id,
     consignmentCode: item.consignmentCode ?? null,
     customerName: item.customer?.fullName ?? item.customerName ?? "—",
-    consignmentType: item.orderType ?? item.consignmentType ?? "—",
+    consignmentType:
+      item.orderType ?? item.consignmentType ?? item.shippingOption ?? "—",
     status: item.status,
     createdAt: item.createdAt,
     productName: firstItem?.productName,

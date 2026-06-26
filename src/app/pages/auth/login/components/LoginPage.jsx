@@ -10,7 +10,7 @@ import { isMockMode } from "@/utils/mocks/dataSource";
 import { useAuth } from "@/hooks/useAuth";
 import { resolvePostLoginPath } from "@/utils/routeAccess";
 import { ROUTES } from "@/utils/appRoutes";
-import { MOCK_TEST_ACCOUNTS } from "@/utils/mocks/mockAccounts";
+import { MOCK_TEST_ACCOUNTS, API_TEST_ACCOUNTS } from "@/utils/mocks/mockAccounts";
 import { ApiError } from "@/utils/apiError";
 import { getErrorMessage } from "@/utils/apiError";
 const features = [
@@ -42,6 +42,15 @@ function LoginPage() {
     const passwordInput = form.elements.namedItem("password");
     if (emailInput) emailInput.value = email;
     if (passwordInput) passwordInput.value = "mock123";
+    setError("");
+  }
+  function fillApiAccount(account) {
+    const form = formRef.current;
+    if (!form) return;
+    const emailInput = form.elements.namedItem("email");
+    const passwordInput = form.elements.namedItem("password");
+    if (emailInput) emailInput.value = account.email;
+    if (passwordInput) passwordInput.value = account.password;
     setError("");
   }
   async function handleSubmit(e) {
@@ -147,7 +156,30 @@ function LoginPage() {
           " \u2192 sidebar ",
           /* @__PURE__ */ jsx("strong", { children: "Qu\u1EA3n l\xFD k\xFD g\u1EEDi" })
         ] })
-      ] }) : null,
+      ] }) : /* @__PURE__ */ jsxs("div", { className: "mb-5 rounded-lg border border-info-bg bg-info-bg/30 px-4 py-3 text-sm text-ink space-y-3", children: [
+        /* @__PURE__ */ jsx("p", { className: "font-semibold", children: "Ch\u1EBF \u0111\u1ED9 API \u2014 t\u00E0i kho\u1EA3n test tr\u00EAn server" }),
+        /* @__PURE__ */ jsx("div", { className: "flex flex-wrap gap-2", children: API_TEST_ACCOUNTS.map((account) => /* @__PURE__ */ jsxs(
+          "button",
+          {
+            type: "button",
+            onClick: () => fillApiAccount(account),
+            className: "inline-flex flex-col items-start px-3 py-2 rounded-lg border border-surface-muted bg-white hover:bg-surface text-left transition-colors",
+            children: [
+              /* @__PURE__ */ jsx("span", { className: "text-xs font-bold text-primary", children: account.label }),
+              /* @__PURE__ */ jsx("span", { className: "text-[11px] text-muted", children: account.email })
+            ]
+          },
+          account.email
+        )) }),
+        /* @__PURE__ */ jsxs("p", { className: "text-xs text-muted", children: [
+          "Sale k\xFD g\u1EEDi: ",
+          /* @__PURE__ */ jsx("strong", { children: "sale01@vcl.com" }),
+          " / ",
+          /* @__PURE__ */ jsx("strong", { children: "Sale@123" }),
+          " \u2192 ",
+          /* @__PURE__ */ jsx("strong", { children: "Qu\u1EA3n l\xFD k\xFD g\u1EEDi" })
+        ] })
+      ] }),
       /* @__PURE__ */ jsxs(
         "form",
         {
@@ -176,7 +208,7 @@ function LoginPage() {
                     type: "email",
                     autoComplete: "email",
                     required: true,
-                    placeholder: "sale@vcl.com",
+                    placeholder: "sale01@vcl.com",
                     className: "w-full h-12 pl-11 pr-4 bg-white border border-border-muted rounded-lg text-sm text-ink input-focus-ring"
                   }
                 )
