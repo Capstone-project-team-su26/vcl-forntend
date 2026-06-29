@@ -6,7 +6,7 @@ import {
   getRequiredRoles,
   isPublicPath,
 } from "@/utils/routeAccess";
-import { ROUTES } from "@/utils/appRoutes";
+import { ROUTES, ADMIN_PATH_PREFIX } from "@/utils/appRoutes";
 
 /** Chuyển route staff cũ → sales (đồng bộ sau refactor). */
 function resolveLegacyStaffRedirect(request) {
@@ -32,12 +32,33 @@ function resolveLegacyStaffRedirect(request) {
   return null;
 }
 
+/** Chuyển route admin cũ → /pages/admin (đồng bộ spec task). */
+function resolveLegacyAdminRedirect(request) {
+  const { pathname } = request.nextUrl;
+
+  if (pathname === "/admin") {
+    return new URL(ROUTES.admin.users, request.url);
+  }
+
+  if (pathname.startsWith("/admin/")) {
+    const next = pathname.replace(/^\/admin/, ADMIN_PATH_PREFIX);
+    return new URL(next, request.url);
+  }
+
+  return null;
+}
+
 export function middleware(request) {
   const { pathname } = request.nextUrl;
 
   const legacyRedirect = resolveLegacyStaffRedirect(request);
   if (legacyRedirect) {
     return NextResponse.redirect(legacyRedirect);
+  }
+
+  const legacyAdminRedirect = resolveLegacyAdminRedirect(request);
+  if (legacyAdminRedirect) {
+    return NextResponse.redirect(legacyAdminRedirect);
   }
 
   if (isPublicPath(pathname)) {

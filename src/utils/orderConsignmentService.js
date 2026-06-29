@@ -1,11 +1,15 @@
 import { isMockMode } from "@/utils/mocks/dataSource";
 import { mockDelay } from "@/utils/mocks/mockDelay";
-import { getMockStore } from "@/utils/mocks/mockStore";
-import { apiRequest } from "@/utils/apiClient";
+import { getMockStore, nextMockId } from "@/utils/mocks/mockStore";
+import { apiRequest, apiRequestWithMockFallback } from "@/utils/apiClient";
 import {
   normalizeConsignmentDetail,
   normalizeConsignmentListResponse,
   normalizeConsignmentStatusUpdate,
+  normalizeStaffConsignmentCreateResponse,
+  normalizeValidateItemsResponse,
+  toApiStaffConsignmentPayload,
+  toApiValidateItemsPayload,
 } from "@/utils/apiMappers";
 import { ApiError } from "@/utils/apiError";
 
@@ -251,6 +255,158 @@ export async function createConsignmentOrder(payload) {
     body: JSON.stringify(payload),
   });
 }
+
+function mapRestrictionToValidationType(restrictionType) {
+  if (restrictionType === "PROHIBITED") return "BANNED";
+  if (restrictionType === "RESTRICTED") return "RESTRICTED";
+  if (restrictionType === "CONDITIONAL") return "CONDITIONAL";
+  return null;
+}
+
+function findRestrictedMatch(productName) {
+  const query = productName?.trim().toLowerCase();
+  if (!query) return null;
+
+  return getMockStore().restrictedItems.find(
+    (item) =>
+      item.isActive &&
+      (item.name.toLowerCase().includes(query) || query.includes(item.name.toLowerCase()))
+  );
+}
+
+async function validateConsignmentItemsMock(payload) {
+  await mockDelay();
+
+  const items = (payload.items ?? []).map((item) => {
+    const match = findRestrictedMatch(item.productName);
+    if (!match) {
+      return {
+        productName: item.productName,
+        restrictionType: null,
+        matchedItemName: null,
+        message: null,
+      };
+    }
+
+    const restrictionType = mapRestrictionToValidationType(match.restrictionType);
+
+    return {
+      productName: item.productName,
+      restrictionType,
+      matchedItemName: match.name,
+      message: match.notes || null,
+    };
+  });
+
+  return {
+    items,
+    hasBanned: items.some((item) => item.restrictionType === "BANNED"),
+  };
+}
+
+export async function validateConsignmentItems(payload) {
+  if (isMockMode()) return validateConsignmentItemsMock(payload);
+
+  const raw = await apiRequestWithMockFallback(
+    "/api/orders/consignments/validate-items",
+    {
+      method: "POST",
+      body: JSON.stringify(toApiValidateItemsPayload(payload)),
+    },
+    () => validateConsignmentItemsMock(payload)
+  );
+
+  return normalizeValidateItemsResponse(raw);
+}
+
+async function createStaffConsignmentMock(payload) {
+  await mockDelay();
+
+  const customerId = payload.customerId?.trim();
+  if (!customerId) {
+    throw new ApiError(400, { message: "Vui lòng chọn khách hàng." });
+  }
+
+  const customer = getMockStore().customers.find((entry) => entry.id === customerId);
+  if (!customer) {
+    throw new ApiError(404, { message: "Không tìm thấy khách hàng." });
+  }
+
+  const firstItem = payload.items?.[0];
+  const productName = firstItem?.productName?.trim();
+  if (!productName) {
+    throw new ApiError(400, { message: "Vui lòng nhập tên hàng." });
+  }
+
+  if (!payload.shippingMethodId) {
+    throw new ApiError(400, { message: "Vui lòng chọn phương thức vận chuyển." });
+  }
+
+  const validation = await validateConsignmentItemsMock(payload);
+  if (validation.hasBanned) {
+    throw new ApiError(400, {
+      message: "Không thể tạo yêu cầu vì hàng thuộc danh mục cấm tuyệt đối.",
+    });
+  }
+
+  const id = nextMockId("CG");
+  const consignmentCode = `CN-${id.slice(-8).toUpperCase()}`;
+  const shippingMethod = getMockStore().shippingMethods.find(
+    (entry) => entry.id === payload.shippingMethodId
+  );
+
+  const entry = {
+    id,
+    consignmentCode,
+    customerId,
+    customerName: customer.fullName,
+    consignmentType: shippingMethod?.code ?? "CONSIGNMENT",
+    status: "PENDING_REVIEW",
+    totalWeight: Number(firstItem.estimatedWeight) || 0,
+    totalVolume: 0,
+    createdAt: new Date().toISOString(),
+    productName,
+    quantity: Number(firstItem.quantity) || 1,
+    destination: shippingMethod?.name ?? "—",
+    notes: payload.salesNote?.trim() || "",
+    items: payload.items,
+  };
+
+  getMockStore().staffConsignments.unshift(entry);
+
+  return {
+    message: "Tạo yêu cầu ký gửi thay khách thành công.",
+    orderId: id,
+    consignmentCode,
+  };
+}
+
+export async function createStaffConsignment(payload) {
+  if (isMockMode()) return createStaffConsignmentMock(payload);
+
+  const raw = await apiRequestWithMockFallback(
+    "/api/staff/consignments",
+    {
+      method: "POST",
+      body: JSON.stringify(toApiStaffConsignmentPayload(payload)),
+    },
+    () => createStaffConsignmentMock(payload)
+  );
+
+  return normalizeStaffConsignmentCreateResponse(raw);
+}
+
+export const ITEM_VALIDATION_STYLES = {
+  BANNED: "bg-danger/10 text-danger border-danger/30",
+  RESTRICTED: "bg-warning-bg text-warning-text border-warning/30",
+  CONDITIONAL: "bg-info-bg text-info-text border-info/30",
+};
+
+export const ITEM_VALIDATION_LABELS = {
+  BANNED: "Cấm tuyệt đối",
+  RESTRICTED: "Hạn chế",
+  CONDITIONAL: "Có điều kiện",
+};
 
 export function formatConsignmentDate(isoDate) {
   if (!isoDate) return "—";

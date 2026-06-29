@@ -21,6 +21,12 @@ const navItems = [
     icon: "lucide:receipt",
     href: ROUTES.admin.pricingRules
   },
+  {
+    id: "warehouses",
+    label: "Qu\u1EA3n l\xFD kho",
+    icon: "lucide:warehouse",
+    href: ROUTES.admin.warehouses
+  },
   { id: "alerts", label: "Alerts", icon: "lucide:bell" },
   { id: "settings", label: "Settings", icon: "lucide:settings" }
 ];
