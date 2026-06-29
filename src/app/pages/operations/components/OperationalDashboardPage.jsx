@@ -12,12 +12,17 @@ export default function OperationalDashboardPage() {
 
   useEffect(() => {
     let active = true;
-    operationsService.getOperationalDashboard().then((data) => {
-      if (active) {
-        setDashboard(data);
-        setIsLoading(false);
-      }
-    });
+    operationsService
+      .getOperationalDashboard()
+      .then((data) => {
+        if (active) {
+          setDashboard(data);
+          setIsLoading(false);
+        }
+      })
+      .catch(() => {
+        if (active) setIsLoading(false);
+      });
     return () => {
       active = false;
     };

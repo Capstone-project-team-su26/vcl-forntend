@@ -86,3 +86,23 @@ export async function apiRequest(path, options = {}) {
 
   return JSON.parse(text);
 }
+
+/**
+ * Gọi API; nếu BE trả 404 (endpoint chưa triển khai), dùng mockFn tạm.
+ * @param {string} path
+ * @param {RequestInit & { skipAuth?: boolean }} options
+ * @param {() => Promise<unknown>} mockFn
+ */
+export async function apiRequestWithMockFallback(path, options, mockFn) {
+  try {
+    return await apiRequest(path, options);
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) {
+      if (process.env.NODE_ENV === "development") {
+        console.warn(`[api] ${path} → 404, dùng dữ liệu mock tạm`);
+      }
+      return mockFn();
+    }
+    throw err;
+  }
+}

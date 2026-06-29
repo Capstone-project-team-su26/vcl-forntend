@@ -7,6 +7,8 @@ import { useEffect, useState } from "react";
 import * as orderConsignmentService from "@/utils/orderConsignmentService";
 import { getErrorMessage } from "@/utils/apiError";
 import { ROUTES } from "@/utils/appRoutes";
+import { useAuth } from "@/hooks/useAuth";
+import { isMockMode } from "@/utils/mocks/dataSource";
 const {
   CONSIGNMENT_TYPE_LABELS,
   CONSIGNMENT_STATUS_LABELS,
@@ -18,6 +20,7 @@ const STATUS_FILTER_OPTIONS = [
   { value: "PENDING_REVIEW", label: CONSIGNMENT_STATUS_LABELS.PENDING_REVIEW },
   { value: "IN_PROGRESS", label: CONSIGNMENT_STATUS_LABELS.IN_PROGRESS },
   { value: "IN_WAREHOUSE", label: CONSIGNMENT_STATUS_LABELS.IN_WAREHOUSE },
+  { value: "WAREHOUSE_RECEIVED", label: CONSIGNMENT_STATUS_LABELS.WAREHOUSE_RECEIVED },
   { value: "CANCELLED", label: CONSIGNMENT_STATUS_LABELS.CANCELLED },
   { value: "APPROVED", label: CONSIGNMENT_STATUS_LABELS.APPROVED },
   { value: "REJECTED", label: CONSIGNMENT_STATUS_LABELS.REJECTED },
@@ -35,6 +38,7 @@ function StatusBadge({ status }) {
 }
 function ConsignmentListPanel() {
   const router = useRouter();
+  const { session } = useAuth();
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState("");
   const [searchInput, setSearchInput] = useState("");
@@ -76,6 +80,15 @@ function ConsignmentListPanel() {
   const items = data?.items ?? [];
   const totalPages = data?.totalPages ?? 1;
   const totalCount = data?.totalCount ?? 0;
+  const showSaleApiEmptyHint =
+    process.env.NODE_ENV === "development" &&
+    !isMockMode() &&
+    session?.role === "Sale" &&
+    !isLoading &&
+    !error &&
+    totalCount === 0 &&
+    !search &&
+    !statusFilter;
   return /* @__PURE__ */ jsxs("div", { className: "space-y-8", children: [
     /* @__PURE__ */ jsxs("div", { children: [
       /* @__PURE__ */ jsx("h1", { className: "text-3xl lg:text-4xl font-black tracking-tight font-['Oswald'] text-ink", children: "Qu\u1EA3n l\xFD k\xFD g\u1EEDi" }),
@@ -117,6 +130,10 @@ function ConsignmentListPanel() {
       )
     ] }),
     error ? /* @__PURE__ */ jsx("div", { className: "rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger", children: error }) : null,
+    showSaleApiEmptyHint ? /* @__PURE__ */ jsxs("div", { className: "rounded-lg border border-warning-bg bg-warning-bg/40 px-4 py-3 text-sm text-ink", children: [
+      /* @__PURE__ */ jsx("p", { className: "font-semibold", children: "API tr\u1EA3 v\u1EC1 0 y\xEAu c\u1EA7u cho role Sale" }),
+      /* @__PURE__ */ jsx("p", { className: "text-muted mt-1", children: "Backend hi\u1EC7n ch\u1EC9 tr\u1EA3 danh s\u1EA1ch \u0111\u1EA7y \u0111\u1EE7 cho Admin/Customer. Team BE c\u1EA7n m\u1EDF quy\u1EC1n xem danh s\xE1ch k\xFD g\u1EEDi cho Sale tr\xEAn GET /api/orders/consignments. Chi ti\u1EBFt & duy\u1EC7t \u0111\u01A1n v\u1EABn ho\u1EA1t \u0111\u1ED9ng n\u1EBFu c\xF3 orderId." })
+    ] }) : null,
     /* @__PURE__ */ jsxs("div", { className: "bg-surface-elevated rounded-xl shadow-sm overflow-hidden border border-border-muted", children: [
       /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between px-6 py-4 border-b border-border-muted", children: [
         /* @__PURE__ */ jsx("h3", { className: "text-lg font-extrabold font-['Oswald']", children: "Danh s\xE1ch y\xEAu c\u1EA7u" }),

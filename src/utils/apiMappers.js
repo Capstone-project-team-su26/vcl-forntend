@@ -39,7 +39,8 @@ export function normalizeConsignmentSummary(item) {
     id: orderId,
     consignmentCode: item.consignmentCode || null,
     customerName: item.customerName ?? item.customer?.fullName ?? "—",
-    consignmentType: item.orderType ?? item.consignmentType ?? "—",
+    consignmentType:
+      item.orderType ?? item.consignmentType ?? item.shippingOption ?? "—",
     status: item.status,
     totalWeight: item.totalWeight,
     totalVolume: item.totalVolume,
@@ -51,12 +52,15 @@ export function normalizeConsignmentListResponse(raw, { page = 1, pageSize = 10 
   const data = raw?.data ?? raw;
   const items = (data?.items ?? []).map(normalizeConsignmentSummary);
 
+  const totalCount = data?.totalCount ?? items.length;
+  const totalPages = Math.max(1, data?.totalPages ?? 1);
+
   return {
     items,
     page: data?.pageNumber ?? page,
     pageSize: data?.pageSize ?? pageSize,
-    totalCount: data?.totalCount ?? items.length,
-    totalPages: data?.totalPages ?? 1,
+    totalCount,
+    totalPages: totalCount === 0 ? 1 : totalPages,
   };
 }
 
@@ -68,7 +72,8 @@ export function normalizeConsignmentDetail(raw) {
     id: item.orderId ?? item.id,
     consignmentCode: item.consignmentCode ?? null,
     customerName: item.customer?.fullName ?? item.customerName ?? "—",
-    consignmentType: item.orderType ?? item.consignmentType ?? "—",
+    consignmentType:
+      item.orderType ?? item.consignmentType ?? item.shippingOption ?? "—",
     status: item.status,
     createdAt: item.createdAt,
     productName: firstItem?.productName,
@@ -91,6 +96,48 @@ export function normalizeConsignmentStatusUpdate(raw) {
     consignment: raw.consignment
       ? normalizeConsignmentDetail(raw.consignment)
       : undefined,
+  };
+}
+
+export function normalizeWarehouseFromApi(item) {
+  return {
+    id: item.id ?? item.warehouseId,
+    name: item.name ?? item.warehouseName ?? "—",
+    code: item.code ?? item.warehouseCode ?? null,
+  };
+}
+
+export function normalizeReceivingNoteFromApi(raw) {
+  const item = raw?.data ?? raw;
+  if (!item || (!item.id && !item.receivingNoteId && !item.receivingNoteCode)) {
+    return null;
+  }
+
+  return {
+    id: item.id ?? item.receivingNoteId,
+    receivingNoteCode: item.receivingNoteCode ?? item.code ?? item.noteCode,
+    consignmentOrderId: item.consignmentOrderId ?? item.orderId,
+    warehouseId: item.warehouseId,
+    warehouseName: item.warehouseName ?? item.warehouse?.name,
+    warehouseNote: item.warehouseNote ?? item.note ?? "",
+    status: item.status,
+    createdAt: item.createdAt,
+  };
+}
+
+export function normalizeReceivingNoteCreateResponse(raw) {
+  const note = normalizeReceivingNoteFromApi(raw);
+  return {
+    message: raw?.message ?? "Tạo phiếu tiếp nhận kho thành công.",
+    receivingNote: note,
+  };
+}
+
+export function toApiReceivingNotePayload({ consignmentOrderId, warehouseId, warehouseNote }) {
+  return {
+    consignmentOrderId,
+    warehouseId,
+    warehouseNote: warehouseNote?.trim() || null,
   };
 }
 

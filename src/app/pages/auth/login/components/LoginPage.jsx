@@ -10,7 +10,7 @@ import { isMockMode } from "@/utils/mocks/dataSource";
 import { useAuth } from "@/hooks/useAuth";
 import { resolvePostLoginPath } from "@/utils/routeAccess";
 import { ROUTES } from "@/utils/appRoutes";
-import { MOCK_TEST_ACCOUNTS } from "@/utils/mocks/mockAccounts";
+import { MOCK_TEST_ACCOUNTS, API_TEST_ACCOUNTS } from "@/utils/mocks/mockAccounts";
 import { ApiError } from "@/utils/apiError";
 import { getErrorMessage } from "@/utils/apiError";
 const features = [
@@ -29,6 +29,7 @@ function LoginPage() {
   const redirectTo = searchParams.get("next");
   const { loginWithCredentials, isLoggedIn, isReady, session } = useAuth();
   const mockMode = isMockMode();
+  const isDev = process.env.NODE_ENV === "development";
 
   useEffect(() => {
     if (!isReady || !isLoggedIn || !session?.role) return;
@@ -42,6 +43,15 @@ function LoginPage() {
     const passwordInput = form.elements.namedItem("password");
     if (emailInput) emailInput.value = email;
     if (passwordInput) passwordInput.value = "mock123";
+    setError("");
+  }
+  function fillApiAccount(account) {
+    const form = formRef.current;
+    if (!form) return;
+    const emailInput = form.elements.namedItem("email");
+    const passwordInput = form.elements.namedItem("password");
+    if (emailInput) emailInput.value = account.email;
+    if (passwordInput) passwordInput.value = account.password;
     setError("");
   }
   async function handleSubmit(e) {
@@ -126,7 +136,7 @@ function LoginPage() {
         /* @__PURE__ */ jsx("p", { className: "text-[15px] text-muted", children: "Nhập email nhân viên để vào hệ thống nội bộ." })
       ] }),
       error ? /* @__PURE__ */ jsx("div", { className: "mb-5 rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger", children: error }) : null,
-      mockMode ? /* @__PURE__ */ jsxs("div", { className: "mb-5 rounded-lg border border-warning-bg bg-warning-bg/40 px-4 py-3 text-sm text-ink space-y-3", children: [
+      isDev && mockMode ? /* @__PURE__ */ jsxs("div", { className: "mb-5 rounded-lg border border-warning-bg bg-warning-bg/40 px-4 py-3 text-sm text-ink space-y-3", children: [
         /* @__PURE__ */ jsx("p", { className: "font-semibold", children: "Ch\u1EBF \u0111\u1ED9 Mock \u2014 m\u1EADt kh\u1EA9u b\u1EA5t k\u1EF3" }),
         /* @__PURE__ */ jsx("div", { className: "flex flex-wrap gap-2", children: MOCK_TEST_ACCOUNTS.map((account) => /* @__PURE__ */ jsxs(
           "button",
@@ -145,6 +155,29 @@ function LoginPage() {
           "Test k\xFD g\u1EEDi: ch\u1ECDn ",
           /* @__PURE__ */ jsx("strong", { children: "Sale" }),
           " \u2192 sidebar ",
+          /* @__PURE__ */ jsx("strong", { children: "Qu\u1EA3n l\xFD k\xFD g\u1EEDi" })
+        ] })
+      ] }) : isDev && !mockMode ? /* @__PURE__ */ jsxs("div", { className: "mb-5 rounded-lg border border-info-bg bg-info-bg/30 px-4 py-3 text-sm text-ink space-y-3", children: [
+        /* @__PURE__ */ jsx("p", { className: "font-semibold", children: "Ch\u1EBF \u0111\u1ED9 API \u2014 t\u00E0i kho\u1EA3n test tr\u00EAn server" }),
+        /* @__PURE__ */ jsx("div", { className: "flex flex-wrap gap-2", children: API_TEST_ACCOUNTS.map((account) => /* @__PURE__ */ jsxs(
+          "button",
+          {
+            type: "button",
+            onClick: () => fillApiAccount(account),
+            className: "inline-flex flex-col items-start px-3 py-2 rounded-lg border border-surface-muted bg-white hover:bg-surface text-left transition-colors",
+            children: [
+              /* @__PURE__ */ jsx("span", { className: "text-xs font-bold text-primary", children: account.label }),
+              /* @__PURE__ */ jsx("span", { className: "text-[11px] text-muted", children: account.email })
+            ]
+          },
+          account.email
+        )) }),
+        /* @__PURE__ */ jsxs("p", { className: "text-xs text-muted", children: [
+          "Sale k\xFD g\u1EEDi: ",
+          /* @__PURE__ */ jsx("strong", { children: "sale01@vcl.com" }),
+          " / ",
+          /* @__PURE__ */ jsx("strong", { children: "Sale@123" }),
+          " \u2192 ",
           /* @__PURE__ */ jsx("strong", { children: "Qu\u1EA3n l\xFD k\xFD g\u1EEDi" })
         ] })
       ] }) : null,
@@ -176,7 +209,7 @@ function LoginPage() {
                     type: "email",
                     autoComplete: "email",
                     required: true,
-                    placeholder: "sale@vcl.com",
+                    placeholder: "email@congty.com",
                     className: "w-full h-12 pl-11 pr-4 bg-white border border-border-muted rounded-lg text-sm text-ink input-focus-ring"
                   }
                 )

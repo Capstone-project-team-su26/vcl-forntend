@@ -27,7 +27,7 @@ export default function InternalShell({
       ) : null}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-surface border-r border-border-muted flex flex-col transition-transform duration-300 lg:translate-x-0 lg:static ${
+        className={`no-print fixed inset-y-0 left-0 z-50 w-64 bg-surface border-r border-border-muted flex flex-col transition-transform duration-300 lg:translate-x-0 lg:static ${
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -58,7 +58,7 @@ export default function InternalShell({
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="h-16 bg-surface-elevated border-b border-border-muted flex items-center justify-between px-4 lg:px-8 shrink-0">
+        <header className="no-print h-16 bg-surface-elevated border-b border-border-muted flex items-center justify-between px-4 lg:px-8 shrink-0">
           <button
             type="button"
             onClick={() => setIsSidebarOpen(true)}
@@ -77,8 +77,8 @@ export default function InternalShell({
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto custom-scrollbar bg-background">
-          <div className="p-4 lg:p-8 max-w-[1200px] mx-auto">{children}</div>
+        <main className="flex-1 overflow-y-auto custom-scrollbar bg-background print:overflow-visible">
+          <div className="p-4 lg:p-8 max-w-[1200px] mx-auto print:p-0 print:max-w-none">{children}</div>
         </main>
       </div>
     </div>

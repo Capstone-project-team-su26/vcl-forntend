@@ -8,7 +8,6 @@ import { ROUTES } from "@/utils/appRoutes";
 function resolveActiveNav(pathname) {
   if (!pathname) return "dashboard";
   if (pathname.startsWith(ROUTES.sales.consignments)) return "consignments";
-  if (pathname.startsWith(ROUTES.sales.transfer)) return "transfer";
   return "dashboard";
 }
 
