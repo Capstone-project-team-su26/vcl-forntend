@@ -20,6 +20,12 @@ export const SALES_NAV = [
     href: ROUTES.sales.consignments,
     icon: "/assets/IMG_4.svg",
   },
+  {
+    id: "purchase-requests",
+    label: "Mua hộ",
+    href: ROUTES.sales.purchaseRequests,
+    icon: "/assets/IMG_5.svg",
+  },
 ];
 
 export const SALE_NAV_IDS = SALES_NAV.map((item) => item.id);

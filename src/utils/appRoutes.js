@@ -12,6 +12,8 @@ export const ROUTES = {
     restrictedItems: `${PAGES}/admin/restricted-items`,
     pricingRules: `${PAGES}/admin/pricing-rules`,
     warehouses: `${PAGES}/admin/warehouses`,
+    shippingMethods: `${PAGES}/admin/shipping-methods`,
+    additionalServiceFees: `${PAGES}/admin/additional-service-fees`,
   },
   sales: {
     home: `${PAGES}/sales`,
@@ -21,6 +23,13 @@ export const ROUTES = {
     createConsignment: `${PAGES}/sales/consignments/create`,
     consignment: (id) => `${PAGES}/sales/consignments/${id}`,
     receivingNote: (id) => `${PAGES}/sales/consignments/${id}/receiving-note`,
+    purchaseRequests: `${PAGES}/sales/purchase-requests`,
+    purchaseRequest: (id) => `${PAGES}/sales/purchase-requests/${id}`,
+    purchaseRequestQuotation: (id) => `${PAGES}/sales/purchase-requests/${id}/quotation`,
+    consignmentQuotation: (id) => `${PAGES}/sales/consignments/${id}/quotation`,
+    purchaseRequestPurchaseOrder: (id) =>
+      `${PAGES}/sales/purchase-requests/${id}/purchase-order`,
+    purchaseOrderStatus: (id) => `${PAGES}/sales/purchase-orders/${id}/status`,
   },
   operations: {
     dashboard: `${PAGES}/operations`,

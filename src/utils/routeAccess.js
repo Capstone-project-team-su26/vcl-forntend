@@ -28,7 +28,15 @@ export function getRequiredRoles(pathname) {
   if (!pathname || isPublicPath(pathname)) return null;
 
   if (pathname.startsWith(ADMIN_PATH_PREFIX)) return ROLE_GROUPS.ADMIN;
-  if (pathname.startsWith(SALES_PATH_PREFIX)) return ROLE_GROUPS.SALE;
+  if (pathname.startsWith(SALES_PATH_PREFIX)) {
+    if (
+      /\/purchase-requests\/[^/]+\/purchase-order\/?$/.test(pathname) ||
+      /\/purchase-orders\/[^/]+\/status\/?$/.test(pathname)
+    ) {
+      return [...ROLE_GROUPS.SALE, ...ROLE_GROUPS.OPS];
+    }
+    return ROLE_GROUPS.SALE;
+  }
   if (pathname.startsWith(OPERATIONS_PATH_PREFIX)) return ROLE_GROUPS.OPS;
 
   return null;

@@ -17,7 +17,7 @@ const navItems = [
   },
   {
     id: "pricing-rules",
-    label: "B\u1EA3ng gi\xE1",
+    label: "Giá DV chính",
     icon: "lucide:receipt",
     href: ROUTES.admin.pricingRules
   },
@@ -26,6 +26,18 @@ const navItems = [
     label: "Qu\u1EA3n l\xFD kho",
     icon: "lucide:warehouse",
     href: ROUTES.admin.warehouses
+  },
+  {
+    id: "shipping-methods",
+    label: "V\u1EADn chuy\u1EC3n",
+    icon: "lucide:truck",
+    href: ROUTES.admin.shippingMethods
+  },
+  {
+    id: "additional-service-fees",
+    label: "Ph\u00ED DV b\u1ED5 sung",
+    icon: "lucide:layers",
+    href: ROUTES.admin.additionalServiceFees
   },
   { id: "alerts", label: "Alerts", icon: "lucide:bell" },
   { id: "settings", label: "Settings", icon: "lucide:settings" }

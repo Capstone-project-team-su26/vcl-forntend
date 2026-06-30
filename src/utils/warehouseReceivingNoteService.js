@@ -114,7 +114,7 @@ async function createReceivingNoteMock({ consignmentOrderId, warehouseId, wareho
   getMockStore().warehouseReceivingNotes.unshift(entry);
 
   return {
-    message: "Tạo phiếu tiếp nhận kho thành công.",
+    message: "Gửi phiếu tiếp nhận kho thành công.",
     receivingNote: { ...entry },
   };
 }

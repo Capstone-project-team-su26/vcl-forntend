@@ -1,34 +1,42 @@
 "use client";
-import { jsx, jsxs } from "react/jsx-runtime";
+
 import { Icon } from "@iconify/react";
 import { useEffect, useState } from "react";
 import AdminLayout from "../../components/AdminLayout";
-import PricingRuleFormModal from "./PricingRuleFormModal";
-import * as pricingRuleService from "@/utils/pricingRuleService";
+import ServicePricingFormModal from "./PricingRuleFormModal";
+import * as servicePricingService from "@/utils/servicePricingService";
 import { getErrorMessage } from "@/utils/apiError";
+
 const {
-  SHIPPING_SERVICE_TYPE_LABELS,
-  CONSIGNMENT_TYPE_LABELS,
-  BILLING_UNIT_LABELS,
-  formatPricingRoute,
-  formatMoney
-} = pricingRuleService;
+  SERVICE_TYPE_LABELS,
+  UNIT_TYPE_LABELS,
+  formatServicePricingRoute,
+  formatMoney,
+  formatInternationalWarehouseLabel,
+  listInternationalWarehouses,
+} = servicePricingService;
+
 const STATUS_FILTER_OPTIONS = [
-  { value: "", label: "T\u1EA5t c\u1EA3 tr\u1EA1ng th\xE1i" },
-  { value: "true", label: "\u0110ang ho\u1EA1t \u0111\u1ED9ng" },
-  { value: "false", label: "V\xF4 hi\u1EC7u" }
+  { value: "", label: "Tất cả trạng thái" },
+  { value: "true", label: "Đang hoạt động" },
+  { value: "false", label: "Vô hiệu" },
 ];
+
 function ActiveBadge({ isActive }) {
-  return /* @__PURE__ */ jsx(
-    "span",
-    {
-      className: `inline-block px-3 py-1 rounded-full text-[11px] font-bold ${isActive ? "bg-success-bg text-success-text" : "bg-surface text-muted"}`,
-      children: isActive ? "Ho\u1EA1t \u0111\u1ED9ng" : "V\xF4 hi\u1EC7u"
-    }
+  return (
+    <span
+      className={`inline-block px-3 py-1 rounded-full text-[11px] font-bold ${
+        isActive ? "bg-success-bg text-success-text" : "bg-surface text-muted"
+      }`}
+    >
+      {isActive ? "Hoạt động" : "Vô hiệu"}
+    </span>
   );
 }
-function PricingRulesPage() {
+
+export default function PricingRulesPage() {
   const [items, setItems] = useState([]);
+  const [warehouses, setWarehouses] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [actionError, setActionError] = useState("");
   const [actionMessage, setActionMessage] = useState("");
@@ -38,223 +46,307 @@ function PricingRulesPage() {
   const [pendingId, setPendingId] = useState(null);
   const [modalMode, setModalMode] = useState(null);
   const [editingItem, setEditingItem] = useState(null);
+
   useEffect(() => {
     const timer = window.setTimeout(() => setSearch(searchInput.trim()), 300);
     return () => window.clearTimeout(timer);
   }, [searchInput]);
+
+  useEffect(() => {
+    listInternationalWarehouses().then(setWarehouses).catch(() => setWarehouses([]));
+  }, []);
+
   useEffect(() => {
     let active = true;
+
     async function load() {
       setIsLoading(true);
       setActionError("");
+
       try {
-        const data = await pricingRuleService.listPricingRules({
-          search: search || void 0,
-          isActive: statusFilter === "" ? void 0 : statusFilter
+        const data = await servicePricingService.listServicePricings({
+          search: search || undefined,
+          isActive: statusFilter === "" ? undefined : statusFilter,
         });
-        const list = Array.isArray(data) ? data : data?.items ?? [];
-        if (active) setItems(list);
+        if (active) setItems(Array.isArray(data) ? data : data?.items ?? []);
       } catch (err) {
         if (active) setActionError(getErrorMessage(err));
       } finally {
         if (active) setIsLoading(false);
       }
     }
+
     load();
     return () => {
       active = false;
     };
   }, [search, statusFilter]);
+
   function openCreate() {
     setEditingItem(null);
     setModalMode("create");
   }
+
   function openEdit(item) {
     setEditingItem(item);
     setModalMode("edit");
   }
+
   function closeModal() {
     setModalMode(null);
     setEditingItem(null);
   }
+
   function handleSaved(item, message) {
     setItems((current) => {
       const exists = current.some((entry) => entry.id === item.id);
-      if (exists) return current.map((entry) => entry.id === item.id ? item : entry);
+      if (exists) return current.map((entry) => (entry.id === item.id ? item : entry));
       return [item, ...current];
     });
     setActionMessage(message);
     setActionError("");
   }
+
   async function handleToggleActive(item) {
     setPendingId(item.id);
     setActionError("");
     setActionMessage("");
+
     try {
-      const response = await pricingRuleService.updatePricingRule(item.id, {
-        isActive: !item.isActive
+      const response = await servicePricingService.updateServicePricing(item.id, {
+        isActive: !item.isActive,
       });
-      setItems(
-        (current) => current.map((entry) => entry.id === item.id ? response.item : entry)
+      setItems((current) =>
+        current.map((entry) => (entry.id === item.id ? response.item : entry))
       );
-      setActionMessage(response.message || "C\u1EADp nh\u1EADt tr\u1EA1ng th\xE1i th\xE0nh c\xF4ng.");
+      setActionMessage(response.message || "Cập nhật trạng thái thành công.");
     } catch (err) {
       setActionError(getErrorMessage(err));
     } finally {
       setPendingId(null);
     }
   }
+
   async function handleDelete(item) {
-    const label = SHIPPING_SERVICE_TYPE_LABELS[item.shippingServiceType] || item.shippingServiceType;
-    if (!window.confirm(`X\xF3a c\u1EA5u h\xECnh gi\xE1 "${label}" (${formatPricingRoute(item.route)})?`)) return;
+    const label = SERVICE_TYPE_LABELS[item.serviceType] || item.serviceType;
+    if (!window.confirm(`Xóa giá dịch vụ chính "${label}" (${formatServicePricingRoute(item)})?`)) {
+      return;
+    }
+
     setPendingId(item.id);
     setActionError("");
     setActionMessage("");
+
     try {
-      const response = await pricingRuleService.deletePricingRule(item.id);
+      const response = await servicePricingService.deleteServicePricing(item.id);
       setItems((current) => current.filter((entry) => entry.id !== item.id));
-      setActionMessage(response.message || "\u0110\xE3 x\xF3a c\u1EA5u h\xECnh gi\xE1.");
+      setActionMessage(response.message || "Đã xóa giá dịch vụ chính.");
     } catch (err) {
       setActionError(getErrorMessage(err));
     } finally {
       setPendingId(null);
     }
   }
-  return /* @__PURE__ */ jsxs(AdminLayout, { activeNav: "pricing-rules", children: [
-    /* @__PURE__ */ jsxs("div", { className: "max-w-7xl mx-auto space-y-6", children: [
-      /* @__PURE__ */ jsxs("div", { className: "flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4", children: [
-        /* @__PURE__ */ jsxs("div", { children: [
-          /* @__PURE__ */ jsx("h1", { className: "text-2xl lg:text-3xl font-bold text-ink tracking-tight", children: "B\u1EA3ng gi\xE1 k\xFD g\u1EEDi" }),
-          /* @__PURE__ */ jsx("p", { className: "text-sm text-muted mt-1 max-w-2xl", children: "C\u1EA5u h\xECnh gi\xE1 d\xF9ng cho b\xE1o gi\xE1 t\u1EA1m t\xEDnh v\xE0 b\xE1o gi\xE1 ch\u1ED1t khi Customer t\u1EA1o y\xEAu c\u1EA7u k\xFD g\u1EEDi." })
-        ] }),
-        /* @__PURE__ */ jsxs(
-          "button",
-          {
-            type: "button",
-            onClick: openCreate,
-            className: "inline-flex items-center justify-center gap-2 h-11 px-5 bg-insight hover:bg-secondary text-white text-sm font-bold rounded-lg transition-colors shrink-0",
-            children: [
-              /* @__PURE__ */ jsx(Icon, { icon: "lucide:plus", className: "w-4 h-4" }),
-              "Th\xEAm c\u1EA5u h\xECnh gi\xE1"
-            ]
-          }
-        )
-      ] }),
-      /* @__PURE__ */ jsxs("div", { className: "flex flex-col lg:flex-row gap-3", children: [
-        /* @__PURE__ */ jsxs("div", { className: "relative flex-1", children: [
-          /* @__PURE__ */ jsx(
-            Icon,
-            {
-              icon: "lucide:search",
-              className: "absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted"
-            }
-          ),
-          /* @__PURE__ */ jsx(
-            "input",
-            {
-              type: "search",
-              value: searchInput,
-              onChange: (e) => setSearchInput(e.target.value),
-              placeholder: "T\xECm theo lo\u1EA1i d\u1ECBch v\u1EE5 ho\u1EB7c tuy\u1EBFn v\u1EADn chuy\u1EC3n...",
-              className: "w-full h-11 pl-10 pr-4 rounded-lg border border-border-muted bg-surface-elevated text-sm input-focus-ring"
-            }
-          )
-        ] }),
-        /* @__PURE__ */ jsx(
-          "select",
-          {
-            value: statusFilter,
-            onChange: (e) => setStatusFilter(e.target.value),
-            className: "h-11 px-4 rounded-lg border border-border-muted bg-surface-elevated text-sm font-medium input-focus-ring lg:min-w-[200px]",
-            children: STATUS_FILTER_OPTIONS.map((option) => /* @__PURE__ */ jsx("option", { value: option.value, children: option.label }, option.value || "all"))
-          }
-        )
-      ] }),
-      actionError ? /* @__PURE__ */ jsx("div", { className: "rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger", children: actionError }) : null,
-      actionMessage ? /* @__PURE__ */ jsx("div", { className: "rounded-lg border border-success/30 bg-success-bg px-4 py-3 text-sm text-success-text", children: actionMessage }) : null,
-      /* @__PURE__ */ jsx("div", { className: "bg-surface-elevated rounded-xl border border-border-muted shadow-sm overflow-hidden", children: /* @__PURE__ */ jsx("div", { className: "overflow-x-auto", children: /* @__PURE__ */ jsxs("table", { className: "w-full min-w-[1100px] text-left", children: [
-        /* @__PURE__ */ jsx("thead", { children: /* @__PURE__ */ jsxs("tr", { className: "border-b border-border-muted bg-surface", children: [
-          /* @__PURE__ */ jsx("th", { className: "px-4 py-4 text-[11px] font-bold text-faint uppercase tracking-wider", children: "D\u1ECBch v\u1EE5" }),
-          /* @__PURE__ */ jsx("th", { className: "px-4 py-4 text-[11px] font-bold text-faint uppercase tracking-wider", children: "Lo\u1EA1i k\xFD g\u1EEDi" }),
-          /* @__PURE__ */ jsx("th", { className: "px-4 py-4 text-[11px] font-bold text-faint uppercase tracking-wider", children: "Tuy\u1EBFn" }),
-          /* @__PURE__ */ jsx("th", { className: "px-4 py-4 text-[11px] font-bold text-faint uppercase tracking-wider", children: "\u0110\u01A1n v\u1ECB" }),
-          /* @__PURE__ */ jsx("th", { className: "px-4 py-4 text-[11px] font-bold text-faint uppercase tracking-wider", children: "Gi\xE1/kg" }),
-          /* @__PURE__ */ jsx("th", { className: "px-4 py-4 text-[11px] font-bold text-faint uppercase tracking-wider", children: "Gi\xE1/CBM" }),
-          /* @__PURE__ */ jsx("th", { className: "px-4 py-4 text-[11px] font-bold text-faint uppercase tracking-wider", children: "Ph\xED DV" }),
-          /* @__PURE__ */ jsx("th", { className: "px-4 py-4 text-[11px] font-bold text-faint uppercase tracking-wider", children: "Tr\u1EA1ng th\xE1i" }),
-          /* @__PURE__ */ jsx("th", { className: "px-4 py-4 text-[11px] font-bold text-faint uppercase tracking-wider text-right", children: "H\xE0nh \u0111\u1ED9ng" })
-        ] }) }),
-        /* @__PURE__ */ jsx("tbody", { className: "divide-y divide-border-muted", children: isLoading ? /* @__PURE__ */ jsx("tr", { children: /* @__PURE__ */ jsx("td", { colSpan: 9, className: "px-6 py-12 text-center", children: /* @__PURE__ */ jsxs("div", { className: "inline-flex items-center gap-2 text-sm text-muted", children: [
-          /* @__PURE__ */ jsx(Icon, { icon: "lucide:loader-2", className: "w-5 h-5 animate-spin" }),
-          "\u0110ang t\u1EA3i b\u1EA3ng gi\xE1..."
-        ] }) }) }) : items.length === 0 ? /* @__PURE__ */ jsx("tr", { children: /* @__PURE__ */ jsx("td", { colSpan: 9, className: "px-6 py-12 text-center text-sm text-muted", children: search || statusFilter ? "Kh\xF4ng t\xECm th\u1EA5y c\u1EA5u h\xECnh ph\xF9 h\u1EE3p." : 'Ch\u01B0a c\xF3 c\u1EA5u h\xECnh gi\xE1. Nh\u1EA5n "Th\xEAm c\u1EA5u h\xECnh gi\xE1" \u0111\u1EC3 b\u1EAFt \u0111\u1EA7u.' }) }) : items.map((item) => /* @__PURE__ */ jsxs("tr", { className: "hover:bg-surface/80 transition-colors", children: [
-          /* @__PURE__ */ jsxs("td", { className: "px-4 py-4", children: [
-            /* @__PURE__ */ jsx("p", { className: "text-sm font-bold text-ink", children: SHIPPING_SERVICE_TYPE_LABELS[item.shippingServiceType] || item.shippingServiceType }),
-            /* @__PURE__ */ jsx("p", { className: "text-[10px] text-faint mt-0.5", children: item.id })
-          ] }),
-          /* @__PURE__ */ jsx("td", { className: "px-4 py-4 text-sm text-muted", children: CONSIGNMENT_TYPE_LABELS[item.consignmentType] || item.consignmentType }),
-          /* @__PURE__ */ jsx("td", { className: "px-4 py-4 text-sm text-muted", children: formatPricingRoute(item.route) }),
-          /* @__PURE__ */ jsx("td", { className: "px-4 py-4 text-sm text-muted", children: BILLING_UNIT_LABELS[item.billingUnit] || item.billingUnit }),
-          /* @__PURE__ */ jsx("td", { className: "px-4 py-4 text-sm font-medium", children: formatMoney(item.pricePerKg) }),
-          /* @__PURE__ */ jsx("td", { className: "px-4 py-4 text-sm font-medium", children: formatMoney(item.pricePerCbm) }),
-          /* @__PURE__ */ jsx("td", { className: "px-4 py-4 text-sm font-medium", children: formatMoney(item.serviceFee) }),
-          /* @__PURE__ */ jsx("td", { className: "px-4 py-4", children: /* @__PURE__ */ jsx(ActiveBadge, { isActive: item.isActive }) }),
-          /* @__PURE__ */ jsx("td", { className: "px-4 py-4", children: /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-end gap-1", children: [
-            /* @__PURE__ */ jsx(
-              "button",
-              {
-                type: "button",
-                onClick: () => openEdit(item),
-                disabled: pendingId === item.id,
-                className: "p-2 text-muted hover:text-insight hover:bg-surface rounded-lg disabled:opacity-50",
-                title: "S\u1EEDa",
-                children: /* @__PURE__ */ jsx(Icon, { icon: "lucide:pencil", className: "w-4 h-4" })
-              }
-            ),
-            /* @__PURE__ */ jsx(
-              "button",
-              {
-                type: "button",
-                onClick: () => handleToggleActive(item),
-                disabled: pendingId === item.id,
-                className: "p-2 text-muted hover:text-warning-text hover:bg-surface rounded-lg disabled:opacity-50",
-                title: item.isActive ? "V\xF4 hi\u1EC7u h\xF3a" : "K\xEDch ho\u1EA1t",
-                children: /* @__PURE__ */ jsx(
-                  Icon,
-                  {
-                    icon: item.isActive ? "lucide:ban" : "lucide:circle-check",
-                    className: "w-4 h-4"
-                  }
-                )
-              }
-            ),
-            /* @__PURE__ */ jsx(
-              "button",
-              {
-                type: "button",
-                onClick: () => handleDelete(item),
-                disabled: pendingId === item.id,
-                className: "p-2 text-muted hover:text-danger hover:bg-danger/5 rounded-lg disabled:opacity-50",
-                title: "X\xF3a",
-                children: /* @__PURE__ */ jsx(Icon, { icon: "lucide:trash-2", className: "w-4 h-4" })
-              }
-            )
-          ] }) })
-        ] }, item.id)) })
-      ] }) }) })
-    ] }),
-    /* @__PURE__ */ jsx(
-      PricingRuleFormModal,
-      {
-        open: modalMode !== null,
-        mode: modalMode === "edit" ? "edit" : "create",
-        item: editingItem,
-        onClose: closeModal,
-        onSaved: handleSaved
-      }
-    )
-  ] });
+
+  function formatUnitPrice(item) {
+    if (item.unitType === "KG_OR_CBM") {
+      return `${formatMoney(item.pricePerKg)} / kg · ${formatMoney(item.pricePerCbm)} / CBM`;
+    }
+    if (item.unitType === "CBM") return `${formatMoney(item.price)} / CBM`;
+    return `${formatMoney(item.price)} / kg`;
+  }
+
+  return (
+    <AdminLayout activeNav="pricing-rules">
+      <div className="max-w-7xl mx-auto space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl lg:text-3xl font-bold text-ink tracking-tight">
+              Giá dịch vụ chính (ký gửi)
+            </h1>
+            <p className="text-sm text-muted mt-1 max-w-2xl">
+              Cấu hình cước dịch vụ chính theo tuyến và đơn vị tính. Phụ phí được quản lý riêng tại
+              mục Phí dịch vụ bổ sung.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={openCreate}
+            className="inline-flex items-center justify-center gap-2 h-11 px-5 bg-insight hover:bg-secondary text-white text-sm font-bold rounded-lg transition-colors shrink-0"
+          >
+            <Icon icon="lucide:plus" className="w-4 h-4" />
+            Thêm giá dịch vụ chính
+          </button>
+        </div>
+
+        <div className="flex flex-col lg:flex-row gap-3">
+          <div className="relative flex-1">
+            <Icon
+              icon="lucide:search"
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted"
+            />
+            <input
+              type="search"
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+              placeholder="Tìm theo dịch vụ, tuyến, kho..."
+              className="w-full h-11 pl-10 pr-4 rounded-lg border border-border-muted bg-surface-elevated text-sm input-focus-ring"
+            />
+          </div>
+          <select
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value)}
+            className="form-select input-focus-ring lg:min-w-[200px]"
+          >
+            {STATUS_FILTER_OPTIONS.map((option) => (
+              <option key={option.value || "all"} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {actionError ? (
+          <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
+            {actionError}
+          </div>
+        ) : null}
+        {actionMessage ? (
+          <div className="rounded-lg border border-success/30 bg-success-bg px-4 py-3 text-sm text-success-text">
+            {actionMessage}
+          </div>
+        ) : null}
+
+        <div className="bg-surface-elevated rounded-xl border border-border-muted shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[1100px] text-left">
+              <thead>
+                <tr className="border-b border-border-muted bg-surface">
+                  <th className="px-4 py-4 text-[11px] font-bold text-faint uppercase tracking-wider">
+                    Dịch vụ
+                  </th>
+                  <th className="px-4 py-4 text-[11px] font-bold text-faint uppercase tracking-wider">
+                    Tuyến
+                  </th>
+                  <th className="px-4 py-4 text-[11px] font-bold text-faint uppercase tracking-wider">
+                    Kho
+                  </th>
+                  <th className="px-4 py-4 text-[11px] font-bold text-faint uppercase tracking-wider">
+                    Đơn vị
+                  </th>
+                  <th className="px-4 py-4 text-[11px] font-bold text-faint uppercase tracking-wider">
+                    Đơn giá
+                  </th>
+                  <th className="px-4 py-4 text-[11px] font-bold text-faint uppercase tracking-wider">
+                    Hiệu lực
+                  </th>
+                  <th className="px-4 py-4 text-[11px] font-bold text-faint uppercase tracking-wider">
+                    Trạng thái
+                  </th>
+                  <th className="px-4 py-4 text-[11px] font-bold text-faint uppercase tracking-wider text-right">
+                    Hành động
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border-muted">
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={8} className="px-6 py-12 text-center">
+                      <div className="inline-flex items-center gap-2 text-sm text-muted">
+                        <Icon icon="lucide:loader-2" className="w-5 h-5 animate-spin" />
+                        Đang tải bảng giá...
+                      </div>
+                    </td>
+                  </tr>
+                ) : items.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="px-6 py-12 text-center text-sm text-muted">
+                      {search || statusFilter
+                        ? "Không tìm thấy cấu hình phù hợp."
+                        : 'Chưa có giá dịch vụ chính. Nhấn "Thêm giá dịch vụ chính" để bắt đầu.'}
+                    </td>
+                  </tr>
+                ) : (
+                  items.map((item) => {
+                    const warehouse = warehouses.find((entry) => entry.id === item.warehouseId);
+                    return (
+                      <tr key={item.id} className="hover:bg-surface/80 transition-colors">
+                        <td className="px-4 py-4">
+                          <p className="text-sm font-bold text-ink">
+                            {SERVICE_TYPE_LABELS[item.serviceType] || item.serviceType}
+                          </p>
+                          <p className="text-[10px] text-faint mt-0.5">{item.id}</p>
+                        </td>
+                        <td className="px-4 py-4 text-sm text-muted">
+                          {formatServicePricingRoute(item)}
+                        </td>
+                        <td className="px-4 py-4 text-sm text-muted">
+                          {warehouse ? formatInternationalWarehouseLabel(warehouse) : "—"}
+                        </td>
+                        <td className="px-4 py-4 text-sm text-muted">
+                          {UNIT_TYPE_LABELS[item.unitType] || item.unitType}
+                        </td>
+                        <td className="px-4 py-4 text-sm font-medium">{formatUnitPrice(item)}</td>
+                        <td className="px-4 py-4 text-sm text-muted">
+                          {item.effectiveDate
+                            ? new Date(item.effectiveDate).toLocaleDateString("vi-VN")
+                            : "—"}
+                        </td>
+                        <td className="px-4 py-4">
+                          <ActiveBadge isActive={item.isActive} />
+                        </td>
+                        <td className="px-4 py-4">
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              type="button"
+                              onClick={() => openEdit(item)}
+                              disabled={pendingId === item.id}
+                              className="p-2 text-muted hover:text-insight hover:bg-surface rounded-lg disabled:opacity-50"
+                              title="Sửa"
+                            >
+                              <Icon icon="lucide:pencil" className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleToggleActive(item)}
+                              disabled={pendingId === item.id}
+                              className="p-2 text-muted hover:text-warning-text hover:bg-surface rounded-lg disabled:opacity-50"
+                              title={item.isActive ? "Vô hiệu hóa" : "Kích hoạt"}
+                            >
+                              <Icon
+                                icon={item.isActive ? "lucide:ban" : "lucide:circle-check"}
+                                className="w-4 h-4"
+                              />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDelete(item)}
+                              disabled={pendingId === item.id}
+                              className="p-2 text-muted hover:text-danger hover:bg-danger/5 rounded-lg disabled:opacity-50"
+                              title="Xóa"
+                            >
+                              <Icon icon="lucide:trash-2" className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <ServicePricingFormModal
+        open={modalMode !== null}
+        mode={modalMode === "edit" ? "edit" : "create"}
+        item={editingItem}
+        warehouses={warehouses}
+        onClose={closeModal}
+        onSaved={handleSaved}
+      />
+    </AdminLayout>
+  );
 }
-export {
-  PricingRulesPage as default
-};
