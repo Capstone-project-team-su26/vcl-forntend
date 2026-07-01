@@ -1,12 +1,15 @@
 import { isMockMode } from "@/utils/mocks/dataSource";
 import { mockDelay } from "@/utils/mocks/mockDelay";
 import { getMockStore, nextMockId } from "@/utils/mocks/mockStore";
-import { apiRequest, apiRequestWithMockFallback } from "@/utils/apiClient";
+import { apiRequest } from "@/utils/apiClient";
 import {
   normalizeServicePricingFromApi,
+  normalizeWarehouseListResponse,
   toApiServicePricingPayload,
 } from "@/utils/apiMappers";
 import { ApiError } from "@/utils/apiError";
+
+export const DEFAULT_CURRENCY = "VND";
 
 export const SERVICE_TYPE_LABELS = {
   EXPRESS: "Express",
@@ -107,13 +110,21 @@ export function formatServicePricingRoute(item) {
   return `${item.originCountry || "?"} → ${item.destinationCountry || "?"}`;
 }
 
-export function formatMoney(amount, currency = "USD") {
-  if (amount == null || Number.isNaN(amount)) return "—";
-  return new Intl.NumberFormat("en-US", {
+export function formatMoney(amount) {
+  if (amount == null || amount === "") return "—";
+
+  const numeric =
+    typeof amount === "string"
+      ? Number(amount.replace(/[^\d.,-]/g, "").replace(/,/g, ""))
+      : Number(amount);
+
+  if (Number.isNaN(numeric)) return "—";
+
+  return new Intl.NumberFormat("vi-VN", {
     style: "currency",
-    currency,
-    minimumFractionDigits: 2,
-  }).format(amount);
+    currency: "VND",
+    maximumFractionDigits: 0,
+  }).format(numeric);
 }
 
 function normalizeServicePricingPayload(payload) {
@@ -134,7 +145,7 @@ function normalizeServicePricingPayload(payload) {
       payload.pricePerCbm === "" || payload.pricePerCbm == null
         ? null
         : Number(payload.pricePerCbm),
-    currency: payload.currency?.trim().toUpperCase() || "USD",
+    currency: payload.currency?.trim().toUpperCase() || DEFAULT_CURRENCY,
     effectiveDate: payload.effectiveDate || new Date().toISOString(),
     isActive: payload.isActive !== false,
   };
@@ -201,13 +212,16 @@ async function deleteServicePricingMock(id) {
 export async function listServicePricings(params = {}) {
   if (isMockMode()) return listServicePricingsMock(params);
 
-  const raw = await apiRequestWithMockFallback(
-    `/api/service-pricings${buildQuery(params)}`,
-    {},
-    () => listServicePricingsMock(params)
-  );
-  const items = Array.isArray(raw) ? raw : raw?.data ?? raw?.items ?? [];
-  return items.map(normalizeServicePricingFromApi);
+  try {
+    const raw = await apiRequest(`/api/service-pricings${buildQuery(params)}`);
+    const items = Array.isArray(raw) ? raw : raw?.data ?? raw?.items ?? [];
+    return items.map(normalizeServicePricingFromApi);
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) {
+      return [];
+    }
+    throw err;
+  }
 }
 
 export async function createServicePricing(payload) {
@@ -266,12 +280,13 @@ async function listInternationalWarehousesMock() {
 export async function listInternationalWarehouses() {
   if (isMockMode()) return listInternationalWarehousesMock();
 
-  const raw = await apiRequestWithMockFallback(
-    "/api/international-warehouses",
-    {},
-    () => listInternationalWarehousesMock()
+  const raw = await apiRequest("/api/warehouses");
+  const items = normalizeWarehouseListResponse(raw).filter((entry) => entry.isActive !== false);
+  const originWarehouses = items.filter(
+    (entry) => String(entry.warehouseType ?? "").toLowerCase() === "origin"
   );
-  return Array.isArray(raw) ? raw : raw?.data ?? raw?.items ?? [];
+
+  return originWarehouses.length ? originWarehouses : items;
 }
 
 export function formatInternationalWarehouseLabel(warehouse) {

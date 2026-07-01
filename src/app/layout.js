@@ -2,7 +2,6 @@ import { Geist, Geist_Mono } from "next/font/google";
 import DataSourceDevTools from "@/app/components/DataSourceDevTools";
 import ClientRootExtras from "@/app/components/ClientRootExtras";
 import ThemeProvider from "@/app/components/ThemeProvider";
-import ThemeToggle from "@/app/components/ThemeToggle";
 import { SITE_DESCRIPTION, SITE_NAME } from "@/utils/site";
 import "./globals.css";
 
@@ -47,7 +46,6 @@ export default function RootLayout({ children }) {
         <ThemeProvider>
           <ClientRootExtras />
           {children}
-          <ThemeToggle />
           <DataSourceDevTools />
         </ThemeProvider>
       </body>

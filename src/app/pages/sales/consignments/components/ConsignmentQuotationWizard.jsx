@@ -10,7 +10,7 @@ import { getErrorMessage } from "@/utils/apiError";
 import { ROUTES } from "@/utils/appRoutes";
 
 const { ITEM_VALIDATION_LABELS, ITEM_VALIDATION_STYLES } = orderConsignmentService;
-const { FEE_CODES, buildDefaultQuotationLines, calculateQuotationTotal, formatUsd } =
+const { FEE_CODES, buildDefaultQuotationLines, calculateQuotationTotal, formatMoney } =
   pricingService;
 
 const WIZARD_STEPS = [
@@ -432,7 +432,7 @@ export default function ConsignmentQuotationWizard({ preselectedCustomerId }) {
           lines: feeLines.filter((line) => line.enabled !== false),
           customFees,
           ...totals,
-          currency: "USD",
+          currency: "VND",
         },
         items: [
           {
@@ -617,7 +617,7 @@ export default function ConsignmentQuotationWizard({ preselectedCustomerId }) {
                 />
               </div>
               <div className="space-y-2">
-                <FieldLabel htmlFor="declaredValue">Giá trị khai báo (USD)</FieldLabel>
+                <FieldLabel htmlFor="declaredValue">Giá trị khai báo (VND)</FieldLabel>
                 <input
                   id="declaredValue"
                   type="number"
@@ -760,7 +760,7 @@ export default function ConsignmentQuotationWizard({ preselectedCustomerId }) {
             <section className="rounded-xl border border-border-muted bg-surface-elevated overflow-hidden">
               <div className="px-6 py-4 border-b border-border-muted">
                 <h2 className="text-lg font-bold text-ink">
-                  Bảng giá kho quốc tế (USD) — tham chiếu
+                  Bảng giá kho quốc tế (VND) — tham chiếu
                 </h2>
                 <p className="text-sm text-muted mt-1">
                   Cột {selectedWarehouse?.name} được tự động áp dụng. Số tiền dưới đây có thể chỉnh
@@ -804,7 +804,7 @@ export default function ConsignmentQuotationWizard({ preselectedCustomerId }) {
                                 warehouse.id === warehouseId ? "font-bold text-primary" : "text-ink"
                               }`}
                             >
-                              ${Number(warehouse.pricing?.[feeCode]?.rate ?? 0).toFixed(2)}
+                              {formatMoney(Number(warehouse.pricing?.[feeCode]?.rate ?? 0))}
                             </td>
                           ))}
                         </tr>
@@ -859,7 +859,7 @@ export default function ConsignmentQuotationWizard({ preselectedCustomerId }) {
                     <th className="px-4 py-3 font-bold w-10" />
                     <th className="px-4 py-3 font-bold">Khoản phí</th>
                     <th className="px-4 py-3 font-bold">Diễn giải</th>
-                    <th className="px-4 py-3 font-bold text-right">Thành tiền (USD)</th>
+                    <th className="px-4 py-3 font-bold text-right">Thành tiền (VND)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -932,7 +932,7 @@ export default function ConsignmentQuotationWizard({ preselectedCustomerId }) {
                       Tạm tính
                     </td>
                     <td className="px-4 py-3 text-right font-bold text-ink">
-                      {formatUsd(totals.subtotal)}
+                      {formatMoney(totals.subtotal)}
                     </td>
                   </tr>
                   {totals.discount > 0 ? (
@@ -941,7 +941,7 @@ export default function ConsignmentQuotationWizard({ preselectedCustomerId }) {
                         Chiết khấu ({discountPercent}%)
                       </td>
                       <td className="px-4 py-3 text-right font-bold text-danger">
-                        -{formatUsd(totals.discount)}
+                        -{formatMoney(totals.discount)}
                       </td>
                     </tr>
                   ) : null}
@@ -950,7 +950,7 @@ export default function ConsignmentQuotationWizard({ preselectedCustomerId }) {
                       Tổng cộng
                     </td>
                     <td className="px-4 py-4 text-right text-xl font-black text-ink font-['Oswald']">
-                      {formatUsd(totals.total)}
+                      {formatMoney(totals.total)}
                     </td>
                   </tr>
                 </tfoot>
@@ -1018,7 +1018,7 @@ export default function ConsignmentQuotationWizard({ preselectedCustomerId }) {
             <div>
               <dt className="text-muted">Tổng báo giá</dt>
               <dd className="font-black text-lg text-primary font-['Oswald']">
-                {formatUsd(totals.total)}
+                {formatMoney(totals.total)}
               </dd>
             </div>
           </dl>

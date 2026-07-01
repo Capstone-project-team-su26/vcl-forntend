@@ -1,12 +1,14 @@
+import { listAdditionalServiceFees } from "@/utils/additionalServiceFeeService";
 import { isMockMode } from "@/utils/mocks/dataSource";
 import { mockDelay } from "@/utils/mocks/mockDelay";
 import { getMockStore } from "@/utils/mocks/mockStore";
-import { apiRequestWithMockFallback } from "@/utils/apiClient";
-import { normalizeEstimateQuotationResponse } from "@/utils/apiMappers";
+import { apiRequest } from "@/utils/apiClient";
+import { normalizeEstimateQuotationResponse, toApiCreateQuotationRequest } from "@/utils/apiMappers";
 import {
   calculateChargeableWeight,
   calculateMainServiceAmount,
   calculateVolumetricWeight,
+  DEFAULT_CURRENCY,
   findServicePricingForWarehouse,
   formatMoney,
 } from "@/utils/servicePricingService";
@@ -15,11 +17,39 @@ function roundMoney(value) {
   return Math.round((Number(value) || 0) * 100) / 100;
 }
 
-export { formatMoney };
+export { formatMoney, DEFAULT_CURRENCY };
 
-function calculateAdditionalFeeAmount(
+export function formatQuotationMoney(quotation, amount) {
+  const value =
+    amount ??
+    quotation?.total ??
+    quotation?.totalEstimatedCost ??
+    quotation?.totalAmount ??
+    null;
+  return formatMoney(value);
+}
+
+export function isDraftConsignmentQuotation(quotation) {
+  if (!quotation) return true;
+  if (quotation.sentAt) return false;
+
+  const status = String(quotation.status || "").toUpperCase();
+  const quoteType = String(quotation.quoteType || "").toUpperCase();
+
+  if (status === "DRAFT" || quoteType === "ESTIMATE") return true;
+  if (!status && !quotation.sentAt) return true;
+
+  return false;
+}
+
+export function getConsignmentQuotationHeading(quotation) {
+  if (!quotation) return null;
+  return isDraftConsignmentQuotation(quotation) ? "Báo giá tạm tính" : "Báo giá đã gửi";
+}
+
+export function calculateAdditionalFeeAmount(
   fee,
-  { packageCount = 1, declaredValue = 0, mainServiceAmount = 0 }
+  { packageCount = 1, declaredValue = 0, mainServiceAmount = 0 } = {}
 ) {
   if (fee.feeCalculationType === "PERCENTAGE") {
     const base = declaredValue > 0 ? declaredValue : mainServiceAmount;
@@ -33,10 +63,28 @@ function calculateAdditionalFeeAmount(
   return roundMoney(fixed);
 }
 
+export async function fetchActiveAdditionalFees() {
+  return listAdditionalServiceFees({ isActive: true });
+}
+
+/** @deprecated Dùng fetchActiveAdditionalFees — giữ cho mock/build nội bộ. */
 export function listActiveAdditionalFees() {
   return getMockStore()
     .additionalServiceFees.filter((fee) => fee.isActive !== false)
     .map((fee) => ({ ...fee }));
+}
+
+export function recalculateAdditionalFeeLine(
+  fee,
+  line,
+  { packageCount = 1, declaredValue = 0, mainServiceAmount = 0 } = {}
+) {
+  const enabled = line.enabled !== false;
+  const amount = enabled
+    ? calculateAdditionalFeeAmount(fee, { packageCount, declaredValue, mainServiceAmount })
+    : 0;
+
+  return { ...line, amount };
 }
 
 export function buildDefaultAdditionalFeeLines({
@@ -59,7 +107,7 @@ export function buildDefaultAdditionalFeeLines({
       description: fee.description || fee.unit || "Phụ phí",
       amount,
       enabled,
-      isRequired: fee.code === "INSPECTION",
+      isRequired: fee.isRequired === true || fee.code === "INSPECTION",
     };
   });
 }
@@ -84,6 +132,44 @@ export function calculateQuotationTotal({
     subtotal,
     discount,
     total,
+  };
+}
+
+export function resolveConsignmentServiceType(consignment) {
+  const raw = consignment?.shippingOption ?? consignment?.consignmentType ?? "";
+  if (!raw || raw === "—" || raw === "CONSIGNMENT") return "STANDARD";
+  return String(raw).toUpperCase();
+}
+
+export function resolveServicePricingForConsignment(servicePricing, consignment) {
+  const routeParts = String(consignment?.route ?? "")
+    .split("-")
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  const serviceType = resolveConsignmentServiceType(consignment);
+
+  const base =
+    servicePricing ??
+    (consignment
+      ? {
+          id: null,
+          serviceType,
+          originCountry: routeParts[0] ?? null,
+          destinationCountry: routeParts[1] ?? null,
+          unitType: "KG_OR_CBM",
+          currency: DEFAULT_CURRENCY,
+        }
+      : null);
+
+  if (!base) return null;
+
+  return {
+    ...base,
+    serviceType: base.serviceType ?? serviceType,
+    originCountry: base.originCountry ?? routeParts[0] ?? null,
+    destinationCountry: base.destinationCountry ?? routeParts[1] ?? null,
+    unitType: base.unitType ?? "KG_OR_CBM",
   };
 }
 
@@ -129,7 +215,7 @@ export function buildConsignmentQuotationDraft({
     destinationCountry: servicePricing?.destinationCountry ?? null,
     unitType: servicePricing?.unitType ?? null,
     unitPrice: servicePricing?.price ?? null,
-    currency: servicePricing?.currency ?? "USD",
+    currency: servicePricing?.currency ?? DEFAULT_CURRENCY,
     totalWeight: weight,
     totalVolume: volume,
     volumetricWeight,
@@ -186,23 +272,123 @@ async function estimateConsignmentQuotationMock(orderId, params) {
   };
 }
 
+export function buildAdditionalFeeLinesFromQuotation(
+  quotation,
+  { requiresInspection = false } = {}
+) {
+  if (!quotation) return [];
+
+  const apiFees = quotation.additionalFees ?? [];
+  if (apiFees.length) {
+    return apiFees.map((fee) => ({
+      feeId: fee.feeId ?? fee.code ?? fee.id,
+      code: fee.code ?? null,
+      label: fee.label ?? fee.name ?? fee.code ?? "Phụ phí",
+      description: fee.description ?? "",
+      amount: Number(fee.amount) || 0,
+      baseAmount: Number(fee.amount) || 0,
+      enabled: fee.enabled !== false,
+      isRequired: fee.code === "INSPECTION" && requiresInspection,
+    }));
+  }
+
+  if (quotation.serviceFee != null && Number(quotation.serviceFee) > 0) {
+    return [
+      {
+        feeId: "service-fee",
+        code: "SERVICE_FEE",
+        label: "Phí dịch vụ",
+        description: "Phụ phí từ báo giá hệ thống",
+        amount: Number(quotation.serviceFee),
+        baseAmount: Number(quotation.serviceFee),
+        enabled: true,
+        isRequired: false,
+      },
+    ];
+  }
+
+  return [];
+}
+
+export function resolveQuotationAdditionalFees({
+  consignment,
+  estimate,
+  catalogFees = [],
+  packageCount,
+  declaredValue,
+  mainServiceAmount,
+  useMockCatalog = false,
+}) {
+  const quotationSource = estimate?.quotation ?? consignment?.quotation;
+  const apiLines = buildAdditionalFeeLinesFromQuotation(quotationSource, {
+    requiresInspection: consignment?.requiresInspection,
+  });
+
+  if (apiLines.length) {
+    return { lines: apiLines, fromApi: true };
+  }
+
+  if (useMockCatalog && catalogFees.length) {
+    return {
+      lines: buildDefaultAdditionalFeeLines({
+        fees: catalogFees,
+        packageCount,
+        declaredValue,
+        mainServiceAmount,
+      }),
+      fromApi: false,
+    };
+  }
+
+  return { lines: [], fromApi: false };
+}
+
 export async function estimateConsignmentQuotation(orderId, params = {}) {
   if (isMockMode()) return estimateConsignmentQuotationMock(orderId, params);
 
-  const raw = await apiRequestWithMockFallback(
-    `/api/orders/${encodeURIComponent(orderId)}/quotation/estimate`,
-    {
-      method: "POST",
-      body: JSON.stringify(params),
-    },
-    () => estimateConsignmentQuotationMock(orderId, params)
-  );
+  const apiPayload = toApiCreateQuotationRequest(params);
+
+  const raw = await apiRequest(`/api/orders/${encodeURIComponent(orderId)}/quotation/estimate`, {
+    method: "POST",
+    body: JSON.stringify(apiPayload),
+  });
 
   return normalizeEstimateQuotationResponse(raw);
 }
 
 export function getQuotationDisplayLines(quotation) {
   if (!quotation) return [];
+
+  if (
+    quotation.estimatedFreightCharge != null ||
+    quotation.serviceFee != null ||
+    quotation.taxAndDuty != null
+  ) {
+    const lines = [];
+
+    if (quotation.estimatedFreightCharge != null) {
+      lines.push({
+        label: "Cước vận chuyển dự kiến",
+        amount: quotation.estimatedFreightCharge,
+      });
+    }
+
+    if (quotation.serviceFee != null) {
+      lines.push({
+        label: "Phí dịch vụ",
+        amount: quotation.serviceFee,
+      });
+    }
+
+    if (quotation.taxAndDuty != null && Number(quotation.taxAndDuty) !== 0) {
+      lines.push({
+        label: "Thuế & phí",
+        amount: quotation.taxAndDuty,
+      });
+    }
+
+    return lines;
+  }
 
   if (quotation.mainServiceAmount != null) {
     const lines = [

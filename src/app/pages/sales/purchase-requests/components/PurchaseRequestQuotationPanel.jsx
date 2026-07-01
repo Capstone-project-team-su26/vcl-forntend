@@ -255,7 +255,7 @@ export default function PurchaseRequestQuotationPanel({
                   <th className="px-6 py-3 font-bold">Sản phẩm</th>
                   <th className="px-6 py-3 font-bold">Link</th>
                   <th className="px-6 py-3 font-bold">SL</th>
-                  <th className="px-6 py-3 font-bold">Giá/SP (USD)</th>
+                  <th className="px-6 py-3 font-bold">Giá/SP (VND)</th>
                   <th className="px-6 py-3 font-bold text-right">Thành tiền</th>
                 </tr>
               </thead>
@@ -317,7 +317,7 @@ export default function PurchaseRequestQuotationPanel({
         <section className="rounded-xl border border-border-muted bg-surface-elevated p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2">
             <label htmlFor="purchaseServiceFee" className="text-sm font-semibold text-ink">
-              Phí mua hộ (USD)
+              Phí mua hộ (VND)
             </label>
             <input
               id="purchaseServiceFee"
@@ -338,7 +338,7 @@ export default function PurchaseRequestQuotationPanel({
           </div>
           <div className="space-y-2">
             <label htmlFor="estimatedShippingFee" className="text-sm font-semibold text-ink">
-              Phí vận chuyển dự kiến (USD)
+              Phí vận chuyển dự kiến (VND)
             </label>
             <input
               id="estimatedShippingFee"

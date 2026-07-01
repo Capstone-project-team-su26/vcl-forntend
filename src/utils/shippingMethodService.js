@@ -1,7 +1,7 @@
 import { isMockMode } from "@/utils/mocks/dataSource";
 import { mockDelay } from "@/utils/mocks/mockDelay";
 import { getMockStore, nextMockId } from "@/utils/mocks/mockStore";
-import { apiRequestWithMockFallback } from "@/utils/apiClient";
+import { apiRequest } from "@/utils/apiClient";
 import {
   normalizeShippingMethodFromApi,
   normalizeShippingMethodListResponse,
@@ -144,36 +144,29 @@ export async function listShippingMethods(params = {}) {
     });
   }
 
-  const raw = await apiRequestWithMockFallback(
-    `/api/shipping-methods${buildQuery({
-      search: params.search,
-      isActive: params.isActive,
-      activeOnly,
-    })}`,
-    {},
-    () =>
-      listShippingMethodsMock({
+  try {
+    const raw = await apiRequest(
+      `/api/shipping-methods${buildQuery({
         search: params.search,
         isActive: params.isActive,
         activeOnly,
-      })
-  );
-
-  const items = normalizeShippingMethodListResponse(raw);
-  return activeOnly ? items.filter((item) => item.isActive) : items;
+      })}`
+    );
+    const items = normalizeShippingMethodListResponse(raw);
+    return activeOnly ? items.filter((item) => item.isActive) : items;
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) return [];
+    throw err;
+  }
 }
 
 export async function createShippingMethod(payload) {
   if (isMockMode()) return createShippingMethodMock(payload);
 
-  const raw = await apiRequestWithMockFallback(
-    "/api/shipping-methods",
-    {
-      method: "POST",
-      body: JSON.stringify(toApiShippingMethodPayload(payload)),
-    },
-    () => createShippingMethodMock(payload)
-  );
+  const raw = await apiRequest("/api/shipping-methods", {
+    method: "POST",
+    body: JSON.stringify(toApiShippingMethodPayload(payload)),
+  });
 
   const shippingMethod = normalizeShippingMethodFromApi(
     raw?.shippingMethod ?? raw?.data ?? raw
@@ -184,14 +177,10 @@ export async function createShippingMethod(payload) {
 export async function updateShippingMethod(id, payload) {
   if (isMockMode()) return updateShippingMethodMock(id, payload);
 
-  const raw = await apiRequestWithMockFallback(
-    `/api/shipping-methods/${id}`,
-    {
-      method: "PUT",
-      body: JSON.stringify(toApiShippingMethodPayload(payload)),
-    },
-    () => updateShippingMethodMock(id, payload)
-  );
+  const raw = await apiRequest(`/api/shipping-methods/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(toApiShippingMethodPayload(payload)),
+  });
 
   const shippingMethod = normalizeShippingMethodFromApi(
     raw?.shippingMethod ?? raw?.data ?? { ...payload, id }
@@ -205,9 +194,5 @@ export async function updateShippingMethod(id, payload) {
 export async function deleteShippingMethod(id) {
   if (isMockMode()) return deleteShippingMethodMock(id);
 
-  return apiRequestWithMockFallback(
-    `/api/shipping-methods/${id}`,
-    { method: "DELETE" },
-    () => deleteShippingMethodMock(id)
-  );
+  return apiRequest(`/api/shipping-methods/${id}`, { method: "DELETE" });
 }

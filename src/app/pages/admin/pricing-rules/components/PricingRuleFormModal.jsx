@@ -213,7 +213,7 @@ export default function ServicePricingFormModal({ open, mode, item, warehouses, 
               <input
                 id="currency"
                 name="currency"
-                defaultValue={item?.currency ?? "USD"}
+                defaultValue={item?.currency ?? "VND"}
                 className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring uppercase"
               />
             </div>

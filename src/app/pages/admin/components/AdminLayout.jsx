@@ -4,6 +4,7 @@ import { Icon } from "@iconify/react";
 import Link from "next/link";
 import { useState } from "react";
 import AppLogo from "@/app/components/AppLogo";
+import ThemeToggle from "@/app/components/ThemeToggle";
 import UserNavMenu from "@/app/components/UserNavMenu";
 import { ROUTES } from "@/utils/appRoutes";
 const navItems = [
@@ -71,7 +72,8 @@ function AdminLayout({ activeNav, children }) {
               /* @__PURE__ */ jsx(Icon, { icon: item.icon, className: "w-5 h-5" }),
               item.label
             ] }, item.id);
-          }) })
+          }) }),
+          /* @__PURE__ */ jsx("div", { className: "px-3 py-4 border-t border-border-muted shrink-0", children: /* @__PURE__ */ jsx(ThemeToggle, {}) })
         ]
       }
     ),

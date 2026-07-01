@@ -1,18 +1,21 @@
 import { isMockMode } from "@/utils/mocks/dataSource";
 import { mockDelay } from "@/utils/mocks/mockDelay";
 import { getMockStore, nextMockId } from "@/utils/mocks/mockStore";
-import { apiRequestWithMockFallback } from "@/utils/apiClient";
+import { apiRequest } from "@/utils/apiClient";
 import {
   normalizeAdditionalServiceFeeFromApi,
   normalizeAdditionalServiceFeeListResponse,
-  toApiAdditionalServiceFeePayload,
+  toApiPricingRuleFromAdditionalFeePayload,
 } from "@/utils/apiMappers";
 import { ApiError } from "@/utils/apiError";
+import { formatMoney } from "@/utils/servicePricingService";
 
 export const FEE_CALCULATION_TYPE_LABELS = {
   FIXED: "Giá cố định",
   PERCENTAGE: "Theo phần trăm",
 };
+
+const PRICING_RULES_PATH = "/api/pricing-rules";
 
 function buildQuery({ search, isActive }) {
   const params = new URLSearchParams();
@@ -151,67 +154,63 @@ async function deleteAdditionalServiceFeeMock(id) {
   return { message: "Đã xóa loại phí dịch vụ bổ sung." };
 }
 
+async function getPricingRuleAsFee(id) {
+  const raw = await apiRequest(`${PRICING_RULES_PATH}/${encodeURIComponent(id)}`);
+  return normalizeAdditionalServiceFeeFromApi(raw?.data ?? raw);
+}
+
 /**
  * @param {{ search?: string; isActive?: boolean | string }} params
  */
 export async function listAdditionalServiceFees(params = {}) {
   if (isMockMode()) return listAdditionalServiceFeesMock(params);
 
-  const raw = await apiRequestWithMockFallback(
-    `/api/additional-service-fees${buildQuery(params)}`,
-    {},
-    () => listAdditionalServiceFeesMock(params)
-  );
-  return normalizeAdditionalServiceFeeListResponse(raw);
+  const raw = await apiRequest(`${PRICING_RULES_PATH}${buildQuery(params)}`);
+  const items = normalizeAdditionalServiceFeeListResponse(raw);
+  return filterAdditionalServiceFees(items, params);
 }
 
 export async function createAdditionalServiceFee(payload) {
   if (isMockMode()) return createAdditionalServiceFeeMock(payload);
 
-  const raw = await apiRequestWithMockFallback(
-    "/api/additional-service-fees",
-    {
-      method: "POST",
-      body: JSON.stringify(toApiAdditionalServiceFeePayload(payload)),
-    },
-    () => createAdditionalServiceFeeMock(payload)
-  );
+  const data = validateFeePayload(payload, { requireAll: true });
+  const raw = await apiRequest(PRICING_RULES_PATH, {
+    method: "POST",
+    body: JSON.stringify(toApiPricingRuleFromAdditionalFeePayload(data)),
+  });
 
-  const fee = normalizeAdditionalServiceFeeFromApi(raw?.fee ?? raw?.data ?? raw);
+  const fee = normalizeAdditionalServiceFeeFromApi(raw?.data ?? raw?.fee ?? raw);
   return { message: raw?.message || "Thêm loại phí thành công.", fee };
 }
 
 export async function updateAdditionalServiceFee(id, payload) {
   if (isMockMode()) return updateAdditionalServiceFeeMock(id, payload);
 
-  const raw = await apiRequestWithMockFallback(
-    `/api/additional-service-fees/${id}`,
-    {
-      method: "PUT",
-      body: JSON.stringify(toApiAdditionalServiceFeePayload(payload)),
-    },
-    () => updateAdditionalServiceFeeMock(id, payload)
-  );
+  const existing = await getPricingRuleAsFee(id);
+  const merged = { ...existing, ...validateFeePayload({ ...existing, ...payload }) };
 
-  const fee = normalizeAdditionalServiceFeeFromApi(raw?.fee ?? raw?.data ?? { ...payload, id });
+  const raw = await apiRequest(`${PRICING_RULES_PATH}/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    body: JSON.stringify(toApiPricingRuleFromAdditionalFeePayload(merged)),
+  });
+
+  const fee = normalizeAdditionalServiceFeeFromApi(raw?.data ?? raw?.fee ?? { ...merged, id });
   return { message: raw?.message || "Cập nhật loại phí thành công.", fee };
 }
 
 export async function deleteAdditionalServiceFee(id) {
   if (isMockMode()) return deleteAdditionalServiceFeeMock(id);
 
-  return apiRequestWithMockFallback(
-    `/api/additional-service-fees/${id}`,
-    { method: "DELETE" },
-    () => deleteAdditionalServiceFeeMock(id)
-  );
+  return apiRequest(`${PRICING_RULES_PATH}/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  });
 }
 
 export function formatFeeAmount(fee) {
   if (fee.feeCalculationType === "PERCENTAGE") {
     return fee.percentageRate != null ? `${fee.percentageRate}%` : "—";
   }
-  return fee.fixedAmount != null ? `$${fee.fixedAmount}` : "—";
+  return fee.fixedAmount != null ? formatMoney(fee.fixedAmount) : "—";
 }
 
 export function formatFeeCalculationType(type) {

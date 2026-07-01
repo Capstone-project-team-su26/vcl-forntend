@@ -6,7 +6,7 @@ import { ApiError } from "@/utils/apiError";
 import {
   normalizeReceivingNoteCreateResponse,
   normalizeReceivingNoteFromApi,
-  normalizeWarehouseFromApi,
+  normalizeWarehouseListResponse,
   toApiReceivingNotePayload,
 } from "@/utils/apiMappers";
 import { getStaffConsignment } from "@/utils/orderConsignmentService";
@@ -122,16 +122,8 @@ async function createReceivingNoteMock({ consignmentOrderId, warehouseId, wareho
 export async function listReceivingWarehouses() {
   if (isMockMode()) return listWarehousesMock();
 
-  try {
-    const raw = await apiRequest("/api/warehouses");
-    const items = raw?.data ?? raw?.items ?? raw ?? [];
-    return Array.isArray(items) ? items.map(normalizeWarehouseFromApi) : [];
-  } catch (err) {
-    if (err instanceof ApiError && (err.status === 404 || err.status === 502)) {
-      return listWarehousesMock();
-    }
-    throw err;
-  }
+  const raw = await apiRequest("/api/warehouses");
+  return normalizeWarehouseListResponse(raw);
 }
 
 export async function getActiveReceivingNoteByConsignment(consignmentOrderId) {

@@ -1,5 +1,6 @@
 /** @deprecated Dùng servicePricingService */
 export {
   listInternationalWarehouses,
-  formatMoney as formatUsd,
+  formatMoney,
+  DEFAULT_CURRENCY,
 } from "@/utils/servicePricingService";

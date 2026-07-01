@@ -1,17 +1,19 @@
 import { isMockMode } from "@/utils/mocks/dataSource";
 import { mockDelay } from "@/utils/mocks/mockDelay";
 import { getMockStore, nextMockId } from "@/utils/mocks/mockStore";
-import { apiRequest, apiRequestWithMockFallback } from "@/utils/apiClient";
+import { apiRequest } from "@/utils/apiClient";
 import {
   normalizeConsignmentDetail,
   normalizeConsignmentListResponse,
   normalizeConsignmentStatusUpdate,
   normalizeStaffConsignmentCreateResponse,
   normalizeValidateItemsResponse,
+  toApiCreateQuotationRequest,
   toApiStaffConsignmentPayload,
   toApiValidateItemsPayload,
 } from "@/utils/apiMappers";
 import { ApiError } from "@/utils/apiError";
+import { isDraftConsignmentQuotation } from "@/utils/consignmentQuotationService";
 
 export const CONSIGNMENT_TYPE_LABELS = {
   PURCHASE_ORDER: "Mua hộ",
@@ -55,8 +57,11 @@ export const CONSIGNMENT_APPROVABLE_STATUS = "QUOTATION_CONFIRMED";
 
 export function canStaffSendConsignmentQuotation(detail) {
   if (!detail) return false;
-  if (detail.status === "PENDING_REVIEW" && !detail.quotation) return true;
-  return detail.status === "QUOTATION_REJECTED";
+  if (detail.status === "QUOTATION_REJECTED") return true;
+  if (detail.status === "PENDING_REVIEW" && isDraftConsignmentQuotation(detail.quotation)) {
+    return true;
+  }
+  return false;
 }
 
 export function canCustomerAcceptConsignmentQuotation(detail) {
@@ -341,14 +346,10 @@ async function validateConsignmentItemsMock(payload) {
 export async function validateConsignmentItems(payload) {
   if (isMockMode()) return validateConsignmentItemsMock(payload);
 
-  const raw = await apiRequestWithMockFallback(
-    "/api/orders/consignments/validate-items",
-    {
-      method: "POST",
-      body: JSON.stringify(toApiValidateItemsPayload(payload)),
-    },
-    () => validateConsignmentItemsMock(payload)
-  );
+  const raw = await apiRequest("/api/orders/consignments/validate-items", {
+    method: "POST",
+    body: JSON.stringify(toApiValidateItemsPayload(payload)),
+  });
 
   return normalizeValidateItemsResponse(raw);
 }
@@ -433,14 +434,10 @@ async function createStaffConsignmentMock(payload) {
 export async function createStaffConsignment(payload) {
   if (isMockMode()) return createStaffConsignmentMock(payload);
 
-  const raw = await apiRequestWithMockFallback(
-    "/api/staff/consignments",
-    {
-      method: "POST",
-      body: JSON.stringify(toApiStaffConsignmentPayload(payload)),
-    },
-    () => createStaffConsignmentMock(payload)
-  );
+  const raw = await apiRequest("/api/staff/consignments", {
+    method: "POST",
+    body: JSON.stringify(toApiStaffConsignmentPayload(payload)),
+  });
 
   return normalizeStaffConsignmentCreateResponse(raw);
 }
@@ -533,10 +530,9 @@ async function acceptConsignmentQuotationMock(orderId) {
 export async function acceptConsignmentQuotation(orderId, quotationId) {
   if (isMockMode()) return acceptConsignmentQuotationMock(orderId);
 
-  const raw = await apiRequestWithMockFallback(
+  const raw = await apiRequest(
     `/api/quotations/${encodeURIComponent(quotationId ?? orderId)}/accept`,
-    { method: "PUT" },
-    () => acceptConsignmentQuotationMock(orderId)
+    { method: "PUT" }
   );
 
   return normalizeConsignmentStatusUpdate(raw);
@@ -579,13 +575,12 @@ async function rejectConsignmentQuotationMock(orderId, { rejectionReason }) {
 export async function rejectConsignmentQuotation(orderId, payload = {}) {
   if (isMockMode()) return rejectConsignmentQuotationMock(orderId, payload);
 
-  const raw = await apiRequestWithMockFallback(
+  const raw = await apiRequest(
     `/api/orders/${encodeURIComponent(orderId)}/quotation/reject`,
     {
       method: "POST",
       body: JSON.stringify({ rejectionReason: payload.rejectionReason?.trim() }),
-    },
-    () => rejectConsignmentQuotationMock(orderId, payload)
+    }
   );
 
   return normalizeConsignmentStatusUpdate(raw);
@@ -594,13 +589,14 @@ export async function rejectConsignmentQuotation(orderId, payload = {}) {
 export async function sendConsignmentQuotation(orderId, payload) {
   if (isMockMode()) return sendConsignmentQuotationMock(orderId, payload);
 
-  const raw = await apiRequestWithMockFallback(
-    `/api/orders/${encodeURIComponent(orderId)}/quotation/estimate`,
+  const apiPayload = toApiCreateQuotationRequest(payload, { forSend: true });
+
+  const raw = await apiRequest(
+    `/api/orders/${encodeURIComponent(orderId)}/quotation/send`,
     {
       method: "POST",
-      body: JSON.stringify(payload),
-    },
-    () => sendConsignmentQuotationMock(orderId, payload)
+      body: JSON.stringify(apiPayload),
+    }
   );
 
   return normalizeConsignmentStatusUpdate(raw);
@@ -625,4 +621,20 @@ export function formatConsignmentDate(isoDate) {
     month: "2-digit",
     year: "numeric",
   });
+}
+
+function isUuid(value) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(value ?? ""));
+}
+
+/** Mã hiển thị cho người dùng — không dùng orderId UUID nội bộ. */
+export function formatConsignmentDisplayCode(detail) {
+  if (!detail) return null;
+  if (detail.consignmentCode) return detail.consignmentCode;
+  if (detail.id && !isUuid(detail.id)) return detail.id;
+  return null;
+}
+
+export function formatConsignmentPageTitle(detail) {
+  return formatConsignmentDisplayCode(detail) ?? "Yêu cầu ký gửi";
 }

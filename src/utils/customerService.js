@@ -1,7 +1,7 @@
 import { isMockMode } from "@/utils/mocks/dataSource";
 import { mockDelay } from "@/utils/mocks/mockDelay";
 import { getMockStore, nextMockId } from "@/utils/mocks/mockStore";
-import { apiRequest, apiRequestWithMockFallback } from "@/utils/apiClient";
+import { apiRequest } from "@/utils/apiClient";
 import {
   normalizeCustomerFromApi,
   normalizeCustomerListResponse,
@@ -169,22 +169,14 @@ function buildQuery({ search }) {
 export async function listCustomers(params = {}) {
   if (isMockMode()) return listCustomersMock(params);
 
-  const raw = await apiRequestWithMockFallback(
-    `/api/customers${buildQuery({ search: params.search })}`,
-    {},
-    () => listCustomersMock(params)
-  );
+  const raw = await apiRequest(`/api/customers${buildQuery({ search: params.search })}`);
   return normalizeCustomerListResponse(raw);
 }
 
 export async function getCustomer(id) {
   if (isMockMode()) return getCustomerMock(id);
 
-  const raw = await apiRequestWithMockFallback(
-    `/api/customers/${id}`,
-    {},
-    () => getCustomerMock(id)
-  );
+  const raw = await apiRequest(`/api/customers/${id}`);
   const item = raw?.data ?? raw?.customer ?? raw;
   if (!item?.id && !item?.customerId) {
     throw new ApiError(404, { message: "Không tìm thấy khách hàng." });
@@ -195,14 +187,10 @@ export async function getCustomer(id) {
 export async function createCustomer(payload) {
   if (isMockMode()) return createCustomerMock(payload);
 
-  const raw = await apiRequestWithMockFallback(
-    "/api/customers",
-    {
-      method: "POST",
-      body: JSON.stringify(toApiCustomerPayload(payload)),
-    },
-    () => createCustomerMock(payload)
-  );
+  const raw = await apiRequest("/api/customers", {
+    method: "POST",
+    body: JSON.stringify(toApiCustomerPayload(payload)),
+  });
 
   const customer = normalizeCustomerFromApi(raw?.customer ?? raw?.data ?? raw);
   return { message: raw?.message || "Tạo hồ sơ khách hàng thành công.", customer };
@@ -211,14 +199,10 @@ export async function createCustomer(payload) {
 export async function updateCustomer(id, payload) {
   if (isMockMode()) return updateCustomerMock(id, payload);
 
-  const raw = await apiRequestWithMockFallback(
-    `/api/customers/${id}`,
-    {
-      method: "PUT",
-      body: JSON.stringify(toApiCustomerPayload(payload)),
-    },
-    () => updateCustomerMock(id, payload)
-  );
+  const raw = await apiRequest(`/api/customers/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(toApiCustomerPayload(payload)),
+  });
 
   const customer = normalizeCustomerFromApi(raw?.customer ?? raw?.data ?? { ...payload, id });
   return { message: raw?.message || "Cập nhật hồ sơ khách hàng thành công.", customer };

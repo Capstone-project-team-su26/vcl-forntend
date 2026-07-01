@@ -1,7 +1,7 @@
 import { isMockMode } from "@/utils/mocks/dataSource";
 import { mockDelay } from "@/utils/mocks/mockDelay";
 import { getMockStore, nextMockId } from "@/utils/mocks/mockStore";
-import { apiRequest, apiRequestWithMockFallback } from "@/utils/apiClient";
+import { apiRequest } from "@/utils/apiClient";
 import {
   normalizeWarehouseFromApi,
   normalizeWarehouseListResponse,
@@ -253,25 +253,17 @@ async function deleteWarehouseLocationMock(locationId) {
 export async function listWarehouses(params = {}) {
   if (isMockMode()) return listWarehousesMock(params);
 
-  const raw = await apiRequestWithMockFallback(
-    `/api/warehouses${buildWarehouseQuery(params)}`,
-    {},
-    () => listWarehousesMock(params)
-  );
+  const raw = await apiRequest(`/api/warehouses${buildWarehouseQuery(params)}`);
   return normalizeWarehouseListResponse(raw);
 }
 
 export async function createWarehouse(payload) {
   if (isMockMode()) return createWarehouseMock(payload);
 
-  const raw = await apiRequestWithMockFallback(
-    "/api/warehouses",
-    {
-      method: "POST",
-      body: JSON.stringify(toApiWarehousePayload(payload)),
-    },
-    () => createWarehouseMock(payload)
-  );
+  const raw = await apiRequest("/api/warehouses", {
+    method: "POST",
+    body: JSON.stringify(toApiWarehousePayload(payload)),
+  });
 
   const warehouse = normalizeWarehouseFromApi(raw?.warehouse ?? raw?.data ?? raw);
   return { message: raw?.message || "Thêm kho thành công.", warehouse };
@@ -280,14 +272,10 @@ export async function createWarehouse(payload) {
 export async function updateWarehouse(id, payload) {
   if (isMockMode()) return updateWarehouseMock(id, payload);
 
-  const raw = await apiRequestWithMockFallback(
-    `/api/warehouses/${id}`,
-    {
-      method: "PUT",
-      body: JSON.stringify(toApiWarehousePayload(payload)),
-    },
-    () => updateWarehouseMock(id, payload)
-  );
+  const raw = await apiRequest(`/api/warehouses/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(toApiWarehousePayload(payload)),
+  });
 
   const warehouse = normalizeWarehouseFromApi(raw?.warehouse ?? raw?.data ?? { ...payload, id });
   return { message: raw?.message || "Cập nhật kho thành công.", warehouse };
@@ -296,35 +284,28 @@ export async function updateWarehouse(id, payload) {
 export async function deleteWarehouse(id) {
   if (isMockMode()) return deleteWarehouseMock(id);
 
-  return apiRequestWithMockFallback(
-    `/api/warehouses/${id}`,
-    { method: "DELETE" },
-    () => deleteWarehouseMock(id)
-  );
+  return apiRequest(`/api/warehouses/${id}`, { method: "DELETE" });
 }
 
 export async function listWarehouseLocations(warehouseId) {
   if (isMockMode()) return listWarehouseLocationsMock(warehouseId);
 
-  const raw = await apiRequestWithMockFallback(
-    `/api/warehouses/${warehouseId}/locations`,
-    {},
-    () => listWarehouseLocationsMock(warehouseId)
-  );
-  return normalizeWarehouseLocationListResponse(raw);
+  try {
+    const raw = await apiRequest(`/api/warehouses/${warehouseId}/locations`);
+    return normalizeWarehouseLocationListResponse(raw);
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) return [];
+    throw err;
+  }
 }
 
 export async function createWarehouseLocation(warehouseId, payload) {
   if (isMockMode()) return createWarehouseLocationMock(warehouseId, payload);
 
-  const raw = await apiRequestWithMockFallback(
-    `/api/warehouses/${warehouseId}/locations`,
-    {
-      method: "POST",
-      body: JSON.stringify(toApiWarehouseLocationPayload(payload)),
-    },
-    () => createWarehouseLocationMock(warehouseId, payload)
-  );
+  const raw = await apiRequest(`/api/warehouses/${warehouseId}/locations`, {
+    method: "POST",
+    body: JSON.stringify(toApiWarehouseLocationPayload(payload)),
+  });
 
   const location = normalizeWarehouseLocationFromApi(raw?.location ?? raw?.data ?? raw);
   return { message: raw?.message || "Thêm vị trí lưu trữ thành công.", location };
@@ -333,14 +314,10 @@ export async function createWarehouseLocation(warehouseId, payload) {
 export async function updateWarehouseLocation(locationId, payload) {
   if (isMockMode()) return updateWarehouseLocationMock(locationId, payload);
 
-  const raw = await apiRequestWithMockFallback(
-    `/api/warehouse-locations/${locationId}`,
-    {
-      method: "PUT",
-      body: JSON.stringify(toApiWarehouseLocationPayload(payload)),
-    },
-    () => updateWarehouseLocationMock(locationId, payload)
-  );
+  const raw = await apiRequest(`/api/warehouse-locations/${locationId}`, {
+    method: "PUT",
+    body: JSON.stringify(toApiWarehouseLocationPayload(payload)),
+  });
 
   const location = normalizeWarehouseLocationFromApi(
     raw?.location ?? raw?.data ?? { ...payload, id: locationId }
@@ -351,11 +328,7 @@ export async function updateWarehouseLocation(locationId, payload) {
 export async function deleteWarehouseLocation(locationId) {
   if (isMockMode()) return deleteWarehouseLocationMock(locationId);
 
-  return apiRequestWithMockFallback(
-    `/api/warehouse-locations/${locationId}`,
-    { method: "DELETE" },
-    () => deleteWarehouseLocationMock(locationId)
-  );
+  return apiRequest(`/api/warehouse-locations/${locationId}`, { method: "DELETE" });
 }
 
 export function formatWarehouseType(type) {

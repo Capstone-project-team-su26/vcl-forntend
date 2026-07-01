@@ -347,7 +347,7 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
               />
             </div>
             <div className="space-y-2">
-              <FieldLabel htmlFor="declaredValue">Giá trị khai báo (USD)</FieldLabel>
+              <FieldLabel htmlFor="declaredValue">Giá trị khai báo (VND)</FieldLabel>
               <input
                 id="declaredValue"
                 type="number"

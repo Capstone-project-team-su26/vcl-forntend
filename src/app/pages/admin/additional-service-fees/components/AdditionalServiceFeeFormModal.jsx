@@ -141,7 +141,7 @@ export default function AdditionalServiceFeeFormModal({
           {calculationType === "FIXED" ? (
             <div className="space-y-2">
               <label htmlFor="fixedAmount" className="text-sm font-semibold text-ink">
-                Giá cố định (USD) <span className="text-danger">*</span>
+                Giá cố định (VND) <span className="text-danger">*</span>
               </label>
               <input
                 id="fixedAmount"
@@ -183,7 +183,7 @@ export default function AdditionalServiceFeeFormModal({
               id="unit"
               name="unit"
               defaultValue={fee?.unit ?? ""}
-              placeholder="VD: USD/kiện, % giá trị khai báo"
+              placeholder="VD: VND/kiện, % giá trị khai báo"
               className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
             />
           </div>

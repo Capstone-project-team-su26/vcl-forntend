@@ -7,6 +7,7 @@ import * as orderConsignmentService from "@/utils/orderConsignmentService";
 import * as consignmentQuotationService from "@/utils/consignmentQuotationService";
 import * as servicePricingService from "@/utils/servicePricingService";
 import { getErrorMessage } from "@/utils/apiError";
+import { isMockMode } from "@/utils/mocks/dataSource";
 import { ROUTES } from "@/utils/appRoutes";
 
 const {
@@ -14,14 +15,20 @@ const {
   CONSIGNMENT_STATUS_STYLES,
   canStaffSendConsignmentQuotation,
   formatConsignmentDate,
+  formatConsignmentDisplayCode,
 } = orderConsignmentService;
 
 const {
-  buildConsignmentQuotationDraft,
   buildDefaultAdditionalFeeLines,
+  buildConsignmentQuotationDraft,
   calculateQuotationTotal,
+  estimateConsignmentQuotation,
+  fetchActiveAdditionalFees,
   formatMoney,
-  listActiveAdditionalFees,
+  recalculateAdditionalFeeLine,
+  resolveQuotationAdditionalFees,
+  resolveConsignmentServiceType,
+  resolveServicePricingForConsignment,
 } = consignmentQuotationService;
 
 const {
@@ -73,16 +80,21 @@ export default function ConsignmentQuotationPanel({ id, backHref }) {
   const [mainServiceAmount, setMainServiceAmount] = useState("");
   const [discountPercent, setDiscountPercent] = useState("0");
   const [additionalFeeLines, setAdditionalFeeLines] = useState([]);
+  const [feeCatalog, setFeeCatalog] = useState([]);
+  const [feesFromApi, setFeesFromApi] = useState(false);
   const [salesNote, setSalesNote] = useState("");
 
   const canSend = detail ? canStaffSendConsignmentQuotation(detail) : false;
 
   const selectedServicePricing = useMemo(
     () =>
-      servicePricings.find(
-        (entry) => entry.warehouseId === warehouseId && entry.serviceType === serviceType
-      ) ?? findServicePricingForWarehouse(servicePricings, warehouseId, serviceType),
-    [servicePricings, warehouseId, serviceType]
+      resolveServicePricingForConsignment(
+        servicePricings.find(
+          (entry) => entry.warehouseId === warehouseId && entry.serviceType === serviceType
+        ) ?? findServicePricingForWarehouse(servicePricings, warehouseId, serviceType),
+        detail
+      ),
+    [servicePricings, warehouseId, serviceType, detail]
   );
 
   const totals = useMemo(
@@ -110,16 +122,20 @@ export default function ConsignmentQuotationPanel({ id, backHref }) {
       setSuccessMessage("");
 
       try {
-        const [consignment, warehouseList, pricingList] = await Promise.all([
-          orderConsignmentService.getStaffConsignment(id),
-          listInternationalWarehouses(),
+        const consignment = await orderConsignmentService.getStaffConsignment(id);
+        if (!active) return;
+
+        const [warehouseList, pricingList, activeFees] = await Promise.all([
+          listInternationalWarehouses().catch(() => []),
           listServicePricings({ isActive: true }),
+          fetchActiveAdditionalFees(),
         ]);
         if (!active) return;
 
         setDetail(consignment);
         setWarehouses(warehouseList);
         setServicePricings(pricingList);
+        setFeeCatalog(activeFees);
 
         const whId = consignment.warehouseId ?? warehouseList[0]?.id ?? "";
         const weight = consignment.totalWeight != null ? String(consignment.totalWeight) : "";
@@ -130,33 +146,91 @@ export default function ConsignmentQuotationPanel({ id, backHref }) {
             : consignment.quantity != null
               ? String(consignment.quantity)
               : "1";
+        const firstItem = consignment.items?.[0];
+        const declared =
+          firstItem?.declaredValue != null ? String(firstItem.declaredValue) : "";
+        const draftMainAmount =
+          consignment.quotation?.estimatedFreightCharge ??
+          consignment.quotation?.mainServiceAmount ??
+          null;
 
         setWarehouseId(whId);
         setWeightKg(weight);
         setVolumeM3(volume);
         setPackageCount(packages);
+        setDeclaredValue(declared);
         setSalesNote(consignment.quotation?.salesNote ?? "");
 
-        const pricing =
-          pricingList.find((entry) => entry.warehouseId === whId) ??
-          findServicePricingForWarehouse(pricingList, whId);
-        if (pricing) setServiceType(pricing.serviceType);
+        const initialServiceType = resolveConsignmentServiceType(consignment);
+        const pricing = resolveServicePricingForConsignment(
+          pricingList.find(
+            (entry) => entry.warehouseId === whId && entry.serviceType === initialServiceType
+          ) ?? findServicePricingForWarehouse(pricingList, whId, initialServiceType),
+          consignment
+        );
+        setServiceType(pricing?.serviceType ?? initialServiceType);
+
+        const estimateSalesNote =
+          consignment.quotation?.salesNote?.trim() || "Báo giá tạm tính";
+
+        const preliminaryDraft = buildConsignmentQuotationDraft({
+          servicePricing: pricing,
+          weightKg: weight,
+          volumeM3: volume,
+          packageCount: packages,
+          declaredValue: declared,
+          discountPercent: consignment.quotation?.discountPercent ?? 0,
+          mainServiceAmountOverride: draftMainAmount,
+          salesNote: estimateSalesNote,
+        });
+
+        let estimateResult = null;
+        if (!isMockMode() && pricing) {
+          try {
+            estimateResult = await estimateConsignmentQuotation(id, {
+              warehouseId: whId || undefined,
+              servicePricingId: pricing.id,
+              serviceType: pricing.serviceType ?? initialServiceType,
+              weightKg: weight ? Number(weight) : undefined,
+              volumeM3: volume ? Number(volume) : undefined,
+              packageCount: packages ? Number(packages) : undefined,
+              declaredValue: declared !== "" ? Number(declared) : undefined,
+              salesNote: estimateSalesNote,
+              quotation: preliminaryDraft,
+            });
+          } catch {
+            estimateResult = null;
+          }
+        }
+
+        const draftMainAmountResolved =
+          estimateResult?.estimatedFreightCharge ??
+          estimateResult?.quotation?.mainServiceAmount ??
+          draftMainAmount;
 
         const draft = buildConsignmentQuotationDraft({
           servicePricing: pricing,
           weightKg: weight,
           volumeM3: volume,
           packageCount: packages,
+          declaredValue: declared,
           discountPercent: consignment.quotation?.discountPercent ?? 0,
+          mainServiceAmountOverride: draftMainAmountResolved,
         });
-        setMainServiceAmount(String(draft.mainServiceAmount));
-        setAdditionalFeeLines(
-          buildDefaultAdditionalFeeLines({
-            fees: listActiveAdditionalFees(),
-            packageCount: packages,
-            mainServiceAmount: draft.mainServiceAmount,
-          })
-        );
+
+        const { lines: feeLines, fromApi } = resolveQuotationAdditionalFees({
+          consignment,
+          estimate: estimateResult,
+          catalogFees: activeFees,
+          packageCount: packages,
+          declaredValue: declared,
+          mainServiceAmount: draft.mainServiceAmount,
+          useMockCatalog: isMockMode(),
+        });
+
+        setMainServiceAmount(String(draftMainAmountResolved ?? draft.mainServiceAmount));
+        setAdditionalFeeLines(feeLines);
+        setFeesFromApi(fromApi);
       } catch (err) {
         if (active) setLoadError(getErrorMessage(err));
       } finally {
@@ -171,7 +245,9 @@ export default function ConsignmentQuotationPanel({ id, backHref }) {
   }, [id]);
 
   useEffect(() => {
-    if (!selectedServicePricing || !weightKg || !volumeM3) return;
+    if (feesFromApi || !selectedServicePricing || !weightKg || !volumeM3 || !feeCatalog.length) {
+      return;
+    }
 
     const draft = buildConsignmentQuotationDraft({
       servicePricing: selectedServicePricing,
@@ -188,7 +264,7 @@ export default function ConsignmentQuotationPanel({ id, backHref }) {
         current.map((line) => [line.feeId, line.enabled !== false])
       );
       return buildDefaultAdditionalFeeLines({
-        fees: listActiveAdditionalFees(),
+        fees: feeCatalog,
         packageCount,
         declaredValue,
         mainServiceAmount: draft.mainServiceAmount,
@@ -202,6 +278,8 @@ export default function ConsignmentQuotationPanel({ id, backHref }) {
     packageCount,
     declaredValue,
     discountPercent,
+    feeCatalog,
+    feesFromApi,
   ]);
 
   function resetSubmitState() {
@@ -210,12 +288,38 @@ export default function ConsignmentQuotationPanel({ id, backHref }) {
   }
 
   function toggleAdditionalFee(feeId) {
+    if (feesFromApi) {
+      setAdditionalFeeLines((current) =>
+        current.map((line) => {
+          if (line.feeId !== feeId || line.isRequired) return line;
+          const enabled = line.enabled === false;
+          const baseAmount = line.baseAmount ?? line.amount;
+          return {
+            ...line,
+            enabled,
+            baseAmount,
+            amount: enabled ? baseAmount : 0,
+          };
+        })
+      );
+      resetSubmitState();
+      return;
+    }
+
+    const fee = feeCatalog.find((entry) => entry.id === feeId);
+    const context = {
+      packageCount,
+      declaredValue,
+      mainServiceAmount: Number(mainServiceAmount) || 0,
+    };
+
     setAdditionalFeeLines((current) =>
-      current.map((line) =>
-        line.feeId === feeId
-          ? { ...line, enabled: line.enabled === false, amount: line.enabled === false ? line.amount : 0 }
-          : line
-      )
+      current.map((line) => {
+        if (line.feeId !== feeId) return line;
+        const enabled = line.enabled === false;
+        if (!fee) return { ...line, enabled, amount: 0 };
+        return recalculateAdditionalFeeLine(fee, { ...line, enabled }, context);
+      })
     );
     resetSubmitState();
   }
@@ -229,8 +333,24 @@ export default function ConsignmentQuotationPanel({ id, backHref }) {
       return;
     }
 
+    if (
+      !selectedServicePricing.unitType ||
+      !selectedServicePricing.originCountry ||
+      !selectedServicePricing.destinationCountry
+    ) {
+      setSubmitError(
+        "Giá dịch vụ thiếu thông tin tuyến (unitType, quốc gia). Kiểm tra cấu hình bảng giá."
+      );
+      return;
+    }
+
     if (totals.total <= 0) {
       setSubmitError("Tổng báo giá phải lớn hơn 0.");
+      return;
+    }
+
+    if (!salesNote.trim()) {
+      setSubmitError("Vui lòng nhập ghi chú tư vấn trước khi gửi báo giá.");
       return;
     }
 
@@ -250,18 +370,24 @@ export default function ConsignmentQuotationPanel({ id, backHref }) {
       salesNote,
     });
 
+    const sendParams = {
+      warehouseId,
+      servicePricingId: selectedServicePricing.id,
+      serviceType,
+      weightKg: Number(weightKg),
+      volumeM3: Number(volumeM3),
+      packageCount: Number(packageCount),
+      declaredValue: declaredValue === "" ? null : Number(declaredValue),
+      salesNote,
+      quotation,
+    };
+
     try {
-      const response = await orderConsignmentService.sendConsignmentQuotation(detail.id, {
-        warehouseId,
-        servicePricingId: selectedServicePricing.id,
-        serviceType,
-        weightKg: Number(weightKg),
-        volumeM3: Number(volumeM3),
-        packageCount: Number(packageCount),
-        declaredValue: declaredValue === "" ? null : Number(declaredValue),
-        salesNote,
-        quotation,
-      });
+      if (!isMockMode()) {
+        await estimateConsignmentQuotation(detail.id, sendParams);
+      }
+
+      const response = await orderConsignmentService.sendConsignmentQuotation(detail.id, sendParams);
 
       const updated = response.consignment ?? {
         ...detail,
@@ -305,6 +431,7 @@ export default function ConsignmentQuotationPanel({ id, backHref }) {
 
   if (!detail) return null;
 
+  const displayCode = formatConsignmentDisplayCode(detail);
   const volumetricWeight = calculateVolumetricWeight(volumeM3);
   const chargeableWeight = calculateChargeableWeight(weightKg, volumeM3);
 
@@ -329,8 +456,12 @@ export default function ConsignmentQuotationPanel({ id, backHref }) {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <p className="text-xs font-bold uppercase tracking-wide text-muted">Yêu cầu</p>
-            <p className="text-xl font-black font-['Oswald'] text-ink">{detail.id}</p>
-            <p className="text-sm text-muted mt-1">{detail.customerName} · {formatConsignmentDate(detail.createdAt)}</p>
+            {displayCode ? (
+              <p className="text-xl font-black font-['Oswald'] text-ink">{displayCode}</p>
+            ) : null}
+            <p className={`text-sm text-muted ${displayCode ? "mt-1" : ""}`}>
+              {detail.customerName} · {formatConsignmentDate(detail.createdAt)}
+            </p>
           </div>
           <StatusBadge status={detail.status} />
         </div>
@@ -406,7 +537,7 @@ export default function ConsignmentQuotationPanel({ id, backHref }) {
                 <input id="packageCount" type="number" min="1" value={packageCount} onChange={(e) => { setPackageCount(e.target.value); resetSubmitState(); }} className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring" />
               </div>
               <div className="space-y-2">
-                <FieldLabel htmlFor="declaredValue">Giá trị khai báo (USD)</FieldLabel>
+                <FieldLabel htmlFor="declaredValue">Giá trị khai báo (VND)</FieldLabel>
                 <input id="declaredValue" type="number" min="0" step="0.01" value={declaredValue} onChange={(e) => { setDeclaredValue(e.target.value); resetSubmitState(); }} className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring" />
               </div>
             </div>
@@ -431,7 +562,7 @@ export default function ConsignmentQuotationPanel({ id, backHref }) {
             )}
 
             <div className="space-y-2">
-              <FieldLabel htmlFor="mainServiceAmount" required>Thành tiền dịch vụ chính (USD)</FieldLabel>
+              <FieldLabel htmlFor="mainServiceAmount" required>Thành tiền dịch vụ chính (VND)</FieldLabel>
               <input id="mainServiceAmount" type="number" min="0" step="0.01" value={mainServiceAmount} onChange={(e) => { setMainServiceAmount(e.target.value); resetSubmitState(); }} className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring" />
               <p className="text-xs text-muted">Tự tính từ bảng giá dịch vụ chính. Sales có thể chỉnh trước khi gửi.</p>
             </div>
@@ -439,9 +570,17 @@ export default function ConsignmentQuotationPanel({ id, backHref }) {
 
           <section className="rounded-xl border border-border-muted bg-surface-elevated p-6 space-y-4">
             <div>
-              <h2 className="text-lg font-bold text-ink">Phụ phí (từ cấu hình Admin)</h2>
-              <p className="text-sm text-muted mt-1">Quản lý tại mục Phí dịch vụ bổ sung. Sales chỉ bật/tắt khi báo giá.</p>
+              <h2 className="text-lg font-bold text-ink">Phụ phí bổ sung</h2>
+              <p className="text-sm text-muted mt-1">
+                Chọn các khoản phí áp dụng cho báo giá này. Thành tiền tự tính theo số kiện và giá trị khai báo.
+              </p>
             </div>
+            {!additionalFeeLines.length ? (
+              <p className="text-sm text-muted">
+                Hệ thống chưa trả danh sách phụ phí cho yêu cầu này. Thử điền đủ khối lượng, thể tích
+                và giá trị khai báo, hoặc liên hệ Admin nếu cần cấu hình phí bổ sung trên BE.
+              </p>
+            ) : (
             <div className="overflow-x-auto rounded-lg border border-border-muted">
               <table className="w-full text-sm">
                 <thead>
@@ -460,12 +599,15 @@ export default function ConsignmentQuotationPanel({ id, backHref }) {
                       </td>
                       <td className="px-4 py-3 font-medium text-ink">{line.label}</td>
                       <td className="px-4 py-3 text-muted">{line.description}</td>
-                      <td className="px-4 py-3 text-right font-semibold">{formatMoney(line.amount)}</td>
+                      <td className="px-4 py-3 text-right font-semibold">
+                        {line.enabled !== false ? formatMoney(line.amount) : "—"}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
+            )}
           </section>
 
           <section className="rounded-xl border border-border-muted bg-surface-elevated p-6 space-y-4">
@@ -489,7 +631,7 @@ export default function ConsignmentQuotationPanel({ id, backHref }) {
               </div>
             </dl>
             <div className="space-y-2">
-              <FieldLabel htmlFor="salesNote">Ghi chú tư vấn</FieldLabel>
+              <FieldLabel htmlFor="salesNote" required>Ghi chú tư vấn</FieldLabel>
               <textarea id="salesNote" rows={3} value={salesNote} onChange={(e) => { setSalesNote(e.target.value); resetSubmitState(); }} className="w-full px-4 py-3 rounded-lg border border-border-muted text-sm input-focus-ring resize-y min-h-[88px]" />
             </div>
           </section>

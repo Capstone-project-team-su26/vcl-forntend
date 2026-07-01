@@ -1,7 +1,7 @@
 import { isMockMode } from "@/utils/mocks/dataSource";
 import { mockDelay } from "@/utils/mocks/mockDelay";
 import { getMockStore } from "@/utils/mocks/mockStore";
-import { apiRequestWithMockFallback } from "@/utils/apiClient";
+import { apiRequest } from "@/utils/apiClient";
 import {
   normalizePurchaseOrderFromApi,
   normalizePurchaseOrderStatusUpdate,
@@ -174,25 +174,17 @@ async function updatePurchaseOrderStatusMock(id, payload) {
 export async function getPurchaseOrder(id) {
   if (isMockMode()) return getPurchaseOrderMock(id);
 
-  const raw = await apiRequestWithMockFallback(
-    `/api/purchase-orders/${id}`,
-    {},
-    () => getPurchaseOrderMock(id)
-  );
+  const raw = await apiRequest(`/api/purchase-orders/${id}`);
   return normalizePurchaseOrderFromApi(raw);
 }
 
 export async function updatePurchaseOrderStatus(id, payload) {
   if (isMockMode()) return updatePurchaseOrderStatusMock(id, payload);
 
-  const raw = await apiRequestWithMockFallback(
-    `/api/purchase-orders/${id}/status`,
-    {
-      method: "PUT",
-      body: JSON.stringify(toApiPurchaseOrderStatusPayload(payload)),
-    },
-    () => updatePurchaseOrderStatusMock(id, payload)
-  );
+  const raw = await apiRequest(`/api/purchase-orders/${id}/status`, {
+    method: "PUT",
+    body: JSON.stringify(toApiPurchaseOrderStatusPayload(payload)),
+  });
 
   return normalizePurchaseOrderStatusUpdate(raw);
 }

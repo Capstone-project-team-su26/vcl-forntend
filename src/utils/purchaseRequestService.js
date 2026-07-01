@@ -1,7 +1,7 @@
 import { isMockMode } from "@/utils/mocks/dataSource";
 import { mockDelay } from "@/utils/mocks/mockDelay";
 import { getMockStore } from "@/utils/mocks/mockStore";
-import { apiRequestWithMockFallback } from "@/utils/apiClient";
+import { apiRequest } from "@/utils/apiClient";
 import {
   normalizePurchaseRequestFromApi,
   normalizePurchaseRequestListResponse,
@@ -14,6 +14,7 @@ import {
 } from "@/utils/apiMappers";
 import { ApiError } from "@/utils/apiError";
 import { registerPurchaseOrderInMockStore } from "@/utils/purchaseOrderService";
+import { formatMoney } from "@/utils/servicePricingService";
 
 export const PURCHASE_REQUEST_STATUS_LABELS = {
   PENDING: "Chờ xử lý",
@@ -103,12 +104,7 @@ export function calculateQuotationTotal({ items, purchaseServiceFee, estimatedSh
 }
 
 export function formatQuotationAmount(amount) {
-  if (amount == null || Number.isNaN(amount)) return "—";
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
-  }).format(amount);
+  return formatMoney(amount);
 }
 
 function buildQuery({ search, status }) {
@@ -207,36 +203,29 @@ async function updatePurchaseRequestStatusMock(id, { status, reason }) {
 export async function listPurchaseRequests(params = {}) {
   if (isMockMode()) return listPurchaseRequestsMock(params);
 
-  const raw = await apiRequestWithMockFallback(
-    `/api/purchase-requests${buildQuery(params)}`,
-    {},
-    () => listPurchaseRequestsMock(params)
-  );
-  return normalizePurchaseRequestListResponse(raw);
+  try {
+    const raw = await apiRequest(`/api/purchase-requests${buildQuery(params)}`);
+    return normalizePurchaseRequestListResponse(raw);
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) return [];
+    throw err;
+  }
 }
 
 export async function getPurchaseRequest(id) {
   if (isMockMode()) return getPurchaseRequestMock(id);
 
-  const raw = await apiRequestWithMockFallback(
-    `/api/purchase-requests/${id}`,
-    {},
-    () => getPurchaseRequestMock(id)
-  );
+  const raw = await apiRequest(`/api/purchase-requests/${id}`);
   return normalizePurchaseRequestFromApi(raw);
 }
 
 export async function updatePurchaseRequestStatus(id, payload) {
   if (isMockMode()) return updatePurchaseRequestStatusMock(id, payload);
 
-  const raw = await apiRequestWithMockFallback(
-    `/api/purchase-requests/${id}/status`,
-    {
-      method: "PUT",
-      body: JSON.stringify(toApiPurchaseRequestStatusPayload(payload)),
-    },
-    () => updatePurchaseRequestStatusMock(id, payload)
-  );
+  const raw = await apiRequest(`/api/purchase-requests/${id}/status`, {
+    method: "PUT",
+    body: JSON.stringify(toApiPurchaseRequestStatusPayload(payload)),
+  });
 
   return normalizePurchaseRequestStatusUpdate(raw);
 }
@@ -326,14 +315,10 @@ async function createPurchaseRequestQuotationMock(id, payload) {
 export async function createPurchaseRequestQuotation(id, payload) {
   if (isMockMode()) return createPurchaseRequestQuotationMock(id, payload);
 
-  const raw = await apiRequestWithMockFallback(
-    `/api/purchase-requests/${id}/quotation`,
-    {
-      method: "POST",
-      body: JSON.stringify(toApiPurchaseRequestQuotationPayload(payload)),
-    },
-    () => createPurchaseRequestQuotationMock(id, payload)
-  );
+  const raw = await apiRequest(`/api/purchase-requests/${id}/quotation`, {
+    method: "POST",
+    body: JSON.stringify(toApiPurchaseRequestQuotationPayload(payload)),
+  });
 
   return normalizePurchaseRequestQuotationResponse(raw);
 }
@@ -402,14 +387,10 @@ async function createPurchaseRequestPurchaseOrderMock(id, payload) {
 export async function createPurchaseRequestPurchaseOrder(id, payload) {
   if (isMockMode()) return createPurchaseRequestPurchaseOrderMock(id, payload);
 
-  const raw = await apiRequestWithMockFallback(
-    `/api/purchase-requests/${id}/purchase-order`,
-    {
-      method: "POST",
-      body: JSON.stringify(toApiPurchaseRequestPurchaseOrderPayload(payload)),
-    },
-    () => createPurchaseRequestPurchaseOrderMock(id, payload)
-  );
+  const raw = await apiRequest(`/api/purchase-requests/${id}/purchase-order`, {
+    method: "POST",
+    body: JSON.stringify(toApiPurchaseRequestPurchaseOrderPayload(payload)),
+  });
 
   return normalizePurchaseRequestPurchaseOrderResponse(raw);
 }

@@ -16,9 +16,31 @@ const {
   canStaffUpdateConsignmentStatus,
   canStaffRejectConsignmentStatus,
   formatConsignmentDate,
+  formatConsignmentDisplayCode,
+  formatConsignmentPageTitle,
 } = orderConsignmentService;
 
-const { formatMoney, getQuotationDisplayLines } = consignmentQuotationService;
+const {
+  formatQuotationMoney,
+  getQuotationDisplayLines,
+  getConsignmentQuotationHeading,
+  isDraftConsignmentQuotation,
+} = consignmentQuotationService;
+
+function formatConsignmentTypeLabel(detail) {
+  const orderLabel =
+    CONSIGNMENT_TYPE_LABELS[detail.orderType ?? detail.consignmentType] ||
+    detail.orderType ||
+    detail.consignmentType;
+  const shipping = detail.shippingOption;
+
+  if (shipping && shipping !== detail.orderType) {
+    const shippingLabel = CONSIGNMENT_TYPE_LABELS[shipping] || shipping;
+    return `${orderLabel} — ${shippingLabel}`;
+  }
+
+  return orderLabel || "—";
+}
 
 function DetailRow({ label, value }) {
   return (
@@ -33,13 +55,22 @@ function QuotationSummary({ quotation }) {
   if (!quotation) return null;
 
   const lines = getQuotationDisplayLines(quotation);
+  const heading = getConsignmentQuotationHeading(quotation);
+  const isDraft = isDraftConsignmentQuotation(quotation);
 
   return (
     <div className="bg-white rounded-xl shadow-[0px_2px_4px_0px_#00000012] p-6 border border-surface-muted/50 space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h3 className="text-lg font-extrabold font-['Oswald']">Báo giá đã gửi</h3>
+        <div>
+          <h3 className="text-lg font-extrabold font-['Oswald']">{heading}</h3>
+          {isDraft && quotation.expiredAt ? (
+            <p className="text-xs text-muted mt-1">
+              Hết hạn tạm tính: {formatConsignmentDate(quotation.expiredAt)}
+            </p>
+          ) : null}
+        </div>
         <p className="text-xl font-black text-primary font-['Oswald']">
-          {formatMoney(quotation.total ?? quotation.totalEstimatedCost)}
+          {formatQuotationMoney(quotation)}
         </p>
       </div>
       {lines.length ? (
@@ -50,7 +81,7 @@ function QuotationSummary({ quotation }) {
               className="flex items-center justify-between gap-4 border-b border-surface-muted/60 pb-2 last:border-0"
             >
               <span className="text-ink">{line.label}</span>
-              <span className="font-semibold text-ink">{formatMoney(line.amount)}</span>
+              <span className="font-semibold text-ink">{formatQuotationMoney(quotation, line.amount)}</span>
             </li>
           ))}
         </ul>
@@ -86,6 +117,7 @@ export default function ConsignmentDetailPanel({ id, backHref = ROUTES.sales.con
   const canReject = detail ? canStaffRejectConsignmentStatus(detail.status) : false;
   const isSubmitting = isApproving || isRejecting;
   const trackingCode = approvedTrackingCode || detail?.trackingCode;
+  const displayCode = detail ? formatConsignmentDisplayCode(detail) : null;
 
   useEffect(() => {
     if (!id) return;
@@ -213,7 +245,7 @@ export default function ConsignmentDetailPanel({ id, backHref = ROUTES.sales.con
           <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
             <div>
               <h2 className="text-2xl lg:text-3xl font-black tracking-tight font-['Oswald']">
-                {detail.id}
+                {formatConsignmentPageTitle(detail)}
               </h2>
               <p className="text-muted text-sm mt-2">
                 Yêu cầu ký gửi của{" "}
@@ -259,7 +291,9 @@ export default function ConsignmentDetailPanel({ id, backHref = ROUTES.sales.con
                 <p className="text-sm text-muted mt-1">
                   {detail.status === "QUOTATION_REJECTED"
                     ? "Khách đã từ chối báo giá trước đó. Sales có thể tư vấn và gửi báo giá mới."
-                    : "Khách đã gửi yêu cầu. Sales tư vấn, chỉnh phí và gửi báo giá."}
+                    : detail.quotation && isDraftConsignmentQuotation(detail.quotation)
+                      ? "Đã có báo giá tạm tính từ hệ thống. Sales kiểm tra, chỉnh phí và gửi cho khách."
+                      : "Khách đã gửi yêu cầu. Sales tư vấn, chỉnh phí và gửi báo giá."}
                 </p>
               </div>
               <Link
@@ -303,22 +337,55 @@ export default function ConsignmentDetailPanel({ id, backHref = ROUTES.sales.con
           <div className="bg-white rounded-xl shadow-[0px_2px_4px_0px_#00000012] p-6 border border-surface-muted/50">
             <h3 className="text-lg font-extrabold font-['Oswald'] mb-2">Thông tin yêu cầu</h3>
             <dl>
-              <DetailRow label="Mã yêu cầu" value={detail.id} />
+              {displayCode ? <DetailRow label="Mã yêu cầu" value={displayCode} /> : null}
               <DetailRow label="Tên khách hàng" value={detail.customerName} />
               <DetailRow
                 label="Loại ký gửi"
-                value={CONSIGNMENT_TYPE_LABELS[detail.consignmentType] || detail.consignmentType}
+                value={formatConsignmentTypeLabel(detail)}
               />
               <DetailRow
                 label="Trạng thái"
                 value={CONSIGNMENT_STATUS_LABELS[detail.status] || detail.status}
               />
               <DetailRow label="Ngày tạo" value={formatConsignmentDate(detail.createdAt)} />
-              {detail.productName ? (
+              {detail.route ? <DetailRow label="Tuyến" value={detail.route} /> : null}
+              {detail.totalWeight != null ? (
+                <DetailRow label="Tổng khối lượng" value={`${detail.totalWeight} kg`} />
+              ) : null}
+              {detail.totalVolume != null ? (
+                <DetailRow label="Tổng thể tích" value={`${detail.totalVolume} m³`} />
+              ) : null}
+              {detail.packageCount != null ? (
+                <DetailRow label="Số kiện" value={String(detail.packageCount)} />
+              ) : null}
+              {detail.items?.length ? (
+                <DetailRow
+                  label="Sản phẩm"
+                  value={detail.items
+                    .map((entry) =>
+                      entry.quantity != null
+                        ? `${entry.productName} (×${entry.quantity})`
+                        : entry.productName
+                    )
+                    .join(", ")}
+                />
+              ) : detail.productName ? (
                 <DetailRow label="Sản phẩm" value={detail.productName} />
               ) : null}
-              {detail.quantity != null ? (
+              {detail.quantity != null && !detail.items?.length ? (
                 <DetailRow label="Số lượng" value={String(detail.quantity)} />
+              ) : null}
+              {detail.receiverName ? (
+                <DetailRow label="Người nhận" value={detail.receiverName} />
+              ) : null}
+              {detail.receiverPhone ? (
+                <DetailRow label="SĐT người nhận" value={detail.receiverPhone} />
+              ) : null}
+              {detail.receiverAddress ? (
+                <DetailRow label="Địa chỉ nhận" value={detail.receiverAddress} />
+              ) : null}
+              {detail.requiresInspection ? (
+                <DetailRow label="Kiểm đếm" value="Có" />
               ) : null}
               {detail.destination ? (
                 <DetailRow label="Điểm đến" value={detail.destination} />
