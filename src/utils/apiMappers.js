@@ -233,7 +233,7 @@ export function normalizeReceivingNoteFromApi(raw) {
 export function normalizeReceivingNoteCreateResponse(raw) {
   const note = normalizeReceivingNoteFromApi(raw);
   return {
-    message: raw?.message ?? "Tạo phiếu tiếp nhận kho thành công.",
+    message: raw?.message ?? "Gửi phiếu tiếp nhận kho thành công.",
     receivingNote: note,
   };
 }

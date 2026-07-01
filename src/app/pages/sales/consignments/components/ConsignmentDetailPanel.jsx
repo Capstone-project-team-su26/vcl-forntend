@@ -405,15 +405,15 @@ export default function ConsignmentDetailPanel({ id, backHref = ROUTES.sales.con
               <div>
                 <h3 className="text-lg font-extrabold font-['Oswald']">Phiếu tiếp nhận kho</h3>
                 <p className="text-sm text-muted mt-1">
-                  Gửi phiếu chuyển thông tin sang bộ phận kho để scan trên mobile.
+                  Gửi phiếu tiếp nhận online — kho nhận và xử lý trực tiếp trên hệ thống.
                 </p>
               </div>
               <Link
                 href={ROUTES.sales.receivingNote(detail.id)}
                 className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-lg bg-secondary text-white text-sm font-bold hover:opacity-90 transition-opacity"
               >
-                <Icon icon="lucide:clipboard-plus" className="w-4 h-4" />
-                Tạo / xem phiếu tiếp nhận
+                <Icon icon="lucide:send" className="w-4 h-4" />
+                Gửi / xem phiếu tiếp nhận
               </Link>
             </div>
           ) : null}
