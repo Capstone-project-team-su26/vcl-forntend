@@ -9,6 +9,7 @@ import * as servicePricingService from "@/utils/servicePricingService";
 import { getErrorMessage } from "@/utils/apiError";
 import { isMockMode } from "@/utils/mocks/dataSource";
 import { ROUTES } from "@/utils/appRoutes";
+import VndMoneyInput from "@/app/components/VndMoneyInput";
 
 const {
   CONSIGNMENT_STATUS_LABELS,
@@ -28,16 +29,21 @@ const {
   recalculateAdditionalFeeLine,
   resolveQuotationAdditionalFees,
   resolveConsignmentServiceType,
+  resolveInitialSalesNote,
   resolveServicePricingForConsignment,
 } = consignmentQuotationService;
 
 const {
-  findServicePricingForWarehouse,
+  findServicePricingForQuotation,
   listInternationalWarehouses,
   listServicePricings,
-  calculateChargeableWeight,
-  calculateVolumetricWeight,
-  formatInternationalWarehouseLabel,
+  buildMainServicePricingBreakdown,
+  getAvailableServiceTypes,
+  formatServiceTypeLabel,
+  formatVolumeCm3,
+  volumeCm3ToM3,
+  volumeM3ToCm3,
+  UNIT_TYPE_LABELS,
 } = servicePricingService;
 
 function FieldLabel({ htmlFor, children, required }) {
@@ -46,6 +52,122 @@ function FieldLabel({ htmlFor, children, required }) {
       {children}
       {required ? <span className="text-danger"> *</span> : null}
     </label>
+  );
+}
+
+const LOCKED_FIELD_CLASS =
+  "w-full h-11 px-4 rounded-lg border border-border-muted text-sm bg-surface text-ink cursor-not-allowed opacity-90";
+
+function formatKgLabel(value) {
+  const numeric = Number(value) || 0;
+  return `${numeric.toLocaleString("vi-VN", { maximumFractionDigits: 2 })} kg`;
+}
+
+function FormulaStepCard({ index, title, formula, note, highlight = false }) {
+  return (
+    <div
+      className={`flex gap-3 rounded-xl border p-3.5 ${
+        highlight
+          ? "border-primary/30 bg-primary/5"
+          : "border-border-muted bg-surface-elevated"
+      }`}
+    >
+      <div
+        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-extrabold ${
+          highlight
+            ? "bg-primary text-ink-deep"
+            : "bg-surface-muted text-primary border border-primary/20"
+        }`}
+      >
+        {index}
+      </div>
+      <div className="min-w-0 flex-1 space-y-2">
+        <p className="text-sm font-bold text-ink">{title}</p>
+        {formula ? (
+          <div
+            className={`rounded-lg border px-3 py-2.5 ${
+              highlight
+                ? "border-primary/25 bg-surface-muted"
+                : "border-border-muted bg-surface-muted"
+            }`}
+          >
+            <p className="font-mono text-[13px] sm:text-sm text-ink leading-relaxed break-all">
+              {formula}
+            </p>
+          </div>
+        ) : null}
+        {note ? <p className="text-xs text-muted leading-relaxed">{note}</p> : null}
+      </div>
+    </div>
+  );
+}
+
+function PricingFormulaBreakdown({ breakdown }) {
+  if (!breakdown?.show) return null;
+
+  const numberedSteps = breakdown.steps ?? [];
+  const freightStep = breakdown.freightStep;
+  const allSteps = [
+    ...numberedSteps.map((step) => ({ ...step, highlight: false })),
+    ...(freightStep?.formula
+      ? [{ ...freightStep, highlight: true }]
+      : freightStep?.note
+        ? [{ key: "freight-note", title: freightStep.title, formula: null, note: freightStep.note, highlight: false }]
+        : []),
+  ];
+
+  const showSummaryChips =
+    breakdown.volumetricWeight > 0 &&
+    breakdown.actualWeightKg != null &&
+    breakdown.chargeableWeight > 0;
+
+  return (
+    <div className="rounded-xl border border-border-muted bg-surface-muted/50 p-4 sm:p-5 space-y-4">
+      <div className="flex items-start gap-3 pb-1 border-b border-border-muted/50">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 border border-primary/15">
+          <Icon icon="lucide:calculator" className="w-4.5 h-4.5 text-primary" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-bold text-ink">Công thức tính cước dịch vụ chính</p>
+          <p className="text-xs text-muted mt-0.5">
+            {breakdown.hasConfiguredPricing
+              ? "Đơn giá từ bảng giá service-pricings trên BE."
+              : "Ước tính tạm — cần cấu hình bảng giá BE để có đơn giá chính xác."}
+          </p>
+          {showSummaryChips ? (
+            <div className="flex flex-wrap items-center gap-2 mt-2.5">
+              <span className="inline-flex items-center gap-1 rounded-full border border-border-muted bg-surface-elevated px-2.5 py-1 text-[11px] font-semibold text-ink">
+                <Icon icon="lucide:scale" className="w-3 h-3 text-muted" />
+                {formatKgLabel(breakdown.actualWeightKg)} thực
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-full border border-border-muted bg-surface-elevated px-2.5 py-1 text-[11px] font-semibold text-ink">
+                <Icon icon="lucide:box" className="w-3 h-3 text-muted" />
+                DIM {formatKgLabel(breakdown.volumetricWeight)}
+              </span>
+              <Icon icon="lucide:arrow-right" className="w-3.5 h-3.5 text-muted hidden sm:block" />
+              <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-[11px] font-bold text-primary">
+                {formatKgLabel(breakdown.chargeableWeight)} tính phí
+              </span>
+            </div>
+          ) : null}
+        </div>
+      </div>
+
+      {allSteps.length > 0 ? (
+        <div className="space-y-2.5">
+          {allSteps.map((step, index) => (
+            <FormulaStepCard
+              key={step.key ?? `${step.title}-${index}`}
+              index={index + 1}
+              title={step.title}
+              formula={step.formula}
+              note={step.note}
+              highlight={step.highlight}
+            />
+          ))}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -71,10 +193,9 @@ export default function ConsignmentQuotationPanel({ id, backHref }) {
   const [successMessage, setSuccessMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [warehouseId, setWarehouseId] = useState("");
   const [serviceType, setServiceType] = useState("STANDARD");
   const [weightKg, setWeightKg] = useState("");
-  const [volumeM3, setVolumeM3] = useState("");
+  const [volumeCm3, setVolumeCm3] = useState("");
   const [packageCount, setPackageCount] = useState("");
   const [declaredValue, setDeclaredValue] = useState("");
   const [mainServiceAmount, setMainServiceAmount] = useState("");
@@ -83,18 +204,40 @@ export default function ConsignmentQuotationPanel({ id, backHref }) {
   const [feeCatalog, setFeeCatalog] = useState([]);
   const [feesFromApi, setFeesFromApi] = useState(false);
   const [salesNote, setSalesNote] = useState("");
+  const [estimateSnapshot, setEstimateSnapshot] = useState(null);
 
   const canSend = detail ? canStaffSendConsignmentQuotation(detail) : false;
+
+  const resolvedWarehouseId = useMemo(
+    () => detail?.warehouseId ?? warehouses[0]?.id ?? "",
+    [detail?.warehouseId, warehouses]
+  );
+
+  const selectedWarehouse = useMemo(
+    () => warehouses.find((entry) => entry.id === resolvedWarehouseId) ?? null,
+    [warehouses, resolvedWarehouseId]
+  );
+
+  const quotationPricingContext = useMemo(
+    () => ({ warehouse: selectedWarehouse, consignment: detail }),
+    [selectedWarehouse, detail]
+  );
+
+  const availableServiceTypes = useMemo(
+    () => getAvailableServiceTypes(servicePricings, quotationPricingContext),
+    [servicePricings, quotationPricingContext]
+  );
 
   const selectedServicePricing = useMemo(
     () =>
       resolveServicePricingForConsignment(
-        servicePricings.find(
-          (entry) => entry.warehouseId === warehouseId && entry.serviceType === serviceType
-        ) ?? findServicePricingForWarehouse(servicePricings, warehouseId, serviceType),
+        findServicePricingForQuotation(servicePricings, {
+          ...quotationPricingContext,
+          serviceType,
+        }),
         detail
       ),
-    [servicePricings, warehouseId, serviceType, detail]
+    [servicePricings, quotationPricingContext, serviceType, detail]
   );
 
   const totals = useMemo(
@@ -107,8 +250,45 @@ export default function ConsignmentQuotationPanel({ id, backHref }) {
     [mainServiceAmount, additionalFeeLines, discountPercent]
   );
 
+  const volumeM3 = useMemo(
+    () => (volumeCm3 === "" ? "" : String(volumeCm3ToM3(volumeCm3))),
+    [volumeCm3]
+  );
+
+  const pricingBreakdown = useMemo(
+    () =>
+      buildMainServicePricingBreakdown(selectedServicePricing, {
+        weightKg,
+        volumeM3,
+        estimate:
+          estimateSnapshot ??
+          (detail?.quotation
+            ? {
+                volumetricWeight: detail.quotation.volumetricWeight,
+                chargeableWeight: detail.quotation.chargeableWeight,
+                estimatedFreightCharge:
+                  detail.quotation.estimatedFreightCharge ?? detail.quotation.mainServiceAmount,
+              }
+            : null),
+      }),
+    [selectedServicePricing, weightKg, volumeM3, estimateSnapshot, detail?.quotation]
+  );
+
   const resolvedBackHref =
     backHref ?? (id ? ROUTES.sales.consignment(id) : ROUTES.sales.consignments);
+
+  useEffect(() => {
+    if (!availableServiceTypes.length) return;
+
+    const current = String(serviceType).toUpperCase();
+    const hasCurrent = availableServiceTypes.some(
+      (type) => String(type).toUpperCase() === current
+    );
+
+    if (!hasCurrent) {
+      setServiceType(availableServiceTypes[0]);
+    }
+  }, [availableServiceTypes, resolvedWarehouseId]);
 
   useEffect(() => {
     if (!id) return;
@@ -128,7 +308,7 @@ export default function ConsignmentQuotationPanel({ id, backHref }) {
         const [warehouseList, pricingList, activeFees] = await Promise.all([
           listInternationalWarehouses().catch(() => []),
           listServicePricings({ isActive: true }),
-          fetchActiveAdditionalFees(),
+          fetchActiveAdditionalFees().catch(() => []),
         ]);
         if (!active) return;
 
@@ -138,8 +318,12 @@ export default function ConsignmentQuotationPanel({ id, backHref }) {
         setFeeCatalog(activeFees);
 
         const whId = consignment.warehouseId ?? warehouseList[0]?.id ?? "";
+        const selectedWh = warehouseList.find((entry) => entry.id === whId) ?? warehouseList[0] ?? null;
         const weight = consignment.totalWeight != null ? String(consignment.totalWeight) : "";
-        const volume = consignment.totalVolume != null ? String(consignment.totalVolume) : "";
+        const volumeM3FromApi =
+          consignment.totalVolume != null ? Number(consignment.totalVolume) : null;
+        const volume =
+          volumeM3FromApi != null ? String(volumeM3ToCm3(volumeM3FromApi)) : "";
         const packages =
           consignment.packageCount != null
             ? String(consignment.packageCount)
@@ -154,29 +338,30 @@ export default function ConsignmentQuotationPanel({ id, backHref }) {
           consignment.quotation?.mainServiceAmount ??
           null;
 
-        setWarehouseId(whId);
-        setWeightKg(weight);
-        setVolumeM3(volume);
-        setPackageCount(packages);
         setDeclaredValue(declared);
-        setSalesNote(consignment.quotation?.salesNote ?? "");
+        setSalesNote(resolveInitialSalesNote(consignment));
+        setWeightKg(weight);
+        setVolumeCm3(volume);
+        setPackageCount(packages);
 
         const initialServiceType = resolveConsignmentServiceType(consignment);
         const pricing = resolveServicePricingForConsignment(
-          pricingList.find(
-            (entry) => entry.warehouseId === whId && entry.serviceType === initialServiceType
-          ) ?? findServicePricingForWarehouse(pricingList, whId, initialServiceType),
+          findServicePricingForQuotation(pricingList, {
+            warehouse: selectedWh,
+            consignment,
+            serviceType: initialServiceType,
+          }),
           consignment
         );
         setServiceType(pricing?.serviceType ?? initialServiceType);
 
         const estimateSalesNote =
-          consignment.quotation?.salesNote?.trim() || "Báo giá tạm tính";
+          resolveInitialSalesNote(consignment) || "Báo giá tạm tính";
 
         const preliminaryDraft = buildConsignmentQuotationDraft({
           servicePricing: pricing,
           weightKg: weight,
-          volumeM3: volume,
+          volumeM3: volumeM3FromApi ?? (volume ? volumeCm3ToM3(volume) : 0),
           packageCount: packages,
           declaredValue: declared,
           discountPercent: consignment.quotation?.discountPercent ?? 0,
@@ -192,7 +377,7 @@ export default function ConsignmentQuotationPanel({ id, backHref }) {
               servicePricingId: pricing.id,
               serviceType: pricing.serviceType ?? initialServiceType,
               weightKg: weight ? Number(weight) : undefined,
-              volumeM3: volume ? Number(volume) : undefined,
+              volumeM3: volumeM3FromApi ?? (volume ? volumeCm3ToM3(volume) : undefined),
               packageCount: packages ? Number(packages) : undefined,
               declaredValue: declared !== "" ? Number(declared) : undefined,
               salesNote: estimateSalesNote,
@@ -211,7 +396,7 @@ export default function ConsignmentQuotationPanel({ id, backHref }) {
         const draft = buildConsignmentQuotationDraft({
           servicePricing: pricing,
           weightKg: weight,
-          volumeM3: volume,
+          volumeM3: volumeM3FromApi ?? (volume ? volumeCm3ToM3(volume) : 0),
           packageCount: packages,
           declaredValue: declared,
           discountPercent: consignment.quotation?.discountPercent ?? 0,
@@ -225,12 +410,20 @@ export default function ConsignmentQuotationPanel({ id, backHref }) {
           packageCount: packages,
           declaredValue: declared,
           mainServiceAmount: draft.mainServiceAmount,
-          useMockCatalog: isMockMode(),
         });
 
         setMainServiceAmount(String(draftMainAmountResolved ?? draft.mainServiceAmount));
         setAdditionalFeeLines(feeLines);
         setFeesFromApi(fromApi);
+        setEstimateSnapshot(
+          estimateResult
+            ? {
+                volumetricWeight: estimateResult.volumetricWeight,
+                chargeableWeight: estimateResult.chargeableWeight,
+                estimatedFreightCharge: estimateResult.estimatedFreightCharge,
+              }
+            : null
+        );
       } catch (err) {
         if (active) setLoadError(getErrorMessage(err));
       } finally {
@@ -245,7 +438,7 @@ export default function ConsignmentQuotationPanel({ id, backHref }) {
   }, [id]);
 
   useEffect(() => {
-    if (feesFromApi || !selectedServicePricing || !weightKg || !volumeM3 || !feeCatalog.length) {
+    if (feesFromApi || !selectedServicePricing || !weightKg || !volumeCm3 || !feeCatalog.length) {
       return;
     }
 
@@ -269,6 +462,7 @@ export default function ConsignmentQuotationPanel({ id, backHref }) {
         declaredValue,
         mainServiceAmount: draft.mainServiceAmount,
         enabledFeeIds: Object.keys(enabledMap).length ? enabledMap : undefined,
+        requiresInspection: detail?.requiresInspection === true,
       });
     });
   }, [
@@ -280,7 +474,14 @@ export default function ConsignmentQuotationPanel({ id, backHref }) {
     discountPercent,
     feeCatalog,
     feesFromApi,
+    detail?.requiresInspection,
   ]);
+
+  useEffect(() => {
+    if (pricingBreakdown.amount > 0) {
+      setMainServiceAmount(String(pricingBreakdown.amount));
+    }
+  }, [pricingBreakdown.amount]);
 
   function resetSubmitState() {
     setSubmitError("");
@@ -358,10 +559,12 @@ export default function ConsignmentQuotationPanel({ id, backHref }) {
     setSubmitError("");
     setSuccessMessage("");
 
+    const resolvedVolumeM3 = volumeCm3 ? volumeCm3ToM3(volumeCm3) : 0;
+
     const quotation = buildConsignmentQuotationDraft({
       servicePricing: selectedServicePricing,
       weightKg,
-      volumeM3,
+      volumeM3: resolvedVolumeM3,
       packageCount,
       declaredValue,
       discountPercent,
@@ -371,11 +574,11 @@ export default function ConsignmentQuotationPanel({ id, backHref }) {
     });
 
     const sendParams = {
-      warehouseId,
+      warehouseId: resolvedWarehouseId,
       servicePricingId: selectedServicePricing.id,
       serviceType,
       weightKg: Number(weightKg),
-      volumeM3: Number(volumeM3),
+      volumeM3: resolvedVolumeM3,
       packageCount: Number(packageCount),
       declaredValue: declaredValue === "" ? null : Number(declaredValue),
       salesNote,
@@ -432,8 +635,8 @@ export default function ConsignmentQuotationPanel({ id, backHref }) {
   if (!detail) return null;
 
   const displayCode = formatConsignmentDisplayCode(detail);
-  const volumetricWeight = calculateVolumetricWeight(volumeM3);
-  const chargeableWeight = calculateChargeableWeight(weightKg, volumeM3);
+  const volumetricWeight = pricingBreakdown.volumetricWeight ?? 0;
+  const chargeableWeight = pricingBreakdown.chargeableWeight ?? 0;
 
   return (
     <div className="space-y-8 max-w-5xl">
@@ -487,58 +690,85 @@ export default function ConsignmentQuotationPanel({ id, backHref }) {
       {canSend && !successMessage ? (
         <form onSubmit={handleSubmit} className="space-y-8">
           <section className="rounded-xl border border-border-muted bg-surface-elevated p-6 space-y-4">
-            <h2 className="text-lg font-bold text-ink">Thông số & dịch vụ chính</h2>
+            <div>
+              <h2 className="text-lg font-bold text-ink">Thông số & dịch vụ chính</h2>
+              <p className="text-sm text-muted mt-1">
+                Các thông số lấy từ yêu cầu ký gửi — không chỉnh tại bước báo giá.
+              </p>
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2 sm:col-span-2">
-                <FieldLabel htmlFor="warehouseId" required>Kho quốc tế</FieldLabel>
-                <select
-                  id="warehouseId"
-                  value={warehouseId}
-                  onChange={(e) => {
-                    setWarehouseId(e.target.value);
-                    resetSubmitState();
-                  }}
-                  className="form-select input-focus-ring"
-                >
-                  <option value="">Chọn kho...</option>
-                  {warehouses.map((warehouse) => (
-                    <option key={warehouse.id} value={warehouse.id}>
-                      {formatInternationalWarehouseLabel(warehouse)}
-                    </option>
-                  ))}
-                </select>
-              </div>
               <div className="space-y-2">
                 <FieldLabel htmlFor="serviceType" required>Loại dịch vụ</FieldLabel>
                 <select
                   id="serviceType"
-                  value={serviceType}
-                  onChange={(e) => {
-                    setServiceType(e.target.value);
-                    resetSubmitState();
-                  }}
-                  className="form-select input-focus-ring"
+                  value={
+                    availableServiceTypes.some(
+                      (type) => String(type).toUpperCase() === String(serviceType).toUpperCase()
+                    )
+                      ? serviceType
+                      : availableServiceTypes[0] ?? ""
+                  }
+                  disabled
+                  className="form-select input-focus-ring disabled:opacity-90 disabled:cursor-not-allowed disabled:bg-surface"
                 >
-                  {[...new Set(servicePricings.filter((p) => p.warehouseId === warehouseId).map((p) => p.serviceType))].map((type) => (
-                    <option key={type} value={type}>{type}</option>
+                  {!availableServiceTypes.length ? (
+                    <option value="">Chưa có bảng giá phù hợp</option>
+                  ) : null}
+                  {availableServiceTypes.map((type) => (
+                    <option key={type} value={type}>
+                      {formatServiceTypeLabel(type)}
+                    </option>
                   ))}
                 </select>
+                {!availableServiceTypes.length ? (
+                  <p className="text-xs text-muted">
+                    Bảng giá BE chưa có tuyến khớp đơn này — liên hệ Admin cấu hình service-pricings.
+                  </p>
+                ) : null}
               </div>
               <div className="space-y-2">
                 <FieldLabel htmlFor="weightKg" required>Khối lượng (kg)</FieldLabel>
-                <input id="weightKg" type="number" min="0.01" step="0.01" value={weightKg} onChange={(e) => { setWeightKg(e.target.value); resetSubmitState(); }} className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring" />
+                <input
+                  id="weightKg"
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  value={weightKg}
+                  readOnly
+                  className={LOCKED_FIELD_CLASS}
+                />
               </div>
               <div className="space-y-2">
-                <FieldLabel htmlFor="volumeM3" required>Thể tích (m³)</FieldLabel>
-                <input id="volumeM3" type="number" min="0.001" step="0.001" value={volumeM3} onChange={(e) => { setVolumeM3(e.target.value); resetSubmitState(); }} className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring" />
+                <FieldLabel htmlFor="volumeCm3" required>Thể tích (cm³)</FieldLabel>
+                <input
+                  id="volumeCm3"
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={volumeCm3}
+                  readOnly
+                  className={LOCKED_FIELD_CLASS}
+                />
               </div>
               <div className="space-y-2">
                 <FieldLabel htmlFor="packageCount" required>Số kiện</FieldLabel>
-                <input id="packageCount" type="number" min="1" value={packageCount} onChange={(e) => { setPackageCount(e.target.value); resetSubmitState(); }} className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring" />
+                <input
+                  id="packageCount"
+                  type="number"
+                  min="1"
+                  value={packageCount}
+                  readOnly
+                  className={LOCKED_FIELD_CLASS}
+                />
               </div>
               <div className="space-y-2">
                 <FieldLabel htmlFor="declaredValue">Giá trị khai báo (VND)</FieldLabel>
-                <input id="declaredValue" type="number" min="0" step="0.01" value={declaredValue} onChange={(e) => { setDeclaredValue(e.target.value); resetSubmitState(); }} className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring" />
+                <VndMoneyInput
+                  id="declaredValue"
+                  value={declaredValue}
+                  disabled
+                  className={LOCKED_FIELD_CLASS}
+                />
               </div>
             </div>
 
@@ -549,22 +779,56 @@ export default function ConsignmentQuotationPanel({ id, backHref }) {
                   <p className="font-semibold text-ink">{selectedServicePricing.originCountry} → {selectedServicePricing.destinationCountry}</p>
                 </div>
                 <div>
-                  <p className="text-muted">Trọng lượng tính cước</p>
-                  <p className="font-semibold text-ink">{chargeableWeight} kg (quy đổi {volumetricWeight} kg)</p>
+                  <p className="text-muted">Cân thực → DIM → Tính phí</p>
+                  <p className="font-semibold text-ink leading-snug">
+                    {Number(weightKg) > 0 ? `${weightKg} kg` : "—"} thực
+                    {volumetricWeight > 0 ? (
+                      <>
+                        {" · "}
+                        <span className="text-muted font-normal">
+                          DIM {volumetricWeight} kg
+                        </span>
+                      </>
+                    ) : null}
+                    {chargeableWeight > 0 ? (
+                      <>
+                        {" → "}
+                        <span className="text-primary">{chargeableWeight} kg</span> tính phí
+                      </>
+                    ) : null}
+                  </p>
+                  {pricingBreakdown.volumeCm3 != null && volumetricWeight > 0 ? (
+                    <p className="text-xs text-muted mt-1">
+                      DIM = {formatVolumeCm3(pricingBreakdown.volumeCm3)} ÷ 5.000
+                    </p>
+                  ) : null}
                 </div>
                 <div>
                   <p className="text-muted">Đơn vị tính</p>
-                  <p className="font-semibold text-ink">{selectedServicePricing.unitType}</p>
+                  <p className="font-semibold text-ink">
+                    {UNIT_TYPE_LABELS[selectedServicePricing.unitType] ??
+                      selectedServicePricing.unitType}
+                  </p>
                 </div>
               </div>
             ) : (
               <p className="text-sm text-danger">Chưa có giá dịch vụ chính cho kho/dịch vụ đã chọn.</p>
             )}
 
+            {pricingBreakdown.show ? <PricingFormulaBreakdown breakdown={pricingBreakdown} /> : null}
+
             <div className="space-y-2">
               <FieldLabel htmlFor="mainServiceAmount" required>Thành tiền dịch vụ chính (VND)</FieldLabel>
-              <input id="mainServiceAmount" type="number" min="0" step="0.01" value={mainServiceAmount} onChange={(e) => { setMainServiceAmount(e.target.value); resetSubmitState(); }} className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring" />
-              <p className="text-xs text-muted">Tự tính từ bảng giá dịch vụ chính. Sales có thể chỉnh trước khi gửi.</p>
+              <VndMoneyInput
+                id="mainServiceAmount"
+                value={mainServiceAmount}
+                required
+                disabled
+                className={LOCKED_FIELD_CLASS}
+              />
+              <p className="text-xs text-muted">
+                Tự tính từ bảng giá và công thức trên — không chỉnh thủ công.
+              </p>
             </div>
           </section>
 
@@ -577,8 +841,8 @@ export default function ConsignmentQuotationPanel({ id, backHref }) {
             </div>
             {!additionalFeeLines.length ? (
               <p className="text-sm text-muted">
-                Hệ thống chưa trả danh sách phụ phí cho yêu cầu này. Thử điền đủ khối lượng, thể tích
-                và giá trị khai báo, hoặc liên hệ Admin nếu cần cấu hình phí bổ sung trên BE.
+                Chưa có phụ phí để hiển thị. Kiểm tra cấu hình tại Admin → Phí dịch vụ bổ sung
+                (`/api/pricing-rules` trên BE).
               </p>
             ) : (
             <div className="overflow-x-auto rounded-lg border border-border-muted">
@@ -632,7 +896,12 @@ export default function ConsignmentQuotationPanel({ id, backHref }) {
             </dl>
             <div className="space-y-2">
               <FieldLabel htmlFor="salesNote" required>Ghi chú tư vấn</FieldLabel>
-              <textarea id="salesNote" rows={3} value={salesNote} onChange={(e) => { setSalesNote(e.target.value); resetSubmitState(); }} className="w-full px-4 py-3 rounded-lg border border-border-muted text-sm input-focus-ring resize-y min-h-[88px]" />
+              {detail?.notes && detail.notes !== salesNote ? (
+                <p className="text-xs text-muted">
+                  Ghi chú từ đơn hàng: <span className="text-ink">{detail.notes}</span>
+                </p>
+              ) : null}
+              <textarea id="salesNote" rows={3} value={salesNote} onChange={(e) => { setSalesNote(e.target.value); resetSubmitState(); }} placeholder="Nội dung gửi kèm báo giá cho khách..." className="w-full px-4 py-3 rounded-lg border border-border-muted text-sm input-focus-ring resize-y min-h-[88px]" />
             </div>
           </section>
 

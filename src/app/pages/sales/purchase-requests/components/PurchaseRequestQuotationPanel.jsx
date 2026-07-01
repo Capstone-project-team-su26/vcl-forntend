@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import * as purchaseRequestService from "@/utils/purchaseRequestService";
 import { getErrorMessage } from "@/utils/apiError";
 import { ROUTES } from "@/utils/appRoutes";
+import VndMoneyInput from "@/app/components/VndMoneyInput";
 
 const {
   PURCHASE_REQUEST_STATUS_LABELS,
@@ -291,15 +292,12 @@ export default function PurchaseRequestQuotationPanel({
                       </td>
                       <td className="px-6 py-4">{product.quantity}</td>
                       <td className="px-6 py-4">
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
+                        <VndMoneyInput
                           required
                           disabled={!canCreate || isSubmitting || detail.status === "QUOTED"}
                           value={itemPrices[product.id] ?? ""}
-                          onChange={(event) => updateItemPrice(product.id, event.target.value)}
-                          placeholder="0.00"
+                          onChange={(value) => updateItemPrice(product.id, value)}
+                          placeholder="0"
                           className="w-28 h-10 px-3 rounded-lg border border-border-muted text-sm input-focus-ring disabled:opacity-60"
                         />
                       </td>
@@ -319,41 +317,33 @@ export default function PurchaseRequestQuotationPanel({
             <label htmlFor="purchaseServiceFee" className="text-sm font-semibold text-ink">
               Phí mua hộ (VND)
             </label>
-            <input
+            <VndMoneyInput
               id="purchaseServiceFee"
-              type="number"
-              min="0"
-              step="0.01"
+              value={purchaseServiceFee}
               required
               disabled={!canCreate || isSubmitting || detail.status === "QUOTED"}
-              value={purchaseServiceFee}
-              onChange={(event) => {
-                setPurchaseServiceFee(event.target.value);
+              onChange={(value) => {
+                setPurchaseServiceFee(value);
                 setSubmitError("");
                 setSuccessMessage("");
               }}
-              placeholder="VD: 15"
-              className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring disabled:opacity-60"
+              placeholder="VD: 150.000"
             />
           </div>
           <div className="space-y-2">
             <label htmlFor="estimatedShippingFee" className="text-sm font-semibold text-ink">
               Phí vận chuyển dự kiến (VND)
             </label>
-            <input
+            <VndMoneyInput
               id="estimatedShippingFee"
-              type="number"
-              min="0"
-              step="0.01"
-              disabled={!canCreate || isSubmitting || detail.status === "QUOTED"}
               value={estimatedShippingFee}
-              onChange={(event) => {
-                setEstimatedShippingFee(event.target.value);
+              disabled={!canCreate || isSubmitting || detail.status === "QUOTED"}
+              onChange={(value) => {
+                setEstimatedShippingFee(value);
                 setSubmitError("");
                 setSuccessMessage("");
               }}
               placeholder="Tùy chọn"
-              className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring disabled:opacity-60"
             />
           </div>
         </section>

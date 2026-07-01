@@ -7,6 +7,7 @@ import * as orderConsignmentService from "@/utils/orderConsignmentService";
 import * as consignmentQuotationService from "@/utils/consignmentQuotationService";
 import { getErrorMessage } from "@/utils/apiError";
 import { ROUTES } from "@/utils/appRoutes";
+import { formatVolumeCm3, volumeM3ToCm3, formatItemDimensions, formatItemDimFormula } from "@/utils/servicePricingService";
 
 const {
   CONSIGNMENT_TYPE_LABELS,
@@ -18,6 +19,7 @@ const {
   formatConsignmentDate,
   formatConsignmentDisplayCode,
   formatConsignmentPageTitle,
+  isImageReferenceUrl,
 } = orderConsignmentService;
 
 const {
@@ -47,6 +49,157 @@ function DetailRow({ label, value }) {
     <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4 py-3 border-b border-gray-50 last:border-0">
       <dt className="text-sm font-bold text-muted sm:w-44 shrink-0">{label}</dt>
       <dd className="text-sm font-medium text-ink">{value}</dd>
+    </div>
+  );
+}
+
+function ProductColumnHeader({ title, hint, className = "" }) {
+  return (
+    <th className={`px-4 py-3 text-[11px] font-bold uppercase tracking-wide text-muted ${className}`}>
+      <span className="block">{title}</span>
+      {hint ? (
+        <span className="block mt-0.5 font-normal normal-case text-[10px] text-muted/80">{hint}</span>
+      ) : null}
+    </th>
+  );
+}
+
+function formatItemWeightDisplay(weight, quantity) {
+  const total = Number(weight);
+  const qty = Math.max(Number(quantity) || 1, 1);
+  if (weight == null || Number.isNaN(total)) return null;
+
+  const formatKg = (value) =>
+    value.toLocaleString("vi-VN", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+
+  return {
+    totalLabel: `${formatKg(total)} kg`,
+    perUnitLabel: qty > 1 ? `${formatKg(total / qty)} kg/kiện` : null,
+  };
+}
+
+function ConsignmentProductsTable({ items }) {
+  if (!items?.length) return null;
+
+  return (
+    <div className="bg-white rounded-xl shadow-[0px_2px_4px_0px_#00000012] p-6 border border-surface-muted/50 space-y-4">
+      <div>
+        <div className="flex items-center gap-2">
+          <Icon icon="lucide:package" className="w-5 h-5 text-accent" />
+          <h3 className="text-lg font-extrabold font-['Oswald'] text-ink">Danh sách sản phẩm</h3>
+        </div>
+        <p className="text-sm text-muted mt-1">
+          Có {items.length} dòng sản phẩm trong lô hàng. Trọng lượng là <strong className="text-ink">tổng dòng</strong>;
+          kích thước và DIM tính theo <strong className="text-ink">từng kiện</strong>.
+        </p>
+      </div>
+
+      <div className="overflow-x-auto rounded-xl border border-surface-muted/60">
+        <table className="w-full min-w-[880px] text-left text-sm">
+          <thead>
+            <tr className="border-b border-surface-muted/80 bg-surface/80">
+              <ProductColumnHeader title="STT" />
+              <ProductColumnHeader title="Hình ảnh" />
+              <ProductColumnHeader title="Sản phẩm" />
+              <ProductColumnHeader title="Số lượng" hint="(kiện)" className="text-center" />
+              <ProductColumnHeader title="TL thực" hint="(tổng dòng)" />
+              <ProductColumnHeader title="Kích thước" hint="(mỗi kiện)" />
+              <ProductColumnHeader title="DIM" hint="(mỗi kiện)" />
+              <ProductColumnHeader title="Giá trị khai báo" hint="(tổng dòng)" />
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((item, index) => {
+              const thumbUrl =
+                item.imageUrls?.[0] ?? (isImageReferenceUrl(item.referenceUrl) ? item.referenceUrl : null);
+              const dimensions = formatItemDimensions(item.length, item.width, item.height);
+              const dimFormula = formatItemDimFormula(item.length, item.width, item.height);
+              const weightDisplay = formatItemWeightDisplay(item.weight, item.quantity);
+              const productLink =
+                item.referenceUrl && !isImageReferenceUrl(item.referenceUrl) ? item.referenceUrl : null;
+
+              return (
+                <tr
+                  key={item.id ?? `${item.productName}-${index}`}
+                  className="border-b border-surface-muted/50 last:border-0 align-middle"
+                >
+                  <td className="px-4 py-4 text-muted font-semibold">{index + 1}</td>
+                  <td className="px-4 py-4">
+                    {thumbUrl ? (
+                      <a
+                        href={thumbUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block w-12 h-12 rounded-lg overflow-hidden border border-surface-muted bg-surface"
+                      >
+                        <img
+                          src={thumbUrl}
+                          alt={item.productName || "Ảnh sản phẩm"}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                      </a>
+                    ) : (
+                      <div className="w-12 h-12 rounded-lg border border-dashed border-surface-muted bg-surface flex items-center justify-center">
+                        <Icon icon="lucide:image-off" className="w-5 h-5 text-muted" />
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-4 py-4">
+                    <p className="font-semibold text-ink">{item.productName || "—"}</p>
+                    {item.productType ? (
+                      <span className="inline-block mt-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-surface text-muted border border-surface-muted">
+                        {item.productType}
+                      </span>
+                    ) : null}
+                    {productLink ? (
+                      <a
+                        href={productLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 mt-1.5 text-xs font-semibold text-primary hover:underline"
+                      >
+                        <Icon icon="lucide:external-link" className="w-3.5 h-3.5" />
+                        Link tham chiếu
+                      </a>
+                    ) : null}
+                  </td>
+                  <td className="px-4 py-4 text-center font-semibold text-ink">
+                    {item.quantity ?? "—"}
+                  </td>
+                  <td className="px-4 py-4">
+                    {weightDisplay ? (
+                      <div>
+                        <p className="font-semibold text-ink whitespace-nowrap">{weightDisplay.totalLabel}</p>
+                        {weightDisplay.perUnitLabel ? (
+                          <p className="text-[11px] text-muted mt-0.5 whitespace-nowrap">
+                            ≈ {weightDisplay.perUnitLabel}
+                          </p>
+                        ) : null}
+                      </div>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td className="px-4 py-4 text-ink whitespace-nowrap">{dimensions ?? "—"}</td>
+                  <td className="px-4 py-4 text-ink">
+                    {dimFormula ? (
+                      <span className="font-mono text-[13px] leading-snug">{dimFormula}</span>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td className="px-4 py-4 text-ink whitespace-nowrap">
+                    {item.declaredValue != null
+                      ? `${Number(item.declaredValue).toLocaleString("vi-VN")} đ`
+                      : "—"}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
@@ -334,6 +487,10 @@ export default function ConsignmentDetailPanel({ id, backHref = ROUTES.sales.con
             </div>
           ) : null}
 
+          {detail.items?.length ? (
+            <ConsignmentProductsTable items={detail.items} />
+          ) : null}
+
           <div className="bg-white rounded-xl shadow-[0px_2px_4px_0px_#00000012] p-6 border border-surface-muted/50">
             <h3 className="text-lg font-extrabold font-['Oswald'] mb-2">Thông tin yêu cầu</h3>
             <dl>
@@ -353,23 +510,15 @@ export default function ConsignmentDetailPanel({ id, backHref = ROUTES.sales.con
                 <DetailRow label="Tổng khối lượng" value={`${detail.totalWeight} kg`} />
               ) : null}
               {detail.totalVolume != null ? (
-                <DetailRow label="Tổng thể tích" value={`${detail.totalVolume} m³`} />
+                <DetailRow
+                  label="Tổng thể tích"
+                  value={formatVolumeCm3(volumeM3ToCm3(detail.totalVolume))}
+                />
               ) : null}
               {detail.packageCount != null ? (
                 <DetailRow label="Số kiện" value={String(detail.packageCount)} />
               ) : null}
-              {detail.items?.length ? (
-                <DetailRow
-                  label="Sản phẩm"
-                  value={detail.items
-                    .map((entry) =>
-                      entry.quantity != null
-                        ? `${entry.productName} (×${entry.quantity})`
-                        : entry.productName
-                    )
-                    .join(", ")}
-                />
-              ) : detail.productName ? (
+              {!detail.items?.length && detail.productName ? (
                 <DetailRow label="Sản phẩm" value={detail.productName} />
               ) : null}
               {detail.quantity != null && !detail.items?.length ? (
@@ -390,7 +539,7 @@ export default function ConsignmentDetailPanel({ id, backHref = ROUTES.sales.con
               {detail.destination ? (
                 <DetailRow label="Điểm đến" value={detail.destination} />
               ) : null}
-              {detail.notes ? <DetailRow label="Ghi chú" value={detail.notes} /> : null}
+              {detail.notes ? <DetailRow label="Ghi chú đơn hàng" value={detail.notes} /> : null}
               {trackingCode ? <DetailRow label="Mã gửi hàng" value={trackingCode} /> : null}
               {detail.rejectionReason ? (
                 <DetailRow label="Lý do từ chối" value={detail.rejectionReason} />

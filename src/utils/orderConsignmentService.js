@@ -8,6 +8,7 @@ import {
   normalizeConsignmentStatusUpdate,
   normalizeStaffConsignmentCreateResponse,
   normalizeValidateItemsResponse,
+  isImageReferenceUrl,
   toApiCreateQuotationRequest,
   toApiStaffConsignmentPayload,
   toApiValidateItemsPayload,
@@ -155,7 +156,7 @@ async function getStaffConsignmentMock(id) {
   if (!item) {
     throw new ApiError(404, { message: "Không tìm thấy yêu cầu ký gửi." });
   }
-  return { ...item };
+  return normalizeConsignmentDetail(item);
 }
 
 function generateMockTrackingCode() {
@@ -622,6 +623,37 @@ export function formatConsignmentDate(isoDate) {
     year: "numeric",
   });
 }
+
+/** Danh sách ảnh hàng hóa từ chi tiết đơn (items.referenceUrl / images). */
+export function getConsignmentImageEntries(detail) {
+  const entries = [];
+  const seen = new Set();
+
+  function add(url, productName) {
+    const trimmed = url?.trim();
+    if (!trimmed || !isImageReferenceUrl(trimmed) || seen.has(trimmed)) return;
+    seen.add(trimmed);
+    entries.push({ url: trimmed, productName: productName || null });
+  }
+
+  for (const item of detail?.items ?? []) {
+    if (item.imageUrls?.length) {
+      for (const url of item.imageUrls) {
+        add(url, item.productName);
+      }
+    } else {
+      add(item.referenceUrl, item.productName);
+    }
+  }
+
+  for (const url of detail?.images ?? []) {
+    add(url, null);
+  }
+
+  return entries;
+}
+
+export { isImageReferenceUrl };
 
 function isUuid(value) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(value ?? ""));

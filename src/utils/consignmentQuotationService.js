@@ -47,17 +47,60 @@ export function getConsignmentQuotationHeading(quotation) {
   return isDraftConsignmentQuotation(quotation) ? "Báo giá tạm tính" : "Báo giá đã gửi";
 }
 
+function isInspectionFee(fee) {
+  const code = String(fee?.code ?? "").toUpperCase();
+  const ruleType = String(fee?.ruleType ?? "").toUpperCase();
+  const ruleCode = String(fee?.ruleCode ?? "").toUpperCase();
+  return (
+    code === "INSPECTION" || ruleType === "INSPECTION" || ruleCode.includes("INSPECTION")
+  );
+}
+
+function isPerPackageFee(fee) {
+  const billingBasis = String(fee?.unit || fee?.conditionType || "").toLowerCase();
+  return (
+    billingBasis.includes("kiện") ||
+    billingBasis.includes("package") ||
+    billingBasis === "per_package"
+  );
+}
+
+function shouldDefaultEnableFee(
+  fee,
+  { requiresInspection = false, declaredValue = 0 } = {}
+) {
+  if (fee.isRequired === true) return true;
+  if (isInspectionFee(fee)) return requiresInspection;
+
+  const ruleType = String(fee.ruleType ?? fee.code ?? "").toUpperCase();
+  if (ruleType === "INSURANCE" || ruleType.includes("INSURANCE")) {
+    const minDeclared = Number(fee.conditionValue);
+    if (fee.conditionType === "MIN_DECLARED_VALUE" && minDeclared > 0) {
+      return (Number(declaredValue) || 0) >= minDeclared;
+    }
+  }
+
+  return false;
+}
+
 export function calculateAdditionalFeeAmount(
   fee,
   { packageCount = 1, declaredValue = 0, mainServiceAmount = 0 } = {}
 ) {
   if (fee.feeCalculationType === "PERCENTAGE") {
     const base = declaredValue > 0 ? declaredValue : mainServiceAmount;
-    return roundMoney(base * ((Number(fee.percentageRate) || 0) / 100));
+    let amount = roundMoney(base * ((Number(fee.percentageRate) || 0) / 100));
+    if (fee.minAmount != null) {
+      amount = Math.max(amount, roundMoney(fee.minAmount));
+    }
+    if (fee.maxAmount != null) {
+      amount = Math.min(amount, roundMoney(fee.maxAmount));
+    }
+    return amount;
   }
 
   const fixed = Number(fee.fixedAmount) || 0;
-  if (String(fee.unit || "").toLowerCase().includes("kiện")) {
+  if (isPerPackageFee(fee)) {
     return roundMoney(fixed * (Number(packageCount) || 1));
   }
   return roundMoney(fixed);
@@ -93,9 +136,12 @@ export function buildDefaultAdditionalFeeLines({
   declaredValue,
   mainServiceAmount,
   enabledFeeIds,
+  requiresInspection = false,
 }) {
   return fees.map((fee) => {
-    const enabled = enabledFeeIds ? enabledFeeIds[fee.id] !== false : fee.code === "INSPECTION";
+    const enabled = enabledFeeIds
+      ? enabledFeeIds[fee.id] !== false
+      : shouldDefaultEnableFee(fee, { requiresInspection, declaredValue });
     const amount = enabled
       ? calculateAdditionalFeeAmount(fee, { packageCount, declaredValue, mainServiceAmount })
       : 0;
@@ -107,7 +153,8 @@ export function buildDefaultAdditionalFeeLines({
       description: fee.description || fee.unit || "Phụ phí",
       amount,
       enabled,
-      isRequired: fee.isRequired === true || fee.code === "INSPECTION",
+      isRequired:
+        fee.isRequired === true || (isInspectionFee(fee) && requiresInspection),
     };
   });
 }
@@ -288,7 +335,9 @@ export function buildAdditionalFeeLinesFromQuotation(
       amount: Number(fee.amount) || 0,
       baseAmount: Number(fee.amount) || 0,
       enabled: fee.enabled !== false,
-      isRequired: fee.code === "INSPECTION" && requiresInspection,
+      isRequired:
+        fee.isRequired === true ||
+        (isInspectionFee({ code: fee.code }) && requiresInspection),
     }));
   }
 
@@ -317,27 +366,38 @@ export function resolveQuotationAdditionalFees({
   packageCount,
   declaredValue,
   mainServiceAmount,
-  useMockCatalog = false,
 }) {
-  const quotationSource = estimate?.quotation ?? consignment?.quotation;
-  const apiLines = buildAdditionalFeeLinesFromQuotation(quotationSource, {
-    requiresInspection: consignment?.requiresInspection,
-  });
+  const requiresInspection = consignment?.requiresInspection === true;
+  const quotationSource = estimate?.quotation ?? estimate ?? consignment?.quotation;
+  const itemizedFees = quotationSource?.additionalFees;
 
-  if (apiLines.length) {
-    return { lines: apiLines, fromApi: true };
+  if (Array.isArray(itemizedFees) && itemizedFees.length) {
+    return {
+      lines: buildAdditionalFeeLinesFromQuotation(quotationSource, {
+        requiresInspection,
+      }),
+      fromApi: true,
+    };
   }
 
-  if (useMockCatalog && catalogFees.length) {
+  if (catalogFees.length) {
     return {
       lines: buildDefaultAdditionalFeeLines({
         fees: catalogFees,
         packageCount,
         declaredValue,
         mainServiceAmount,
+        requiresInspection,
       }),
       fromApi: false,
     };
+  }
+
+  const aggregatedLines = buildAdditionalFeeLinesFromQuotation(quotationSource, {
+    requiresInspection,
+  });
+  if (aggregatedLines.length) {
+    return { lines: aggregatedLines, fromApi: true };
   }
 
   return { lines: [], fromApi: false };
@@ -356,13 +416,30 @@ export async function estimateConsignmentQuotation(orderId, params = {}) {
   return normalizeEstimateQuotationResponse(raw);
 }
 
+export function resolveInitialSalesNote(consignment) {
+  return (
+    consignment?.quotation?.salesNote?.trim() ||
+    consignment?.notes?.trim() ||
+    ""
+  );
+}
+
 export function getQuotationDisplayLines(quotation) {
   if (!quotation) return [];
 
+  const additionalFees = quotation.additionalFees ?? [];
+  const enabledFees = additionalFees.filter((fee) => fee.enabled !== false);
+  const additionalTotal = enabledFees.reduce(
+    (sum, fee) => sum + (Number(fee.amount) || 0),
+    0
+  );
+  const serviceFee = Number(quotation.serviceFee) || 0;
+
   if (
     quotation.estimatedFreightCharge != null ||
-    quotation.serviceFee != null ||
-    quotation.taxAndDuty != null
+    serviceFee > 0 ||
+    additionalTotal > 0 ||
+    (quotation.taxAndDuty != null && Number(quotation.taxAndDuty) !== 0)
   ) {
     const lines = [];
 
@@ -373,11 +450,18 @@ export function getQuotationDisplayLines(quotation) {
       });
     }
 
-    if (quotation.serviceFee != null) {
+    if (serviceFee > 0) {
       lines.push({
         label: "Phí dịch vụ",
-        amount: quotation.serviceFee,
+        amount: serviceFee,
       });
+    } else if (enabledFees.length) {
+      for (const fee of enabledFees) {
+        lines.push({
+          label: fee.label || fee.name || fee.code || "Phụ phí",
+          amount: fee.amount,
+        });
+      }
     }
 
     if (quotation.taxAndDuty != null && Number(quotation.taxAndDuty) !== 0) {

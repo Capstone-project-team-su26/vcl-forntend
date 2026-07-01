@@ -8,6 +8,7 @@ import * as orderConsignmentService from "@/utils/orderConsignmentService";
 import * as pricingService from "@/utils/internationalWarehousePricingService";
 import { getErrorMessage } from "@/utils/apiError";
 import { ROUTES } from "@/utils/appRoutes";
+import { volumeCm3ToM3 } from "@/utils/servicePricingService";
 
 const { ITEM_VALIDATION_LABELS, ITEM_VALIDATION_STYLES } = orderConsignmentService;
 const { FEE_CODES, buildDefaultQuotationLines, calculateQuotationTotal, formatMoney } =
@@ -101,7 +102,7 @@ export default function ConsignmentQuotationWizard({ preselectedCustomerId }) {
   const [productType, setProductType] = useState("");
   const [warehouseId, setWarehouseId] = useState("");
   const [weightKg, setWeightKg] = useState("");
-  const [volumeM3, setVolumeM3] = useState("");
+  const [volumeCm3, setVolumeCm3] = useState("");
   const [packageCount, setPackageCount] = useState("");
   const [declaredValue, setDeclaredValue] = useState("");
 
@@ -128,6 +129,11 @@ export default function ConsignmentQuotationWizard({ preselectedCustomerId }) {
   const hasBannedItem = validation?.hasBanned === true;
   const validationWarnings =
     validation?.items?.filter((entry) => entry.restrictionType) ?? [];
+
+  const volumeM3 = useMemo(
+    () => (volumeCm3 === "" ? "" : volumeCm3ToM3(volumeCm3)),
+    [volumeCm3]
+  );
 
   const totals = useMemo(
     () =>
@@ -375,7 +381,7 @@ export default function ConsignmentQuotationWizard({ preselectedCustomerId }) {
     if (!productName.trim()) return "Vui lòng nhập tên hàng hóa.";
     if (!warehouseId) return "Vui lòng chọn kho quốc tế.";
     if (!weightKg || Number(weightKg) <= 0) return "Vui lòng nhập khối lượng (kg).";
-    if (!volumeM3 || Number(volumeM3) <= 0) return "Vui lòng nhập thể tích (m³).";
+    if (!volumeCm3 || Number(volumeCm3) <= 0) return "Vui lòng nhập thể tích (cm³).";
     if (!packageCount || Number(packageCount) < 1) return "Vui lòng nhập số kiện.";
     if (hasBannedItem) return "Không thể tiếp tục vì hàng thuộc danh mục cấm tuyệt đối.";
     return "";
@@ -423,7 +429,7 @@ export default function ConsignmentQuotationWizard({ preselectedCustomerId }) {
         warehouseId,
         warehouseCode: selectedWarehouse?.code,
         weightKg: Number(weightKg),
-        volumeM3: Number(volumeM3),
+        volumeM3: volumeCm3 ? volumeCm3ToM3(volumeCm3) : 0,
         packageCount: Number(packageCount),
         salesNote,
         quotation: {
@@ -675,20 +681,20 @@ export default function ConsignmentQuotationWizard({ preselectedCustomerId }) {
                 />
               </div>
               <div className="space-y-2">
-                <FieldLabel htmlFor="volumeM3" required>
-                  Thể tích (m³)
+                <FieldLabel htmlFor="volumeCm3" required>
+                  Thể tích (cm³)
                 </FieldLabel>
                 <input
-                  id="volumeM3"
+                  id="volumeCm3"
                   type="number"
-                  min="0"
-                  step="0.01"
-                  value={volumeM3}
+                  min="1"
+                  step="1"
+                  value={volumeCm3}
                   onChange={(event) => {
-                    setVolumeM3(event.target.value);
+                    setVolumeCm3(event.target.value);
                     resetSuccessState();
                   }}
-                  placeholder="0.9"
+                  placeholder="900000"
                   className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
                 />
               </div>
@@ -750,7 +756,7 @@ export default function ConsignmentQuotationWizard({ preselectedCustomerId }) {
               <div>
                 <p className="text-muted">Khối lượng</p>
                 <p className="font-semibold text-ink">
-                  {weightKg} kg · {volumeM3} m³ · {packageCount} kiện
+                  {weightKg} kg · {volumeCm3} cm³ · {packageCount} kiện
                 </p>
               </div>
             </div>

@@ -67,6 +67,11 @@ export function normalizeConsignmentListResponse(raw, { page = 1, pageSize = 10 
 export function normalizeConsignmentQuotationFromApi(quotation) {
   if (!quotation) return null;
 
+  const salesNote =
+    quotation.salesNote?.trim() ||
+    quotation.quotationNote?.trim() ||
+    null;
+
   return {
     id: quotation.quotationId ?? quotation.id,
     quotationId: quotation.quotationId ?? quotation.id,
@@ -82,7 +87,7 @@ export function normalizeConsignmentQuotationFromApi(quotation) {
     mainServiceAmount: quotation.mainServiceAmount ?? quotation.estimatedFreightCharge ?? null,
     additionalFees: quotation.additionalFees ?? null,
     discountPercent: quotation.discountPercent ?? null,
-    salesNote: quotation.salesNote ?? null,
+    salesNote,
     createdAt: quotation.createdAt ?? null,
     expiredAt: quotation.expiredAt ?? null,
     sentAt: quotation.sentAt ?? null,
@@ -90,6 +95,54 @@ export function normalizeConsignmentQuotationFromApi(quotation) {
     currency: "VND",
     lines: quotation.lines ?? null,
     customFees: quotation.customFees ?? null,
+  };
+}
+
+/** URL ảnh upload (Cloudinary) hoặc file ảnh trực tiếp — khác link sản phẩm (Taobao, 1688…). */
+export function isImageReferenceUrl(url) {
+  if (!url || typeof url !== "string") return false;
+  const trimmed = url.trim();
+  if (!trimmed) return false;
+
+  try {
+    const parsed = new URL(trimmed);
+    const host = parsed.hostname.toLowerCase();
+    const path = parsed.pathname.toLowerCase();
+
+    if (host.includes("cloudinary.com") || path.includes("/image/upload")) return true;
+    if (/\.(jpe?g|png|gif|webp|avif|bmp)(\?.*)?$/i.test(path)) return true;
+    return false;
+  } catch {
+    return /\.(jpe?g|png|gif|webp|avif|bmp)(\?.*)?$/i.test(trimmed);
+  }
+}
+
+function normalizeConsignmentItem(item) {
+  if (!item) return item;
+
+  const referenceUrl = item.referenceUrl?.trim() || item.imageUrl?.trim() || null;
+  const extraImages = Array.isArray(item.images)
+    ? item.images.map((entry) => (typeof entry === "string" ? entry : entry?.url)).filter(Boolean)
+    : [];
+
+  const imageUrls = [
+    ...(isImageReferenceUrl(referenceUrl) ? [referenceUrl] : []),
+    ...extraImages.filter(isImageReferenceUrl),
+  ];
+
+  return {
+    id: item.id,
+    productName: item.productName,
+    productType: item.productType,
+    quantity: item.quantity,
+    weight: item.weight,
+    width: item.width,
+    height: item.height,
+    length: item.length,
+    declaredValue: item.declaredValue,
+    referenceUrl,
+    imageUrls,
+    domesticTrackingCode: item.domesticTrackingCode ?? null,
   };
 }
 
@@ -122,8 +175,17 @@ export function normalizeConsignmentDetail(raw) {
     notes: item.note ?? item.notes,
     trackingCode: item.consignmentCode ?? item.trackingCode,
     rejectionReason: item.rejectionReason,
-    items: item.items ?? [],
-    quotation: normalizeConsignmentQuotationFromApi(item.quotation),
+    items: (item.items ?? []).map(normalizeConsignmentItem),
+    images: Array.isArray(item.images)
+      ? item.images.filter((url) => isImageReferenceUrl(url))
+      : [],
+    quotation: (() => {
+      const quotation = normalizeConsignmentQuotationFromApi(item.quotation);
+      if (quotation && !quotation.salesNote && item.note?.trim()) {
+        quotation.salesNote = item.note.trim();
+      }
+      return quotation;
+    })(),
     customer: item.customer ?? null,
     customerId: item.customer?.customerId ?? item.customerId ?? null,
     warehouseId: item.warehouseId ?? null,
@@ -272,18 +334,32 @@ export function toApiRestrictedItemPayload(payload) {
   };
 }
 
+function normalizeServicePricingUnitType(raw) {
+  const upper = String(raw ?? "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "_");
+  if (!upper) return null;
+  if (upper === "KG" || upper === "KILOGRAM") return "KG";
+  if (upper === "CBM" || upper === "M3" || upper === "M³") return "CBM";
+  if (upper.includes("KG") && upper.includes("CBM")) return "KG_OR_CBM";
+  return upper;
+}
+
 export function normalizeServicePricingFromApi(item) {
+  const serviceType = item.serviceType ?? item.service_type;
+
   return {
     id: item.id,
     carrierId: item.carrierId ?? item.carrier_id ?? "VCL",
     carrierName: item.carrierName ?? item.carrier_name ?? null,
-    serviceType: item.serviceType ?? item.service_type,
+    serviceType: serviceType ? String(serviceType).toUpperCase() : null,
     originCountry: item.originCountry ?? item.origin_country,
     destinationCountry: item.destinationCountry ?? item.destination_country,
     warehouseId: item.warehouseId ?? item.warehouse_id ?? null,
-    unitType: item.unitType ?? item.unit_type,
+    unitType: normalizeServicePricingUnitType(item.unitType ?? item.unit_type),
     price: item.price ?? null,
-    pricePerKg: item.pricePerKg ?? item.price_per_kg ?? null,
+    pricePerKg: item.pricePerKg ?? item.price_per_kg ?? item.price ?? null,
     pricePerCbm: item.pricePerCbm ?? item.price_per_cbm ?? null,
     currency: item.currency ?? "VND",
     effectiveDate: item.effectiveDate ?? item.effective_date ?? null,

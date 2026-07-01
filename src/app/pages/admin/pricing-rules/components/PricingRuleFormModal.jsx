@@ -4,6 +4,7 @@ import { Icon } from "@iconify/react";
 import { useEffect, useState } from "react";
 import * as servicePricingService from "@/utils/servicePricingService";
 import { getErrorMessage } from "@/utils/apiError";
+import VndMoneyInput from "@/app/components/VndMoneyInput";
 
 const {
   SERVICE_TYPE_LABELS,
@@ -25,9 +26,23 @@ export default function ServicePricingFormModal({ open, mode, item, warehouses, 
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [unitType, setUnitType] = useState(item?.unitType ?? "KG");
+  const [price, setPrice] = useState("");
+  const [pricePerKg, setPricePerKg] = useState("");
+  const [pricePerCbm, setPricePerCbm] = useState("");
 
   useEffect(() => {
-    if (open) setUnitType(item?.unitType ?? "KG");
+    if (open) {
+      setUnitType(item?.unitType ?? "KG");
+      setPrice(item?.price != null ? String(item.price) : "");
+      setPricePerKg(
+        item?.pricePerKg != null
+          ? String(item.pricePerKg)
+          : item?.price != null
+            ? String(item.price)
+            : ""
+      );
+      setPricePerCbm(item?.pricePerCbm != null ? String(item.pricePerCbm) : "");
+    }
   }, [open, item]);
 
   if (!open) return null;
@@ -49,9 +64,9 @@ export default function ServicePricingFormModal({ open, mode, item, warehouses, 
       destinationCountry: form.destinationCountry.value,
       warehouseId: form.warehouseId.value || null,
       unitType: form.unitType.value,
-      price: showSinglePrice ? form.price.value : null,
-      pricePerKg: showKg ? form.pricePerKg.value : null,
-      pricePerCbm: showCbm ? form.pricePerCbm.value : null,
+      price: showSinglePrice ? price : null,
+      pricePerKg: showKg ? pricePerKg : null,
+      pricePerCbm: showCbm ? pricePerCbm : null,
       currency: form.currency.value,
       effectiveDate: form.effectiveDate.value
         ? new Date(form.effectiveDate.value).toISOString()
@@ -222,15 +237,11 @@ export default function ServicePricingFormModal({ open, mode, item, warehouses, 
                 <label htmlFor="price" className="text-sm font-semibold text-ink">
                   Đơn giá <span className="text-danger">*</span>
                 </label>
-                <input
+                <VndMoneyInput
                   id="price"
-                  name="price"
-                  type="number"
-                  min="0"
-                  step="0.01"
+                  value={price}
+                  onChange={setPrice}
                   required={showSinglePrice}
-                  defaultValue={item?.price ?? ""}
-                  className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
                 />
               </div>
             ) : null}
@@ -239,15 +250,11 @@ export default function ServicePricingFormModal({ open, mode, item, warehouses, 
                 <label htmlFor="pricePerKg" className="text-sm font-semibold text-ink">
                   Giá/kg {unitType === "KG_OR_CBM" ? <span className="text-danger">*</span> : null}
                 </label>
-                <input
+                <VndMoneyInput
                   id="pricePerKg"
-                  name="pricePerKg"
-                  type="number"
-                  min="0"
-                  step="0.01"
+                  value={pricePerKg}
+                  onChange={setPricePerKg}
                   required={unitType === "KG_OR_CBM"}
-                  defaultValue={item?.pricePerKg ?? item?.price ?? ""}
-                  className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
                 />
               </div>
             ) : null}
@@ -256,15 +263,11 @@ export default function ServicePricingFormModal({ open, mode, item, warehouses, 
                 <label htmlFor="pricePerCbm" className="text-sm font-semibold text-ink">
                   Giá/CBM {unitType === "KG_OR_CBM" ? <span className="text-danger">*</span> : null}
                 </label>
-                <input
+                <VndMoneyInput
                   id="pricePerCbm"
-                  name="pricePerCbm"
-                  type="number"
-                  min="0"
-                  step="0.01"
+                  value={pricePerCbm}
+                  onChange={setPricePerCbm}
                   required={unitType === "KG_OR_CBM"}
-                  defaultValue={item?.pricePerCbm ?? ""}
-                  className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
                 />
               </div>
             ) : null}

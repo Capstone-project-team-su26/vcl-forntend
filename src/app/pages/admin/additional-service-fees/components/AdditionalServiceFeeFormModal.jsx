@@ -4,6 +4,7 @@ import { Icon } from "@iconify/react";
 import { useEffect, useState } from "react";
 import * as feeService from "@/utils/additionalServiceFeeService";
 import { getErrorMessage } from "@/utils/apiError";
+import VndMoneyInput from "@/app/components/VndMoneyInput";
 
 const { FEE_CALCULATION_TYPE_LABELS } = feeService;
 
@@ -11,6 +12,17 @@ const calculationOptions = Object.entries(FEE_CALCULATION_TYPE_LABELS).map(([val
   value,
   label,
 }));
+
+function readFormValue(form, name) {
+  const element = form.elements.namedItem(name);
+  if (!element || "value" in element === false) return "";
+  return element.value;
+}
+
+function readFormChecked(form, name) {
+  const element = form.elements.namedItem(name);
+  return element?.checked === true;
+}
 
 export default function AdditionalServiceFeeFormModal({
   open,
@@ -22,10 +34,12 @@ export default function AdditionalServiceFeeFormModal({
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [calculationType, setCalculationType] = useState(fee?.feeCalculationType ?? "FIXED");
+  const [fixedAmount, setFixedAmount] = useState("");
 
   useEffect(() => {
     if (open) {
       setCalculationType(fee?.feeCalculationType ?? "FIXED");
+      setFixedAmount(fee?.fixedAmount != null ? String(fee.fixedAmount) : "");
       setError("");
     }
   }, [open, fee]);
@@ -37,15 +51,17 @@ export default function AdditionalServiceFeeFormModal({
     setError("");
 
     const form = event.currentTarget;
+    const feeCalculationType = readFormValue(form, "feeCalculationType") || "FIXED";
     const payload = {
-      name: form.elements.namedItem("name").value.trim(),
-      code: form.elements.namedItem("code").value.trim(),
-      feeCalculationType: form.elements.namedItem("feeCalculationType").value,
-      fixedAmount: form.elements.namedItem("fixedAmount").value,
-      percentageRate: form.elements.namedItem("percentageRate").value,
-      unit: form.elements.namedItem("unit").value.trim(),
-      description: form.elements.namedItem("description").value.trim(),
-      isActive: form.elements.namedItem("isActive").checked,
+      name: readFormValue(form, "name").trim(),
+      code: readFormValue(form, "code").trim(),
+      feeCalculationType,
+      fixedAmount: feeCalculationType === "FIXED" ? readFormValue(form, "fixedAmount") : "",
+      percentageRate:
+        feeCalculationType === "PERCENTAGE" ? readFormValue(form, "percentageRate") : "",
+      unit: readFormValue(form, "unit").trim(),
+      description: readFormValue(form, "description").trim(),
+      isActive: readFormChecked(form, "isActive"),
     };
 
     setIsSubmitting(true);
@@ -143,16 +159,12 @@ export default function AdditionalServiceFeeFormModal({
               <label htmlFor="fixedAmount" className="text-sm font-semibold text-ink">
                 Giá cố định (VND) <span className="text-danger">*</span>
               </label>
-              <input
+              <VndMoneyInput
                 id="fixedAmount"
                 name="fixedAmount"
-                type="number"
-                min="0"
-                step="0.01"
+                value={fixedAmount}
+                onChange={setFixedAmount}
                 required
-                defaultValue={fee?.fixedAmount ?? ""}
-                placeholder="VD: 12.00"
-                className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
               />
             </div>
           ) : (

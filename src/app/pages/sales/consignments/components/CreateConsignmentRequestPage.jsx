@@ -9,9 +9,10 @@ import * as orderConsignmentService from "@/utils/orderConsignmentService";
 import * as servicePricingService from "@/utils/servicePricingService";
 import { getErrorMessage } from "@/utils/apiError";
 import { ROUTES } from "@/utils/appRoutes";
+import VndMoneyInput from "@/app/components/VndMoneyInput";
 
 const { ITEM_VALIDATION_LABELS, ITEM_VALIDATION_STYLES } = orderConsignmentService;
-const { formatInternationalWarehouseLabel } = servicePricingService;
+const { formatInternationalWarehouseLabel, volumeCm3ToM3 } = servicePricingService;
 
 function FieldLabel({ htmlFor, children, required }) {
   return (
@@ -38,7 +39,7 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
   const [productType, setProductType] = useState("");
   const [warehouseId, setWarehouseId] = useState("");
   const [weightKg, setWeightKg] = useState("");
-  const [volumeM3, setVolumeM3] = useState("");
+  const [volumeCm3, setVolumeCm3] = useState("");
   const [packageCount, setPackageCount] = useState("");
   const [declaredValue, setDeclaredValue] = useState("");
   const [notes, setNotes] = useState("");
@@ -182,8 +183,8 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
       setSubmitError("Vui lòng nhập khối lượng (kg).");
       return;
     }
-    if (!volumeM3 || Number(volumeM3) <= 0) {
-      setSubmitError("Vui lòng nhập thể tích (m³).");
+    if (!volumeCm3 || Number(volumeCm3) <= 0) {
+      setSubmitError("Vui lòng nhập thể tích (cm³).");
       return;
     }
     if (!packageCount || Number(packageCount) < 1) {
@@ -200,7 +201,7 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
         warehouseId,
         warehouseCode: selectedWarehouse?.code,
         weightKg: Number(weightKg),
-        volumeM3: Number(volumeM3),
+        volumeM3: volumeCm3ToM3(volumeCm3),
         packageCount: Number(packageCount),
         salesNote: notes,
         items: [
@@ -348,14 +349,10 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
             </div>
             <div className="space-y-2">
               <FieldLabel htmlFor="declaredValue">Giá trị khai báo (VND)</FieldLabel>
-              <input
+              <VndMoneyInput
                 id="declaredValue"
-                type="number"
-                min="0"
-                step="0.01"
                 value={declaredValue}
-                onChange={(event) => setDeclaredValue(event.target.value)}
-                className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
+                onChange={setDeclaredValue}
               />
             </div>
             <div className="space-y-2 sm:col-span-2">
@@ -391,16 +388,16 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
               />
             </div>
             <div className="space-y-2">
-              <FieldLabel htmlFor="volumeM3" required>
-                Thể tích (m³)
+              <FieldLabel htmlFor="volumeCm3" required>
+                Thể tích (cm³)
               </FieldLabel>
               <input
-                id="volumeM3"
+                id="volumeCm3"
                 type="number"
-                min="0.001"
-                step="0.001"
-                value={volumeM3}
-                onChange={(event) => setVolumeM3(event.target.value)}
+                min="1"
+                step="1"
+                value={volumeCm3}
+                onChange={(event) => setVolumeCm3(event.target.value)}
                 className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
               />
             </div>
