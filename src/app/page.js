@@ -1,8 +1,6 @@
-import { HomePage } from "@/modules/home";
-import { LoginPage } from "../modules/home";
-import { Homepage } from "../modules/home"; 
+import { redirect } from "next/navigation";
+import { ROUTES } from "@/utils/appRoutes";
 
-
-export default function Home() {
-  return <Homepage />;
+export default function Page() {
+  redirect(ROUTES.auth.login);
 }
