@@ -54,7 +54,7 @@ async function estimatePriceMock({ destination, packageType }) {
 
   return {
     estimatedPrice: total,
-    currency: "USD",
+    currency: "VND",
     etaDays: packageType === "pallet" ? "7-10" : "2-3",
   };
 }

@@ -13,11 +13,15 @@ const {
   CONSIGNMENT_TYPE_LABELS,
   CONSIGNMENT_STATUS_LABELS,
   CONSIGNMENT_STATUS_STYLES,
-  formatConsignmentDate
+  formatConsignmentDate,
+  formatConsignmentDisplayCode
 } = orderConsignmentService;
 const STATUS_FILTER_OPTIONS = [
   { value: "", label: "T\u1EA5t c\u1EA3 tr\u1EA1ng th\xE1i" },
   { value: "PENDING_REVIEW", label: CONSIGNMENT_STATUS_LABELS.PENDING_REVIEW },
+  { value: "QUOTATION_SENT", label: CONSIGNMENT_STATUS_LABELS.QUOTATION_SENT },
+  { value: "QUOTATION_CONFIRMED", label: CONSIGNMENT_STATUS_LABELS.QUOTATION_CONFIRMED },
+  { value: "QUOTATION_REJECTED", label: CONSIGNMENT_STATUS_LABELS.QUOTATION_REJECTED },
   { value: "IN_PROGRESS", label: CONSIGNMENT_STATUS_LABELS.IN_PROGRESS },
   { value: "IN_WAREHOUSE", label: CONSIGNMENT_STATUS_LABELS.IN_WAREHOUSE },
   { value: "WAREHOUSE_RECEIVED", label: CONSIGNMENT_STATUS_LABELS.WAREHOUSE_RECEIVED },
@@ -164,7 +168,7 @@ function ConsignmentListPanel() {
             className: "hover:bg-surface-muted transition-colors cursor-pointer",
             onClick: () => router.push(ROUTES.sales.consignment(item.id)),
             children: [
-              /* @__PURE__ */ jsx("td", { className: "px-6 py-4 text-sm font-bold text-secondary", children: item.consignmentCode || `${item.id.slice(0, 8)}\u2026` }),
+              /* @__PURE__ */ jsx("td", { className: "px-6 py-4 text-sm font-bold text-secondary", children: formatConsignmentDisplayCode(item) ?? "—" }),
               /* @__PURE__ */ jsx("td", { className: "px-6 py-4 text-sm font-medium", children: item.customerName }),
               /* @__PURE__ */ jsx("td", { className: "px-6 py-4 text-sm text-muted", children: CONSIGNMENT_TYPE_LABELS[item.consignmentType] || item.consignmentType }),
               /* @__PURE__ */ jsx("td", { className: "px-6 py-4", children: /* @__PURE__ */ jsx(StatusBadge, { status: item.status }) }),

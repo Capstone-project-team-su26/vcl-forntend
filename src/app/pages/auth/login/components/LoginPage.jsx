@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import AppLogo from "@/app/components/AppLogo";
 import colors from "@/utils/colors";
+import { SITE_NAME } from "@/utils/site";
 import { isMockMode } from "@/utils/mocks/dataSource";
 import { useAuth } from "@/hooks/useAuth";
 import { resolvePostLoginPath } from "@/utils/routeAccess";
@@ -83,7 +84,7 @@ function LoginPage() {
     /* @__PURE__ */ jsxs("aside", { className: "relative hidden lg:flex lg:w-[58%] bg-surface-soft flex-col justify-between p-10 xl:p-14 overflow-hidden", children: [
       /* @__PURE__ */ jsxs("div", { className: "relative z-10", children: [
         /* @__PURE__ */ jsx(AppLogo, { variant: "auth", className: "mb-10" }),
-        /* @__PURE__ */ jsx("span", { className: "inline-block px-3 py-1 mb-6 text-[10px] font-bold tracking-[0.12em] uppercase text-muted bg-white border border-border-muted rounded-full", children: "Hệ thống nội bộ VCL" }),
+        /* @__PURE__ */ jsx("span", { className: "inline-block px-3 py-1 mb-6 text-[10px] font-bold tracking-[0.12em] uppercase text-muted bg-white border border-border-muted rounded-full", children: SITE_NAME }),
         /* @__PURE__ */ jsxs("h1", { className: "text-[42px] xl:text-[48px] font-bold leading-[1.15] text-ink tracking-tight max-w-[520px] mb-5", children: [
           "Quản lý logistics",
           " ",
@@ -115,7 +116,7 @@ function LoginPage() {
           },
           i
         )) }),
-        /* @__PURE__ */ jsx("p", { className: "text-sm text-muted", children: "Dành cho nhân viên VCL — Admin, Sale, Operations" })
+        /* @__PURE__ */ jsx("p", { className: "text-sm text-muted", children: `Dành cho nhân viên ${SITE_NAME} — Admin, Sale, Operations` })
       ] }),
       /* @__PURE__ */ jsxs("div", { className: "absolute top-0 right-0 w-[42%] h-full pointer-events-none", children: [
         /* @__PURE__ */ jsx("div", { className: "absolute inset-0 bg-gradient-to-r from-surface-soft via-surface-soft/80 to-transparent z-10" }),

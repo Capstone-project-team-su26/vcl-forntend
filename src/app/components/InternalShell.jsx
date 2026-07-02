@@ -4,6 +4,7 @@ import { Icon } from "@iconify/react";
 import Link from "next/link";
 import { useState } from "react";
 import AppLogo from "@/app/components/AppLogo";
+import ThemeToggle from "@/app/components/ThemeToggle";
 import UserNavMenu from "@/app/components/UserNavMenu";
 
 /** Layout nội bộ dùng chung — sidebar + header, một logo, một UserNavMenu (chỉ header). */
@@ -55,6 +56,10 @@ export default function InternalShell({
             );
           })}
         </nav>
+
+        <div className="px-4 py-4 border-t border-border-muted shrink-0">
+          <ThemeToggle />
+        </div>
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
