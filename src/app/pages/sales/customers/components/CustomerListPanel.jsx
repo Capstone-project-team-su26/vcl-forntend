@@ -3,14 +3,20 @@
 import { Icon } from "@iconify/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import CustomerFormModal from "@/app/pages/sales/customers/components/CustomerFormModal";
+import DataTable from "@/app/components/DataTable";
 import * as customerService from "@/utils/customerService";
 import { getErrorMessage } from "@/utils/apiError";
 import { ROUTES } from "@/utils/appRoutes";
 
 const { CUSTOMER_STATUS_LABELS, CUSTOMER_STATUS_STYLES, buildCreateConsignmentUrl } =
   customerService;
+
+const STATUS_FILTER_OPTIONS = Object.entries(CUSTOMER_STATUS_LABELS).map(([value, label]) => ({
+  value,
+  label,
+}));
 
 function StatusBadge({ status }) {
   return (
@@ -30,14 +36,7 @@ export default function CustomerListPanel() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
-  const [searchInput, setSearchInput] = useState("");
-  const [search, setSearch] = useState("");
   const [modalMode, setModalMode] = useState(null);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => setSearch(searchInput.trim()), 300);
-    return () => window.clearTimeout(timer);
-  }, [searchInput]);
 
   useEffect(() => {
     let active = true;
@@ -47,7 +46,7 @@ export default function CustomerListPanel() {
       setError("");
 
       try {
-        const data = await customerService.listCustomers({ search: search || undefined });
+        const data = await customerService.listCustomers();
         if (active) setCustomers(data);
       } catch (err) {
         if (active) setError(getErrorMessage(err));
@@ -60,7 +59,7 @@ export default function CustomerListPanel() {
     return () => {
       active = false;
     };
-  }, [search]);
+  }, []);
 
   function handleCreated(customer, message) {
     setCustomers((current) => [customer, ...current]);
@@ -68,6 +67,86 @@ export default function CustomerListPanel() {
     setError("");
     router.push(ROUTES.sales.customer(customer.id));
   }
+
+  const columns = useMemo(
+    () => [
+      {
+        key: "customerCode",
+        title: "Mã KH",
+        sortable: true,
+        searchable: true,
+        className: "font-mono text-xs",
+        render: (row) => row.customerCode || "—",
+      },
+      {
+        key: "fullName",
+        title: "Họ tên",
+        sortable: true,
+        searchable: true,
+        className: "font-semibold text-ink",
+        render: (row) => row.fullName,
+      },
+      {
+        key: "phone",
+        title: "Điện thoại",
+        searchable: true,
+        className: "text-muted",
+        render: (row) => row.phone || "—",
+      },
+      {
+        key: "email",
+        title: "Email",
+        searchable: true,
+        className: "text-muted",
+        render: (row) => row.email || "—",
+      },
+      {
+        key: "address",
+        title: "Địa chỉ",
+        headerClassName: "hidden lg:table-cell",
+        className: "text-muted hidden lg:table-cell max-w-xs truncate",
+        render: (row) => row.address || "—",
+      },
+      {
+        key: "status",
+        title: "Trạng thái",
+        sortable: true,
+        filter: { options: STATUS_FILTER_OPTIONS },
+        render: (row) => <StatusBadge status={row.status} />,
+      },
+      {
+        key: "actions",
+        title: "Thao tác",
+        align: "right",
+        render: (row) => (
+          <div className="flex items-center justify-end gap-1">
+            <Link
+              href={buildCreateConsignmentUrl(row.id)}
+              className="p-2 text-primary hover:bg-primary/10 rounded-lg"
+              title="Tạo ký gửi thay khách"
+            >
+              <Icon icon="lucide:package-plus" className="w-4 h-4" />
+            </Link>
+            <Link
+              href={buildCreateConsignmentUrl(row.id, "PURCHASE_ORDER")}
+              className="p-2 text-secondary hover:bg-secondary/10 rounded-lg"
+              title="Mua hộ thay khách"
+            >
+              <Icon icon="lucide:shopping-cart" className="w-4 h-4" />
+            </Link>
+            <Link
+              href={ROUTES.sales.customer(row.id)}
+              className="p-2 text-muted hover:text-ink hover:bg-surface rounded-lg"
+              title="Xem chi tiết / chỉnh sửa"
+            >
+              <Icon icon="lucide:eye" className="w-4 h-4" />
+            </Link>
+          </div>
+        ),
+      },
+    ],
+    []
+  );
 
   return (
     <div className="space-y-8">
@@ -90,20 +169,6 @@ export default function CustomerListPanel() {
         </button>
       </div>
 
-      <div className="relative max-w-xl">
-        <Icon
-          icon="lucide:search"
-          className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted"
-        />
-        <input
-          type="search"
-          value={searchInput}
-          onChange={(event) => setSearchInput(event.target.value)}
-          placeholder="Tìm theo tên, số điện thoại hoặc email..."
-          className="w-full h-11 pl-10 pr-4 rounded-lg border border-border-muted bg-surface-elevated text-sm input-focus-ring"
-        />
-      </div>
-
       {error ? (
         <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
           {error}
@@ -116,82 +181,17 @@ export default function CustomerListPanel() {
         </div>
       ) : null}
 
-      <div className="bg-surface-elevated rounded-xl shadow-sm overflow-hidden border border-border-muted">
-        <div className="px-6 py-4 border-b border-border-muted">
-          <h3 className="text-lg font-extrabold font-['Oswald']">Danh sách khách hàng</h3>
-        </div>
-
-        {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-16 gap-3 text-muted">
-            <Icon icon="lucide:loader-2" className="w-8 h-8 animate-spin" />
-            <p className="text-sm font-medium">Đang tải danh sách...</p>
-          </div>
-        ) : customers.length === 0 ? (
-          <div className="px-6 py-16 text-center text-sm text-muted">
-            Không tìm thấy khách hàng phù hợp.
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-xs uppercase tracking-wide text-muted border-b border-border-muted bg-surface/50">
-                  <th className="px-6 py-3 font-bold">Mã KH</th>
-                  <th className="px-6 py-3 font-bold">Họ tên</th>
-                  <th className="px-6 py-3 font-bold">Điện thoại</th>
-                  <th className="px-6 py-3 font-bold">Email</th>
-                  <th className="px-6 py-3 font-bold hidden lg:table-cell">Địa chỉ</th>
-                  <th className="px-6 py-3 font-bold">Trạng thái</th>
-                  <th className="px-6 py-3 font-bold text-right">Thao tác</th>
-                </tr>
-              </thead>
-              <tbody>
-                {customers.map((customer) => (
-                  <tr
-                    key={customer.id}
-                    className="border-b border-border-muted/60 last:border-0 hover:bg-surface/40"
-                  >
-                    <td className="px-6 py-4 font-mono text-xs">{customer.customerCode}</td>
-                    <td className="px-6 py-4 font-semibold text-ink">{customer.fullName}</td>
-                    <td className="px-6 py-4 text-muted">{customer.phone || "—"}</td>
-                    <td className="px-6 py-4 text-muted">{customer.email || "—"}</td>
-                    <td className="px-6 py-4 text-muted hidden lg:table-cell max-w-xs truncate">
-                      {customer.address || "—"}
-                    </td>
-                    <td className="px-6 py-4">
-                      <StatusBadge status={customer.status} />
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center justify-end gap-1">
-                        <Link
-                          href={buildCreateConsignmentUrl(customer.id)}
-                          className="p-2 text-primary hover:bg-primary/10 rounded-lg"
-                          title="Tạo ký gửi thay khách"
-                        >
-                          <Icon icon="lucide:package-plus" className="w-4 h-4" />
-                        </Link>
-                        <Link
-                          href={buildCreateConsignmentUrl(customer.id, "PURCHASE_ORDER")}
-                          className="p-2 text-secondary hover:bg-secondary/10 rounded-lg"
-                          title="Mua hộ thay khách"
-                        >
-                          <Icon icon="lucide:shopping-cart" className="w-4 h-4" />
-                        </Link>
-                        <Link
-                          href={ROUTES.sales.customer(customer.id)}
-                          className="p-2 text-muted hover:text-ink hover:bg-surface rounded-lg"
-                          title="Xem chi tiết / chỉnh sửa"
-                        >
-                          <Icon icon="lucide:eye" className="w-4 h-4" />
-                        </Link>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      <DataTable
+        columns={columns}
+        rows={customers}
+        loading={isLoading}
+        title="Danh sách khách hàng"
+        countLabel="khách hàng"
+        searchPlaceholder="Tìm theo mã, tên, SĐT hoặc email..."
+        emptyText="Chưa có khách hàng nào."
+        emptyFilteredText="Không tìm thấy khách hàng phù hợp."
+        minWidth={960}
+      />
 
       <CustomerFormModal
         open={modalMode === "create"}

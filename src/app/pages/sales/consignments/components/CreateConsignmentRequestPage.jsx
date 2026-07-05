@@ -12,7 +12,15 @@ import { ROUTES } from "@/utils/appRoutes";
 import VndMoneyInput from "@/app/components/VndMoneyInput";
 
 const { ITEM_VALIDATION_LABELS, ITEM_VALIDATION_STYLES } = orderConsignmentService;
-const { formatInternationalWarehouseLabel, volumeCm3ToM3 } = servicePricingService;
+const {
+  formatInternationalWarehouseLabel,
+  volumeCm3ToM3,
+  formatServiceTypeLabel,
+  isConfiguredServicePricing,
+  listServicePricings,
+  listServicePricingRouteOptions,
+  listInternationalWarehouses,
+} = servicePricingService;
 
 function FieldLabel({ htmlFor, children, required }) {
   return (
@@ -26,6 +34,7 @@ function FieldLabel({ htmlFor, children, required }) {
 export default function CreateConsignmentRequestPage({ preselectedCustomerId }) {
   const router = useRouter();
   const [warehouses, setWarehouses] = useState([]);
+  const [servicePricings, setServicePricings] = useState([]);
   const [isLoadingPage, setIsLoadingPage] = useState(true);
   const [loadError, setLoadError] = useState("");
 
@@ -38,6 +47,7 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
   const [productName, setProductName] = useState("");
   const [productType, setProductType] = useState("");
   const [warehouseId, setWarehouseId] = useState("");
+  const [routeKey, setRouteKey] = useState("");
   const [weightKg, setWeightKg] = useState("");
   const [volumeCm3, setVolumeCm3] = useState("");
   const [packageCount, setPackageCount] = useState("");
@@ -53,10 +63,33 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
   const validationWarnings =
     validation?.items?.filter((entry) => entry.restrictionType) ?? [];
 
+  const routeOptions = useMemo(
+    () => listServicePricingRouteOptions(servicePricings),
+    [servicePricings]
+  );
+
+  const useWarehousePicker = warehouses.length > 0;
+
   const selectedWarehouse = useMemo(
     () => warehouses.find((entry) => entry.id === warehouseId) ?? null,
     [warehouses, warehouseId]
   );
+
+  const selectedRouteOption = useMemo(
+    () => routeOptions.find((entry) => entry.key === routeKey) ?? null,
+    [routeOptions, routeKey]
+  );
+
+  const selectedPricing = selectedRouteOption?.pricing ?? null;
+  const serviceType = selectedRouteOption?.serviceType ?? "STANDARD";
+  const routeForCreate = selectedRouteOption?.route ?? null;
+
+  useEffect(() => {
+    if (!routeOptions.length) return;
+    if (!routeKey || !routeOptions.some((entry) => entry.key === routeKey)) {
+      setRouteKey(routeOptions[0].key);
+    }
+  }, [routeOptions, routeKey]);
 
   useEffect(() => {
     if (!preselectedCustomerId) return;
@@ -81,16 +114,20 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
   useEffect(() => {
     let active = true;
 
-    async function loadWarehouses() {
+    async function loadPageData() {
       setIsLoadingPage(true);
       setLoadError("");
 
       try {
-        const list = await servicePricingService.listInternationalWarehouses();
+        const [warehouseList, pricingList] = await Promise.all([
+          listInternationalWarehouses().catch(() => []),
+          listServicePricings({ isActive: true }).catch(() => []),
+        ]);
         if (!active) return;
 
-        setWarehouses(list);
-        if (list.length === 1) setWarehouseId(list[0].id);
+        setWarehouses(Array.isArray(warehouseList) ? warehouseList : []);
+        setServicePricings(Array.isArray(pricingList) ? pricingList : []);
+        if (warehouseList.length === 1) setWarehouseId(warehouseList[0].id);
       } catch (err) {
         if (active) setLoadError(getErrorMessage(err));
       } finally {
@@ -98,7 +135,7 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
       }
     }
 
-    loadWarehouses();
+    loadPageData();
     return () => {
       active = false;
     };
@@ -175,7 +212,13 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
       setSubmitError("Vui lòng nhập tên hàng hóa.");
       return;
     }
-    if (!warehouseId) {
+    if (!selectedRouteOption || !isConfiguredServicePricing(selectedPricing)) {
+      setSubmitError(
+        "Chưa có bảng giá dịch vụ khả dụng. Liên hệ Admin cấu hình service-pricings trên BE."
+      );
+      return;
+    }
+    if (useWarehousePicker && !warehouseId) {
       setSubmitError("Vui lòng chọn kho quốc tế.");
       return;
     }
@@ -198,8 +241,12 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
     try {
       const response = await orderConsignmentService.createStaffConsignment({
         customerId: selectedCustomer.id,
-        warehouseId,
+        warehouseId: warehouseId || undefined,
         warehouseCode: selectedWarehouse?.code,
+        serviceType,
+        route: routeForCreate,
+        originCountry: selectedPricing.originCountry,
+        destinationCountry: selectedPricing.destinationCountry,
         weightKg: Number(weightKg),
         volumeM3: volumeCm3ToM3(volumeCm3),
         packageCount: Number(packageCount),
@@ -253,6 +300,13 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
       {loadError ? (
         <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
           {loadError}
+        </div>
+      ) : null}
+
+      {!routeOptions.length ? (
+        <div className="rounded-lg border border-warning/30 bg-warning-bg px-4 py-3 text-sm text-warning-text">
+          Chưa có bảng giá dịch vụ trên hệ thống. Admin cần cấu hình mục Giá dịch vụ chính trước
+          khi Sales tạo yêu cầu.
         </div>
       ) : null}
 
@@ -323,7 +377,7 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
         </section>
 
         <section className="rounded-xl border border-border-muted bg-surface-elevated p-6 space-y-4">
-          <h2 className="text-lg font-bold text-ink">Hàng hóa &amp; kho quốc tế</h2>
+          <h2 className="text-lg font-bold text-ink">Hàng hóa &amp; tuyến vận chuyển</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2 sm:col-span-2">
               <FieldLabel htmlFor="productName" required>
@@ -356,23 +410,51 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
               />
             </div>
             <div className="space-y-2 sm:col-span-2">
-              <FieldLabel htmlFor="warehouseId" required>
-                Kho quốc tế
+              <FieldLabel htmlFor="routeKey" required>
+                Tuyến &amp; loại dịch vụ
               </FieldLabel>
               <select
-                id="warehouseId"
-                value={warehouseId}
-                onChange={(event) => setWarehouseId(event.target.value)}
+                id="routeKey"
+                value={routeKey}
+                onChange={(event) => setRouteKey(event.target.value)}
                 className="form-select input-focus-ring"
+                required
               >
-                <option value="">Chọn kho...</option>
-                {warehouses.map((warehouse) => (
-                  <option key={warehouse.id} value={warehouse.id}>
-                    {formatInternationalWarehouseLabel(warehouse)}
+                <option value="">Chọn tuyến...</option>
+                {routeOptions.map((option) => (
+                  <option key={option.key} value={option.key}>
+                    {option.label}
                   </option>
                 ))}
               </select>
+              {routeForCreate ? (
+                <p className="text-xs text-muted">
+                  Route gửi BE: <span className="font-mono">{routeForCreate}</span>
+                  {" · "}
+                  Dịch vụ: {formatServiceTypeLabel(serviceType)}
+                </p>
+              ) : null}
             </div>
+            {useWarehousePicker ? (
+              <div className="space-y-2 sm:col-span-2">
+                <FieldLabel htmlFor="warehouseId" required>
+                  Kho quốc tế
+                </FieldLabel>
+                <select
+                  id="warehouseId"
+                  value={warehouseId}
+                  onChange={(event) => setWarehouseId(event.target.value)}
+                  className="form-select input-focus-ring"
+                >
+                  <option value="">Chọn kho...</option>
+                  {warehouses.map((warehouse) => (
+                    <option key={warehouse.id} value={warehouse.id}>
+                      {formatInternationalWarehouseLabel(warehouse)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
             <div className="space-y-2">
               <FieldLabel htmlFor="weightKg" required>
                 Khối lượng (kg)
@@ -453,7 +535,7 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
 
         <button
           type="submit"
-          disabled={isSubmitting || hasBannedItem}
+          disabled={isSubmitting || hasBannedItem || !routeOptions.length}
           className="inline-flex items-center justify-center gap-2 h-11 px-6 rounded-lg bg-primary text-white text-sm font-bold hover:bg-primary/90 disabled:opacity-50"
         >
           {isSubmitting ? (

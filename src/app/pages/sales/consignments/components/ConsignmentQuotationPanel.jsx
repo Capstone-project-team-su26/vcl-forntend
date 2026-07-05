@@ -40,7 +40,9 @@ const {
   buildMainServicePricingBreakdown,
   getAvailableServiceTypes,
   formatServiceTypeLabel,
+  formatConsignmentRouteLabel,
   formatVolumeCm3,
+  isConfiguredServicePricing,
   volumeCm3ToM3,
   volumeM3ToCm3,
   UNIT_TYPE_LABELS,
@@ -183,7 +185,7 @@ function StatusBadge({ status }) {
   );
 }
 
-export default function ConsignmentQuotationPanel({ id, backHref }) {
+export default function ConsignmentQuotationPanel({ id, backHref, readOnly = false }) {
   const [detail, setDetail] = useState(null);
   const [warehouses, setWarehouses] = useState([]);
   const [servicePricings, setServicePricings] = useState([]);
@@ -206,16 +208,24 @@ export default function ConsignmentQuotationPanel({ id, backHref }) {
   const [salesNote, setSalesNote] = useState("");
   const [estimateSnapshot, setEstimateSnapshot] = useState(null);
 
-  const canSend = detail ? canStaffSendConsignmentQuotation(detail) : false;
+  const canSend = detail && !readOnly ? canStaffSendConsignmentQuotation(detail) : false;
 
   const resolvedWarehouseId = useMemo(
-    () => detail?.warehouseId ?? warehouses[0]?.id ?? "",
-    [detail?.warehouseId, warehouses]
+    () => detail?.warehouseId ?? "",
+    [detail?.warehouseId]
   );
 
   const selectedWarehouse = useMemo(
-    () => warehouses.find((entry) => entry.id === resolvedWarehouseId) ?? null,
+    () =>
+      resolvedWarehouseId
+        ? warehouses.find((entry) => entry.id === resolvedWarehouseId) ?? null
+        : null,
     [warehouses, resolvedWarehouseId]
+  );
+
+  const displayRouteLabel = useMemo(
+    () => formatConsignmentRouteLabel(detail),
+    [detail]
   );
 
   const quotationPricingContext = useMemo(
@@ -238,6 +248,14 @@ export default function ConsignmentQuotationPanel({ id, backHref }) {
         detail
       ),
     [servicePricings, quotationPricingContext, serviceType, detail]
+  );
+
+  const hasConfiguredPricing = Boolean(
+    selectedServicePricing && isConfiguredServicePricing(selectedServicePricing)
+  );
+
+  const showServiceSummary = Boolean(
+    displayRouteLabel !== "—" || hasConfiguredPricing || detail?.quotation
   );
 
   const totals = useMemo(
@@ -317,8 +335,10 @@ export default function ConsignmentQuotationPanel({ id, backHref }) {
         setServicePricings(pricingList);
         setFeeCatalog(activeFees);
 
-        const whId = consignment.warehouseId ?? warehouseList[0]?.id ?? "";
-        const selectedWh = warehouseList.find((entry) => entry.id === whId) ?? warehouseList[0] ?? null;
+        const whId = consignment.warehouseId ?? "";
+        const selectedWh = whId
+          ? warehouseList.find((entry) => entry.id === whId) ?? null
+          : null;
         const weight = consignment.totalWeight != null ? String(consignment.totalWeight) : "";
         const volumeM3FromApi =
           consignment.totalVolume != null ? Number(consignment.totalVolume) : null;
@@ -529,8 +549,8 @@ export default function ConsignmentQuotationPanel({ id, backHref }) {
     event.preventDefault();
     if (!detail || !canSend || isSubmitting) return;
 
-    if (!selectedServicePricing) {
-      setSubmitError("Không tìm thấy giá dịch vụ chính cho kho đã chọn.");
+    if (!selectedServicePricing || !isConfiguredServicePricing(selectedServicePricing)) {
+      setSubmitError("Không tìm thấy giá dịch vụ chính cho tuyến/dịch vụ đã chọn.");
       return;
     }
 
@@ -587,7 +607,11 @@ export default function ConsignmentQuotationPanel({ id, backHref }) {
 
     try {
       if (!isMockMode()) {
-        await estimateConsignmentQuotation(detail.id, sendParams);
+        try {
+          await estimateConsignmentQuotation(detail.id, sendParams);
+        } catch {
+          // Estimate thất bại không chặn gửi báo giá chính thức.
+        }
       }
 
       const response = await orderConsignmentService.sendConsignmentQuotation(detail.id, sendParams);
@@ -639,19 +663,33 @@ export default function ConsignmentQuotationPanel({ id, backHref }) {
   const chargeableWeight = pricingBreakdown.chargeableWeight ?? 0;
 
   return (
-    <div className="space-y-8 max-w-5xl">
+    <div
+      className={`space-y-8 w-full mx-auto ${readOnly ? "max-w-7xl" : "max-w-5xl"}`}
+    >
       <div>
         <Link href={resolvedBackHref} className="inline-flex items-center gap-2 text-sm font-semibold text-muted hover:text-ink mb-4">
           <Icon icon="lucide:arrow-left" className="w-4 h-4" />
           Quay lại chi tiết yêu cầu
         </Link>
-        <p className="text-xs font-bold uppercase tracking-wide text-primary mb-2">Sales / CSKH</p>
+        {!readOnly ? (
+          <p className="text-xs font-bold uppercase tracking-wide text-primary mb-2">Sales / CSKH</p>
+        ) : null}
         <h1 className="text-3xl lg:text-4xl font-black tracking-tight font-['Oswald'] text-ink">
-          {detail.status === "QUOTATION_REJECTED" ? "Gửi báo giá mới" : "Tư vấn & gửi báo giá ký gửi"}
+          {!canSend
+            ? "Chi tiết báo giá"
+            : detail.status === "QUOTATION_REJECTED"
+              ? "Gửi báo giá mới"
+              : "Tư vấn & gửi báo giá ký gửi"}
         </h1>
         <p className="text-muted text-sm font-medium mt-2">
-          Hệ thống tính <strong>dịch vụ chính</strong> từ bảng giá. Phụ phí lấy từ cấu hình Admin — Sales
-          bật/tắt và gửi cho khách.
+          {!canSend ? (
+            "Nội dung báo giá của yêu cầu này — chỉ xem, không chỉnh sửa."
+          ) : (
+            <>
+              Hệ thống tính <strong>dịch vụ chính</strong> từ bảng giá. Phụ phí lấy từ cấu hình
+              Admin — Sales bật/tắt và gửi cho khách.
+            </>
+          )}
         </p>
       </div>
 
@@ -683,11 +721,13 @@ export default function ConsignmentQuotationPanel({ id, backHref }) {
         <div className="rounded-lg border border-warning/30 bg-warning-bg/40 px-4 py-3 text-sm text-ink">
           {detail.status === "QUOTATION_SENT"
             ? "Báo giá đã gửi — đang chờ khách xác nhận hoặc từ chối."
-            : "Yêu cầu này không thể gửi báo giá ở trạng thái hiện tại."}
+            : detail.status === "QUOTATION_CONFIRMED"
+              ? "Khách đã xác nhận báo giá."
+              : "Yêu cầu này không ở trạng thái gửi báo giá — chỉ xem lại nội dung báo giá."}
         </div>
       ) : null}
 
-      {canSend && !successMessage ? (
+      {!successMessage ? (
         <form onSubmit={handleSubmit} className="space-y-8">
           <section className="rounded-xl border border-border-muted bg-surface-elevated p-6 space-y-4">
             <div>
@@ -772,11 +812,11 @@ export default function ConsignmentQuotationPanel({ id, backHref }) {
               </div>
             </div>
 
-            {selectedServicePricing ? (
+            {showServiceSummary ? (
               <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 text-sm grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <p className="text-muted">Tuyến</p>
-                  <p className="font-semibold text-ink">{selectedServicePricing.originCountry} → {selectedServicePricing.destinationCountry}</p>
+                  <p className="font-semibold text-ink">{displayRouteLabel}</p>
                 </div>
                 <div>
                   <p className="text-muted">Cân thực → DIM → Tính phí</p>
@@ -806,14 +846,24 @@ export default function ConsignmentQuotationPanel({ id, backHref }) {
                 <div>
                   <p className="text-muted">Đơn vị tính</p>
                   <p className="font-semibold text-ink">
-                    {UNIT_TYPE_LABELS[selectedServicePricing.unitType] ??
-                      selectedServicePricing.unitType}
+                    {selectedServicePricing?.unitType
+                      ? UNIT_TYPE_LABELS[selectedServicePricing.unitType] ??
+                        selectedServicePricing.unitType
+                      : "—"}
                   </p>
                 </div>
               </div>
-            ) : (
-              <p className="text-sm text-danger">Chưa có giá dịch vụ chính cho kho/dịch vụ đã chọn.</p>
-            )}
+            ) : canSend ? (
+              <p className="text-sm text-danger">
+                Chưa có giá dịch vụ chính khớp tuyến/dịch vụ của đơn. Kiểm tra cấu hình bảng giá tại Admin.
+              </p>
+            ) : null}
+
+            {!hasConfiguredPricing && detail?.quotation && readOnly ? (
+              <p className="text-xs text-muted">
+                Đơn đã có báo giá từ hệ thống. Số tiền bên dưới lấy từ báo giá thực tế của yêu cầu.
+              </p>
+            ) : null}
 
             {pricingBreakdown.show ? <PricingFormulaBreakdown breakdown={pricingBreakdown} /> : null}
 
@@ -827,7 +877,9 @@ export default function ConsignmentQuotationPanel({ id, backHref }) {
                 className={LOCKED_FIELD_CLASS}
               />
               <p className="text-xs text-muted">
-                Tự tính từ bảng giá và công thức trên — không chỉnh thủ công.
+                {hasConfiguredPricing
+                  ? "Tự tính từ bảng giá và công thức trên — không chỉnh thủ công."
+                  : "Lấy từ báo giá của yêu cầu ký gửi."}
               </p>
             </div>
           </section>
@@ -859,7 +911,7 @@ export default function ConsignmentQuotationPanel({ id, backHref }) {
                   {additionalFeeLines.map((line) => (
                     <tr key={line.feeId} className="border-b border-border-muted/60">
                       <td className="px-4 py-3">
-                        <input type="checkbox" checked={line.enabled !== false} disabled={line.isRequired} onChange={() => toggleAdditionalFee(line.feeId)} />
+                        <input type="checkbox" checked={line.enabled !== false} disabled={line.isRequired || !canSend} onChange={() => toggleAdditionalFee(line.feeId)} />
                       </td>
                       <td className="px-4 py-3 font-medium text-ink">{line.label}</td>
                       <td className="px-4 py-3 text-muted">{line.description}</td>
@@ -879,7 +931,7 @@ export default function ConsignmentQuotationPanel({ id, backHref }) {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <FieldLabel htmlFor="discountPercent">Chiết khấu (%)</FieldLabel>
-                <input id="discountPercent" type="number" min="0" max="100" step="0.1" value={discountPercent} onChange={(e) => { setDiscountPercent(e.target.value); resetSubmitState(); }} className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring" />
+                <input id="discountPercent" type="number" min="0" max="100" step="0.1" value={discountPercent} disabled={!canSend} onChange={(e) => { setDiscountPercent(e.target.value); resetSubmitState(); }} className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring disabled:opacity-90 disabled:cursor-not-allowed disabled:bg-surface" />
               </div>
             </div>
             <dl className="space-y-2 text-sm">
@@ -901,15 +953,21 @@ export default function ConsignmentQuotationPanel({ id, backHref }) {
                   Ghi chú từ đơn hàng: <span className="text-ink">{detail.notes}</span>
                 </p>
               ) : null}
-              <textarea id="salesNote" rows={3} value={salesNote} onChange={(e) => { setSalesNote(e.target.value); resetSubmitState(); }} placeholder="Nội dung gửi kèm báo giá cho khách..." className="w-full px-4 py-3 rounded-lg border border-border-muted text-sm input-focus-ring resize-y min-h-[88px]" />
+              <textarea id="salesNote" rows={3} value={salesNote} readOnly={!canSend} onChange={(e) => { setSalesNote(e.target.value); resetSubmitState(); }} placeholder="Nội dung gửi kèm báo giá cho khách..." className="w-full px-4 py-3 rounded-lg border border-border-muted text-sm input-focus-ring resize-y min-h-[88px] read-only:opacity-90 read-only:cursor-not-allowed read-only:bg-surface" />
             </div>
           </section>
 
-          {submitError ? <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">{submitError}</div> : null}
+          {canSend && submitError ? <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">{submitError}</div> : null}
 
-          <button type="submit" disabled={isSubmitting} className="inline-flex items-center justify-center gap-2 h-11 px-6 rounded-lg bg-primary text-white text-sm font-bold hover:bg-primary/90 disabled:opacity-50">
-            {isSubmitting ? <><Icon icon="lucide:loader-2" className="w-4 h-4 animate-spin" /> Đang gửi...</> : <><Icon icon="lucide:send" className="w-4 h-4" /> Gửi báo giá cho khách</>}
-          </button>
+          {canSend ? (
+            <button type="submit" disabled={isSubmitting} className="inline-flex items-center justify-center gap-2 h-11 px-6 rounded-lg bg-primary text-white text-sm font-bold hover:bg-primary/90 disabled:opacity-50">
+              {isSubmitting ? <><Icon icon="lucide:loader-2" className="w-4 h-4 animate-spin" /> Đang gửi...</> : <><Icon icon="lucide:send" className="w-4 h-4" /> Gửi báo giá cho khách</>}
+            </button>
+          ) : (
+            <Link href={resolvedBackHref} className="inline-flex items-center justify-center gap-2 h-11 px-6 rounded-lg border border-border-muted text-sm font-bold text-ink hover:bg-surface-muted">
+              <Icon icon="lucide:arrow-left" className="w-4 h-4" /> Quay lại chi tiết yêu cầu
+            </Link>
+          )}
         </form>
       ) : null}
     </div>

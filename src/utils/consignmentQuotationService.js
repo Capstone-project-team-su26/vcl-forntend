@@ -11,6 +11,7 @@ import {
   DEFAULT_CURRENCY,
   findServicePricingForWarehouse,
   formatMoney,
+  parseConsignmentRoute,
 } from "@/utils/servicePricingService";
 
 function roundMoney(value) {
@@ -189,10 +190,8 @@ export function resolveConsignmentServiceType(consignment) {
 }
 
 export function resolveServicePricingForConsignment(servicePricing, consignment) {
-  const routeParts = String(consignment?.route ?? "")
-    .split("-")
-    .map((part) => part.trim())
-    .filter(Boolean);
+  const { origin, destination } = parseConsignmentRoute(consignment);
+  const routeParts = [origin, destination].filter(Boolean);
 
   const serviceType = resolveConsignmentServiceType(consignment);
 
@@ -211,11 +210,15 @@ export function resolveServicePricingForConsignment(servicePricing, consignment)
 
   if (!base) return null;
 
+  // Ưu tiên tuyến từ yêu cầu ký gửi (BE) thay vì bảng giá/kho mặc định.
+  const originCountry = origin ?? base.originCountry ?? routeParts[0] ?? null;
+  const destinationCountry = destination ?? base.destinationCountry ?? routeParts[1] ?? null;
+
   return {
     ...base,
     serviceType: base.serviceType ?? serviceType,
-    originCountry: base.originCountry ?? routeParts[0] ?? null,
-    destinationCountry: base.destinationCountry ?? routeParts[1] ?? null,
+    originCountry,
+    destinationCountry,
     unitType: base.unitType ?? "KG_OR_CBM",
   };
 }

@@ -122,7 +122,7 @@ async function createReceivingNoteMock({ consignmentOrderId, warehouseId, wareho
 export async function listReceivingWarehouses() {
   if (isMockMode()) return listWarehousesMock();
 
-  const raw = await apiRequest("/api/warehouses");
+  const raw = await apiRequest("/api/warehouses/active");
   return normalizeWarehouseListResponse(raw);
 }
 

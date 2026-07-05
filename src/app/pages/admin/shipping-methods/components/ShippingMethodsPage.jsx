@@ -1,15 +1,15 @@
 "use client";
 
 import { Icon } from "@iconify/react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import AdminLayout from "@/app/pages/admin/components/AdminLayout";
 import ShippingMethodFormModal from "@/app/pages/admin/shipping-methods/components/ShippingMethodFormModal";
+import DataTable from "@/app/components/DataTable";
 import * as shippingMethodService from "@/utils/shippingMethodService";
 import { getErrorMessage } from "@/utils/apiError";
 
 const STATUS_FILTER_OPTIONS = [
-  { value: "", label: "Tất cả trạng thái" },
-  { value: "true", label: "Đang hoạt động" },
+  { value: "true", label: "Hoạt động" },
   { value: "false", label: "Vô hiệu" },
 ];
 
@@ -30,17 +30,9 @@ export default function ShippingMethodsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [actionError, setActionError] = useState("");
   const [actionMessage, setActionMessage] = useState("");
-  const [searchInput, setSearchInput] = useState("");
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
   const [pendingId, setPendingId] = useState(null);
   const [modalMode, setModalMode] = useState(null);
   const [editingItem, setEditingItem] = useState(null);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => setSearch(searchInput.trim()), 300);
-    return () => window.clearTimeout(timer);
-  }, [searchInput]);
 
   useEffect(() => {
     let active = true;
@@ -51,8 +43,6 @@ export default function ShippingMethodsPage() {
 
       try {
         const data = await shippingMethodService.listShippingMethods({
-          search: search || undefined,
-          isActive: statusFilter || undefined,
           activeOnly: false,
         });
         if (active) setItems(data);
@@ -67,7 +57,7 @@ export default function ShippingMethodsPage() {
     return () => {
       active = false;
     };
-  }, [search, statusFilter]);
+  }, []);
 
   function openCreate() {
     setEditingItem(null);
@@ -142,6 +132,111 @@ export default function ShippingMethodsPage() {
     }
   }
 
+  const columns = useMemo(
+    () => [
+      {
+        key: "code",
+        title: "Mã",
+        sortable: true,
+        searchable: true,
+        className: "font-mono text-xs",
+        render: (item) => item.code || "—",
+      },
+      {
+        key: "name",
+        title: "Tên",
+        sortable: true,
+        searchable: true,
+        searchAccessor: (item) => `${item.name || ""} ${item.internalNotes || ""}`,
+        render: (item) => (
+          <div>
+            <p className="font-semibold text-ink">{item.name}</p>
+            {item.internalNotes ? (
+              <p
+                className="text-xs text-muted mt-1 line-clamp-1"
+                title={item.internalNotes}
+              >
+                Ghi chú: {item.internalNotes}
+              </p>
+            ) : null}
+          </div>
+        ),
+      },
+      {
+        key: "description",
+        title: "Mô tả",
+        searchable: true,
+        headerClassName: "hidden md:table-cell",
+        className: "text-muted hidden md:table-cell max-w-xs",
+        render: (item) => <span className="line-clamp-2">{item.description || "—"}</span>,
+      },
+      {
+        key: "estimatedDeliveryTime",
+        title: "Thời gian dự kiến",
+        headerClassName: "hidden lg:table-cell",
+        className: "text-muted hidden lg:table-cell whitespace-nowrap",
+        render: (item) => item.estimatedDeliveryTime || "—",
+      },
+      {
+        key: "applicableConditions",
+        title: "Điều kiện",
+        headerClassName: "hidden xl:table-cell",
+        className: "text-muted hidden xl:table-cell max-w-xs",
+        render: (item) => (
+          <span className="line-clamp-2">{item.applicableConditions || "—"}</span>
+        ),
+      },
+      {
+        key: "status",
+        title: "Trạng thái",
+        sortable: true,
+        sortAccessor: (item) => (item.isActive ? 1 : 0),
+        filter: { options: STATUS_FILTER_OPTIONS },
+        filterAccessor: (item) => String(Boolean(item.isActive)),
+        render: (item) => <ActiveBadge isActive={item.isActive} />,
+      },
+      {
+        key: "actions",
+        title: "Thao tác",
+        align: "right",
+        render: (item) => (
+          <div className="flex items-center justify-end gap-1">
+            <button
+              type="button"
+              onClick={() => openEdit(item)}
+              className="p-2 text-muted hover:text-ink rounded-lg hover:bg-surface"
+              title="Sửa"
+            >
+              <Icon icon="lucide:pencil" className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              disabled={pendingId === item.id}
+              onClick={() => handleToggleActive(item)}
+              className="p-2 text-muted hover:text-ink rounded-lg hover:bg-surface disabled:opacity-50"
+              title={item.isActive ? "Vô hiệu hóa" : "Kích hoạt"}
+            >
+              <Icon
+                icon={item.isActive ? "lucide:ban" : "lucide:check-circle"}
+                className="w-4 h-4"
+              />
+            </button>
+            <button
+              type="button"
+              disabled={pendingId === item.id}
+              onClick={() => handleDelete(item)}
+              className="p-2 text-danger hover:bg-danger/10 rounded-lg disabled:opacity-50"
+              title="Xóa"
+            >
+              <Icon icon="lucide:trash-2" className="w-4 h-4" />
+            </button>
+          </div>
+        ),
+      },
+    ],
+    [pendingId]
+  );
+
   return (
     <AdminLayout activeNav="shipping-methods">
       <div className="space-y-8">
@@ -164,33 +259,6 @@ export default function ShippingMethodsPage() {
           </button>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-3">
-          <div className="relative flex-1">
-            <Icon
-              icon="lucide:search"
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted"
-            />
-            <input
-              type="search"
-              value={searchInput}
-              onChange={(event) => setSearchInput(event.target.value)}
-              placeholder="Tìm theo tên hoặc mã phương thức..."
-              className="w-full h-11 pl-10 pr-4 rounded-lg border border-border-muted bg-surface-elevated text-sm input-focus-ring"
-            />
-          </div>
-          <select
-            value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value)}
-            className="h-11 px-4 rounded-lg border border-border-muted bg-surface-elevated text-sm font-medium text-ink input-focus-ring lg:min-w-[200px]"
-          >
-            {STATUS_FILTER_OPTIONS.map((option) => (
-              <option key={option.value || "all"} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
         {actionError ? (
           <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
             {actionError}
@@ -203,103 +271,17 @@ export default function ShippingMethodsPage() {
           </div>
         ) : null}
 
-        <div className="bg-surface-elevated rounded-xl shadow-sm overflow-hidden border border-border-muted">
-          <div className="px-6 py-4 border-b border-border-muted">
-            <h3 className="text-lg font-extrabold font-['Oswald']">
-              Danh sách phương thức vận chuyển
-            </h3>
-          </div>
-
-          {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-16 gap-3 text-muted">
-              <Icon icon="lucide:loader-2" className="w-8 h-8 animate-spin" />
-              <p className="text-sm font-medium">Đang tải danh sách...</p>
-            </div>
-          ) : items.length === 0 ? (
-            <div className="px-6 py-16 text-center text-sm text-muted">
-              Không có phương thức vận chuyển phù hợp với bộ lọc hiện tại.
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left text-xs uppercase tracking-wide text-muted border-b border-border-muted bg-surface/50">
-                    <th className="px-6 py-3 font-bold">Mã</th>
-                    <th className="px-6 py-3 font-bold">Tên</th>
-                    <th className="px-6 py-3 font-bold hidden md:table-cell">Mô tả</th>
-                    <th className="px-6 py-3 font-bold hidden lg:table-cell">Thời gian dự kiến</th>
-                    <th className="px-6 py-3 font-bold hidden xl:table-cell">Điều kiện</th>
-                    <th className="px-6 py-3 font-bold">Trạng thái</th>
-                    <th className="px-6 py-3 font-bold text-right">Thao tác</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((item) => (
-                    <tr
-                      key={item.id}
-                      className="border-b border-border-muted/60 last:border-0 hover:bg-surface/40"
-                    >
-                      <td className="px-6 py-4 font-mono text-xs">{item.code}</td>
-                      <td className="px-6 py-4">
-                        <p className="font-semibold text-ink">{item.name}</p>
-                        {item.internalNotes ? (
-                          <p className="text-xs text-muted mt-1 line-clamp-1" title={item.internalNotes}>
-                            Ghi chú: {item.internalNotes}
-                          </p>
-                        ) : null}
-                      </td>
-                      <td className="px-6 py-4 text-muted hidden md:table-cell max-w-xs">
-                        <span className="line-clamp-2">{item.description || "—"}</span>
-                      </td>
-                      <td className="px-6 py-4 text-muted hidden lg:table-cell whitespace-nowrap">
-                        {item.estimatedDeliveryTime || "—"}
-                      </td>
-                      <td className="px-6 py-4 text-muted hidden xl:table-cell max-w-xs">
-                        <span className="line-clamp-2">{item.applicableConditions || "—"}</span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <ActiveBadge isActive={item.isActive} />
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center justify-end gap-1">
-                          <button
-                            type="button"
-                            onClick={() => openEdit(item)}
-                            className="p-2 text-muted hover:text-ink rounded-lg hover:bg-surface"
-                            title="Sửa"
-                          >
-                            <Icon icon="lucide:pencil" className="w-4 h-4" />
-                          </button>
-                          <button
-                            type="button"
-                            disabled={pendingId === item.id}
-                            onClick={() => handleToggleActive(item)}
-                            className="p-2 text-muted hover:text-ink rounded-lg hover:bg-surface disabled:opacity-50"
-                            title={item.isActive ? "Vô hiệu hóa" : "Kích hoạt"}
-                          >
-                            <Icon
-                              icon={item.isActive ? "lucide:ban" : "lucide:check-circle"}
-                              className="w-4 h-4"
-                            />
-                          </button>
-                          <button
-                            type="button"
-                            disabled={pendingId === item.id}
-                            onClick={() => handleDelete(item)}
-                            className="p-2 text-danger hover:bg-danger/10 rounded-lg disabled:opacity-50"
-                            title="Xóa"
-                          >
-                            <Icon icon="lucide:trash-2" className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+        <DataTable
+          columns={columns}
+          rows={items}
+          loading={isLoading}
+          title="Danh sách phương thức vận chuyển"
+          countLabel="phương thức"
+          searchPlaceholder="Tìm theo mã, tên hoặc mô tả..."
+          emptyText="Chưa có phương thức vận chuyển nào."
+          emptyFilteredText="Không có phương thức phù hợp với bộ lọc."
+          minWidth={1040}
+        />
       </div>
 
       <ShippingMethodFormModal
