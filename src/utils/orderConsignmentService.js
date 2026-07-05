@@ -14,16 +14,29 @@ import {
   toApiValidateItemsPayload,
 } from "@/utils/apiMappers";
 import { ApiError } from "@/utils/apiError";
-import { isDraftConsignmentQuotation } from "@/utils/consignmentQuotationService";
 
 export const CONSIGNMENT_TYPE_LABELS = {
   PURCHASE_ORDER: "Mua hộ",
   CONSIGNMENT: "Ký gửi hàng",
   PURCHASE_AND_SHIP: "Mua hộ + Vận chuyển",
-  Express: "Ký gửi — Express",
-  Standard: "Ký gửi — Standard",
-  Economy: "Ký gửi — Economy",
+  EXPRESS: "Express",
+  STANDARD: "Standard",
+  CONSOLIDATION: "Consolidation",
+  ECONOMY: "Economy",
+  FREIGHT: "Freight",
+  Express: "Express",
+  Standard: "Standard",
+  Economy: "Economy",
 };
+
+export const CONSIGNMENT_TYPE_FILTER_OPTIONS = [
+  { value: "", label: "Tất cả" },
+  { value: "STANDARD", label: "Standard" },
+  { value: "EXPRESS", label: "Express" },
+  { value: "CONSOLIDATION", label: "Consolidation" },
+  { value: "ECONOMY", label: "Economy" },
+  { value: "FREIGHT", label: "Freight" },
+];
 
 export const CONSIGNMENT_STATUS_LABELS = {
   PENDING_REVIEW: "Chờ báo giá",
@@ -58,11 +71,11 @@ export const CONSIGNMENT_APPROVABLE_STATUS = "QUOTATION_CONFIRMED";
 
 export function canStaffSendConsignmentQuotation(detail) {
   if (!detail) return false;
-  if (detail.status === "QUOTATION_REJECTED") return true;
-  if (detail.status === "PENDING_REVIEW" && isDraftConsignmentQuotation(detail.quotation)) {
-    return true;
-  }
-  return false;
+
+  // Chỉ hiện nút gửi báo giá khi:
+  // - Khách vừa tạo yêu cầu ký gửi (PENDING_REVIEW), hoặc
+  // - Khách không chấp nhận báo giá và yêu cầu Sales báo lại (QUOTATION_REJECTED).
+  return detail.status === "PENDING_REVIEW" || detail.status === "QUOTATION_REJECTED";
 }
 
 export function canCustomerAcceptConsignmentQuotation(detail) {
@@ -98,12 +111,13 @@ const STATUS_SORT_ORDER = {
   COMPLETED: 5,
 };
 
-function buildQuery({ page, pageSize, status, search }) {
+function buildQuery({ page, pageSize, status, search, consignmentType }) {
   const params = new URLSearchParams();
   params.set("pageNumber", String(page));
   params.set("pageSize", String(pageSize));
   if (status) params.set("status", status);
   if (search) params.set("searchCode", search);
+  if (consignmentType) params.set("consignmentType", consignmentType);
   return params.toString();
 }
 
@@ -116,38 +130,171 @@ function sortConsignments(items) {
   });
 }
 
-function filterConsignments(items, { status, search }) {
+function getSortValue(item, sortBy) {
+  switch (sortBy) {
+    case "code":
+      return (formatConsignmentDisplayCode(item) ?? item.consignmentCode ?? item.id ?? "").toString().toLowerCase();
+    case "customerName":
+      return (item.customerName ?? "").toString().toLowerCase();
+    case "consignmentType":
+      return (item.consignmentType ?? "").toString().toLowerCase();
+    case "status":
+      return STATUS_SORT_ORDER[item.status] ?? 99;
+    case "createdAt":
+    default: {
+      const time = item.createdAt ? new Date(item.createdAt).getTime() : 0;
+      return Number.isNaN(time) ? 0 : time;
+    }
+  }
+}
+
+function sortItems(items, sortBy, sortDir = "asc") {
+  if (!sortBy) return sortConsignments(items);
+
+  const direction = sortDir === "desc" ? -1 : 1;
+  return [...items].sort((a, b) => {
+    const valueA = getSortValue(a, sortBy);
+    const valueB = getSortValue(b, sortBy);
+    if (valueA < valueB) return -1 * direction;
+    if (valueA > valueB) return 1 * direction;
+    return 0;
+  });
+}
+
+function normalizeConsignmentTypeToken(value) {
+  return String(value ?? "")
+    .trim()
+    .toUpperCase();
+}
+
+/** Chuẩn hóa filter về mảng string không rỗng (hỗ trợ chọn nhiều giá trị). */
+function toFilterArray(value) {
+  if (Array.isArray(value)) return value.filter((entry) => entry != null && entry !== "").map(String);
+  if (value == null || value === "") return [];
+  return [String(value)];
+}
+
+function matchesConsignmentType(item, consignmentType) {
+  const types = toFilterArray(consignmentType);
+  if (!types.length) return true;
+  const token = normalizeConsignmentTypeToken(item.consignmentType);
+  return types.some((type) => normalizeConsignmentTypeToken(type) === token);
+}
+
+function matchesCreatedDateRange(item, dateFrom, dateTo) {
+  if (!dateFrom && !dateTo) return true;
+
+  const created = item.createdAt ? new Date(item.createdAt) : null;
+  if (!created || Number.isNaN(created.getTime())) return false;
+
+  if (dateFrom) {
+    const from = new Date(`${dateFrom}T00:00:00`);
+    if (created < from) return false;
+  }
+
+  if (dateTo) {
+    const to = new Date(`${dateTo}T23:59:59.999`);
+    if (created > to) return false;
+  }
+
+  return true;
+}
+
+function filterConsignments(items, { status, search, consignmentType, dateFrom, dateTo }) {
   let filtered = items;
 
-  if (status) {
-    filtered = filtered.filter((item) => item.status === status);
+  const statuses = toFilterArray(status);
+  if (statuses.length) {
+    filtered = filtered.filter((item) => statuses.includes(item.status));
+  }
+
+  if (toFilterArray(consignmentType).length) {
+    filtered = filtered.filter((item) => matchesConsignmentType(item, consignmentType));
+  }
+
+  if (dateFrom || dateTo) {
+    filtered = filtered.filter((item) => matchesCreatedDateRange(item, dateFrom, dateTo));
   }
 
   if (search) {
     const query = search.toLowerCase();
-    filtered = filtered.filter(
-      (item) =>
-        item.id.toLowerCase().includes(query) ||
-        item.customerName.toLowerCase().includes(query)
-    );
+    filtered = filtered.filter((item) => {
+      const code = formatConsignmentDisplayCode(item) ?? item.consignmentCode ?? item.id ?? "";
+      const haystack = [code, item.id, item.customerName, item.consignmentType]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(query);
+    });
   }
 
   return filtered;
 }
 
-async function listStaffConsignmentsMock({ page = 1, pageSize = 10, status, search } = {}) {
+async function fetchAllConsignmentSummaries({ status, search, consignmentType, maxPages = 20 } = {}) {
+  const pageSize = 100;
+  const items = [];
+
+  for (let page = 1; page <= maxPages; page += 1) {
+    const raw = await apiRequest(
+      `/api/orders/consignments?${buildQuery({
+        page,
+        pageSize,
+        status,
+        search,
+        consignmentType,
+      })}`
+    );
+    const batch = normalizeConsignmentListResponse(raw, { page, pageSize });
+    items.push(...(batch.items ?? []));
+
+    if (page >= (batch.totalPages ?? 1)) break;
+  }
+
+  return items;
+}
+
+function paginateItems(items, { page = 1, pageSize = 10 } = {}) {
+  const totalCount = items.length;
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const safePage = Math.min(Math.max(page, 1), totalPages);
+  const start = (safePage - 1) * pageSize;
+
+  return {
+    items: items.slice(start, start + pageSize),
+    page: safePage,
+    pageSize,
+    totalCount,
+    totalPages: totalCount === 0 ? 1 : totalPages,
+  };
+}
+
+async function listStaffConsignmentsMock({
+  page = 1,
+  pageSize = 10,
+  status,
+  search,
+  consignmentType,
+  dateFrom,
+  dateTo,
+  sortBy,
+  sortDir,
+} = {}) {
   await mockDelay();
 
-  const filtered = sortConsignments(
-    filterConsignments(getMockStore().staffConsignments, { status, search })
+  const filtered = sortItems(
+    filterConsignments(getMockStore().staffConsignments, {
+      status,
+      search,
+      consignmentType,
+      dateFrom,
+      dateTo,
+    }),
+    sortBy,
+    sortDir
   );
 
-  const totalCount = filtered.length;
-  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
-  const start = (page - 1) * pageSize;
-  const items = filtered.slice(start, start + pageSize).map((item) => ({ ...item }));
-
-  return { items, page, pageSize, totalCount, totalPages };
+  return paginateItems(filtered, { page, pageSize });
 }
 
 async function getStaffConsignmentMock(id) {
@@ -217,18 +364,54 @@ async function updateStaffConsignmentStatusMock(orderId, { status, rejectionReas
 }
 
 /**
- * @param {{ page?: number; pageSize?: number; status?: string; search?: string }} params
+ * @param {{
+ *   page?: number;
+ *   pageSize?: number;
+ *   status?: string | string[];
+ *   search?: string;
+ *   consignmentType?: string | string[];
+ *   dateFrom?: string;
+ *   dateTo?: string;
+ *   sortBy?: "code" | "customerName" | "consignmentType" | "status" | "createdAt";
+ *   sortDir?: "asc" | "desc";
+ * }} params
  */
 export async function listStaffConsignments(params = {}) {
   if (isMockMode()) return listStaffConsignmentsMock(params);
 
   const page = params.page ?? 1;
   const pageSize = params.pageSize ?? 10;
+  const statuses = toFilterArray(params.status);
+  const types = toFilterArray(params.consignmentType);
+  const needsClientFilter = Boolean(
+    types.length || params.dateFrom || params.dateTo || params.sortBy || statuses.length > 1
+  );
+
+  if (needsClientFilter) {
+    const allItems = await fetchAllConsignmentSummaries({
+      // Nếu chỉ chọn 1 trạng thái thì để BE lọc sẵn cho nhẹ, còn lại lọc client.
+      status: statuses.length === 1 ? statuses[0] : undefined,
+      search: params.search,
+    });
+    const filtered = sortItems(
+      filterConsignments(allItems, {
+        status: statuses,
+        search: params.search,
+        consignmentType: types,
+        dateFrom: params.dateFrom,
+        dateTo: params.dateTo,
+      }),
+      params.sortBy,
+      params.sortDir
+    );
+    return paginateItems(filtered, { page, pageSize });
+  }
+
   const raw = await apiRequest(
     `/api/orders/consignments?${buildQuery({
       page,
       pageSize,
-      status: params.status,
+      status: statuses[0],
       search: params.search,
     })}`
   );
@@ -378,9 +561,9 @@ async function createStaffConsignmentMock(payload) {
     throw new ApiError(400, { message: "Vui lòng nhập tên hàng." });
   }
 
-  if (!payload.warehouseId && !payload.shippingMethodId) {
+  if (!payload.warehouseId && !payload.shippingMethodId && !payload.route?.trim()) {
     throw new ApiError(400, {
-      message: "Vui lòng chọn kho quốc tế hoặc phương thức vận chuyển.",
+      message: "Vui lòng chọn tuyến vận chuyển hoặc kho quốc tế.",
     });
   }
 
@@ -407,7 +590,8 @@ async function createStaffConsignmentMock(payload) {
     consignmentCode,
     customerId,
     customerName: customer.fullName,
-    consignmentType: warehouse?.code ?? shippingMethod?.code ?? "CONSIGNMENT",
+    consignmentType:
+      payload.serviceType ?? warehouse?.code ?? shippingMethod?.code ?? "STANDARD",
     status: "PENDING_REVIEW",
     totalWeight: Number(payload.weightKg ?? firstItem.estimatedWeight) || 0,
     totalVolume: Number(payload.volumeM3) || 0,
@@ -415,7 +599,8 @@ async function createStaffConsignmentMock(payload) {
     createdAt: new Date().toISOString(),
     productName,
     quantity: Number(firstItem.quantity) || 1,
-    destination: warehouse?.name ?? shippingMethod?.name ?? "—",
+    destination: warehouse?.name ?? shippingMethod?.name ?? payload.route ?? "—",
+    route: payload.route ?? null,
     warehouseId: payload.warehouseId ?? null,
     warehouseName: warehouse?.name ?? null,
     notes: payload.salesNote?.trim() || "",

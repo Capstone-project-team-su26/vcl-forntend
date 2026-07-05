@@ -1,9 +1,10 @@
 "use client";
 
 import { Icon } from "@iconify/react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import AdminLayout from "@/app/pages/admin/components/AdminLayout";
 import AdditionalServiceFeeFormModal from "@/app/pages/admin/additional-service-fees/components/AdditionalServiceFeeFormModal";
+import DataTable from "@/app/components/DataTable";
 import * as feeService from "@/utils/additionalServiceFeeService";
 import { getErrorMessage } from "@/utils/apiError";
 
@@ -13,8 +14,7 @@ const {
 } = feeService;
 
 const STATUS_FILTER_OPTIONS = [
-  { value: "", label: "Tất cả trạng thái" },
-  { value: "true", label: "Đang hoạt động" },
+  { value: "true", label: "Hoạt động" },
   { value: "false", label: "Vô hiệu" },
 ];
 
@@ -35,7 +35,6 @@ export default function AdditionalServiceFeesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [actionError, setActionError] = useState("");
   const [actionMessage, setActionMessage] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
   const [pendingId, setPendingId] = useState(null);
   const [modalMode, setModalMode] = useState(null);
   const [editingItem, setEditingItem] = useState(null);
@@ -48,9 +47,7 @@ export default function AdditionalServiceFeesPage() {
       setActionError("");
 
       try {
-        const data = await feeService.listAdditionalServiceFees({
-          isActive: statusFilter || undefined,
-        });
+        const data = await feeService.listAdditionalServiceFees();
         if (active) setItems(data);
       } catch (err) {
         if (active) setActionError(getErrorMessage(err));
@@ -63,7 +60,7 @@ export default function AdditionalServiceFeesPage() {
     return () => {
       active = false;
     };
-  }, [statusFilter]);
+  }, []);
 
   function openCreate() {
     setEditingItem(null);
@@ -136,6 +133,102 @@ export default function AdditionalServiceFeesPage() {
     }
   }
 
+  const columns = useMemo(
+    () => [
+      {
+        key: "code",
+        title: "Mã",
+        sortable: true,
+        searchable: true,
+        className: "font-mono text-xs",
+        render: (item) => item.code || "—",
+      },
+      {
+        key: "name",
+        title: "Tên loại phí",
+        sortable: true,
+        searchable: true,
+        className: "font-semibold text-ink",
+        render: (item) => item.name,
+      },
+      {
+        key: "feeCalculationType",
+        title: "Cách tính",
+        className: "text-muted",
+        render: (item) => formatFeeCalculationType(item.feeCalculationType),
+      },
+      {
+        key: "amount",
+        title: "Mức phí",
+        className: "font-semibold text-ink",
+        render: (item) => formatFeeAmount(item),
+      },
+      {
+        key: "unit",
+        title: "Đơn vị",
+        headerClassName: "hidden md:table-cell",
+        className: "text-muted hidden md:table-cell",
+        render: (item) => item.unit || "—",
+      },
+      {
+        key: "description",
+        title: "Mô tả",
+        searchable: true,
+        headerClassName: "hidden lg:table-cell",
+        className: "text-muted hidden lg:table-cell max-w-xs",
+        render: (item) => <span className="line-clamp-2">{item.description || "—"}</span>,
+      },
+      {
+        key: "status",
+        title: "Trạng thái",
+        sortable: true,
+        sortAccessor: (item) => (item.isActive ? 1 : 0),
+        filter: { options: STATUS_FILTER_OPTIONS },
+        filterAccessor: (item) => String(Boolean(item.isActive)),
+        render: (item) => <ActiveBadge isActive={item.isActive} />,
+      },
+      {
+        key: "actions",
+        title: "Thao tác",
+        align: "right",
+        render: (item) => (
+          <div className="flex items-center justify-end gap-1">
+            <button
+              type="button"
+              onClick={() => openEdit(item)}
+              className="p-2 text-muted hover:text-ink rounded-lg hover:bg-surface"
+              title="Sửa"
+            >
+              <Icon icon="lucide:pencil" className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              disabled={pendingId === item.id}
+              onClick={() => handleToggleActive(item)}
+              className="p-2 text-muted hover:text-ink rounded-lg hover:bg-surface disabled:opacity-50"
+              title={item.isActive ? "Vô hiệu hóa" : "Kích hoạt"}
+            >
+              <Icon
+                icon={item.isActive ? "lucide:ban" : "lucide:check-circle"}
+                className="w-4 h-4"
+              />
+            </button>
+            <button
+              type="button"
+              disabled={pendingId === item.id}
+              onClick={() => handleDelete(item)}
+              className="p-2 text-danger hover:bg-danger/10 rounded-lg disabled:opacity-50"
+              title="Xóa"
+            >
+              <Icon icon="lucide:trash-2" className="w-4 h-4" />
+            </button>
+          </div>
+        ),
+      },
+    ],
+    [pendingId]
+  );
+
   return (
     <AdminLayout activeNav="additional-service-fees">
       <div className="space-y-8">
@@ -158,20 +251,6 @@ export default function AdditionalServiceFeesPage() {
           </button>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-3 sm:max-w-xs">
-          <select
-            value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value)}
-            className="h-11 px-4 rounded-lg border border-border-muted bg-surface-elevated text-sm font-medium text-ink input-focus-ring w-full"
-          >
-            {STATUS_FILTER_OPTIONS.map((option) => (
-              <option key={option.value || "all"} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
         {actionError ? (
           <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
             {actionError}
@@ -184,100 +263,17 @@ export default function AdditionalServiceFeesPage() {
           </div>
         ) : null}
 
-        <div className="bg-surface-elevated rounded-xl shadow-sm overflow-hidden border border-border-muted">
-          <div className="px-6 py-4 border-b border-border-muted">
-            <h3 className="text-lg font-extrabold font-['Oswald']">
-              Danh sách phí dịch vụ bổ sung
-            </h3>
-          </div>
-
-          {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-16 gap-3 text-muted">
-              <Icon icon="lucide:loader-2" className="w-8 h-8 animate-spin" />
-              <p className="text-sm font-medium">Đang tải danh sách...</p>
-            </div>
-          ) : items.length === 0 ? (
-            <div className="px-6 py-16 text-center text-sm text-muted">
-              Không có loại phí phù hợp với bộ lọc hiện tại.
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left text-xs uppercase tracking-wide text-muted border-b border-border-muted bg-surface/50">
-                    <th className="px-6 py-3 font-bold">Mã</th>
-                    <th className="px-6 py-3 font-bold">Tên loại phí</th>
-                    <th className="px-6 py-3 font-bold">Cách tính</th>
-                    <th className="px-6 py-3 font-bold">Mức phí</th>
-                    <th className="px-6 py-3 font-bold hidden md:table-cell">Đơn vị</th>
-                    <th className="px-6 py-3 font-bold hidden lg:table-cell">Mô tả</th>
-                    <th className="px-6 py-3 font-bold">Trạng thái</th>
-                    <th className="px-6 py-3 font-bold text-right">Thao tác</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((item) => (
-                    <tr
-                      key={item.id}
-                      className="border-b border-border-muted/60 last:border-0 hover:bg-surface/40"
-                    >
-                      <td className="px-6 py-4 font-mono text-xs">{item.code}</td>
-                      <td className="px-6 py-4 font-semibold text-ink">{item.name}</td>
-                      <td className="px-6 py-4 text-muted">
-                        {formatFeeCalculationType(item.feeCalculationType)}
-                      </td>
-                      <td className="px-6 py-4 font-semibold text-ink">
-                        {formatFeeAmount(item)}
-                      </td>
-                      <td className="px-6 py-4 text-muted hidden md:table-cell">
-                        {item.unit || "—"}
-                      </td>
-                      <td className="px-6 py-4 text-muted hidden lg:table-cell max-w-xs">
-                        <span className="line-clamp-2">{item.description || "—"}</span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <ActiveBadge isActive={item.isActive} />
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center justify-end gap-1">
-                          <button
-                            type="button"
-                            onClick={() => openEdit(item)}
-                            className="p-2 text-muted hover:text-ink rounded-lg hover:bg-surface"
-                            title="Sửa"
-                          >
-                            <Icon icon="lucide:pencil" className="w-4 h-4" />
-                          </button>
-                          <button
-                            type="button"
-                            disabled={pendingId === item.id}
-                            onClick={() => handleToggleActive(item)}
-                            className="p-2 text-muted hover:text-ink rounded-lg hover:bg-surface disabled:opacity-50"
-                            title={item.isActive ? "Vô hiệu hóa" : "Kích hoạt"}
-                          >
-                            <Icon
-                              icon={item.isActive ? "lucide:ban" : "lucide:check-circle"}
-                              className="w-4 h-4"
-                            />
-                          </button>
-                          <button
-                            type="button"
-                            disabled={pendingId === item.id}
-                            onClick={() => handleDelete(item)}
-                            className="p-2 text-danger hover:bg-danger/10 rounded-lg disabled:opacity-50"
-                            title="Xóa"
-                          >
-                            <Icon icon="lucide:trash-2" className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+        <DataTable
+          columns={columns}
+          rows={items}
+          loading={isLoading}
+          title="Danh sách phí dịch vụ bổ sung"
+          countLabel="loại phí"
+          searchPlaceholder="Tìm theo mã, tên hoặc mô tả..."
+          emptyText="Chưa có loại phí nào."
+          emptyFilteredText="Không có loại phí phù hợp với bộ lọc."
+          minWidth={980}
+        />
       </div>
 
       <AdditionalServiceFeeFormModal

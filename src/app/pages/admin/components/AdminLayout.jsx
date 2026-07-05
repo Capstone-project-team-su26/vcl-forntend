@@ -11,6 +11,12 @@ const navItems = [
   { id: "dashboard", label: "Dashboard", icon: "lucide:layout-dashboard" },
   { id: "users", label: "Users", icon: "lucide:users", href: ROUTES.admin.users },
   {
+    id: "consignments",
+    label: "Y\xEAu c\u1EA7u k\xFD g\u1EEDi",
+    icon: "lucide:package-search",
+    href: ROUTES.admin.consignments
+  },
+  {
     id: "restricted-items",
     label: "H\xE0ng c\u1EA5m",
     icon: "lucide:shield-alert",

@@ -6,11 +6,7 @@ import * as servicePricingService from "@/utils/servicePricingService";
 import { getErrorMessage } from "@/utils/apiError";
 import VndMoneyInput from "@/app/components/VndMoneyInput";
 
-const {
-  SERVICE_TYPE_LABELS,
-  UNIT_TYPE_LABELS,
-  formatInternationalWarehouseLabel,
-} = servicePricingService;
+const { SERVICE_TYPE_LABELS, UNIT_TYPE_LABELS } = servicePricingService;
 
 const serviceTypeOptions = Object.entries(SERVICE_TYPE_LABELS).map(([value, label]) => ({
   value,
@@ -22,7 +18,7 @@ const unitTypeOptions = Object.entries(UNIT_TYPE_LABELS).map(([value, label]) =>
   label,
 }));
 
-export default function ServicePricingFormModal({ open, mode, item, warehouses, onClose, onSaved }) {
+export default function ServicePricingFormModal({ open, mode, item, onClose, onSaved }) {
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [unitType, setUnitType] = useState(item?.unitType ?? "KG");
@@ -62,7 +58,6 @@ export default function ServicePricingFormModal({ open, mode, item, warehouses, 
       serviceType: form.serviceType.value,
       originCountry: form.originCountry.value,
       destinationCountry: form.destinationCountry.value,
-      warehouseId: form.warehouseId.value || null,
       unitType: form.unitType.value,
       price: showSinglePrice ? price : null,
       pricePerKg: showKg ? pricePerKg : null,
@@ -154,24 +149,6 @@ export default function ServicePricingFormModal({ open, mode, item, warehouses, 
                 {serviceTypeOptions.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-2">
-              <label htmlFor="warehouseId" className="text-sm font-semibold text-ink">
-                Kho quốc tế
-              </label>
-              <select
-                id="warehouseId"
-                name="warehouseId"
-                defaultValue={item?.warehouseId ?? ""}
-                className="form-select input-focus-ring"
-              >
-                <option value="">— Không gắn kho —</option>
-                {warehouses.map((warehouse) => (
-                  <option key={warehouse.id} value={warehouse.id}>
-                    {formatInternationalWarehouseLabel(warehouse)}
                   </option>
                 ))}
               </select>

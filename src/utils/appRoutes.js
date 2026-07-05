@@ -9,6 +9,9 @@ export const ROUTES = {
   },
   admin: {
     users: `${PAGES}/admin/users`,
+    consignments: `${PAGES}/admin/consignments`,
+    consignment: (id) => `${PAGES}/admin/consignments/${id}`,
+    consignmentQuotation: (id) => `${PAGES}/admin/consignments/${id}/quotation`,
     restrictedItems: `${PAGES}/admin/restricted-items`,
     pricingRules: `${PAGES}/admin/pricing-rules`,
     warehouses: `${PAGES}/admin/warehouses`,

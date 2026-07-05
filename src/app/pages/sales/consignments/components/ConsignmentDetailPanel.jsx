@@ -253,7 +253,12 @@ function QuotationSummary({ quotation }) {
   );
 }
 
-export default function ConsignmentDetailPanel({ id, backHref = ROUTES.sales.consignments }) {
+export default function ConsignmentDetailPanel({
+  id,
+  backHref = ROUTES.sales.consignments,
+  readOnly = false,
+  quotationHref,
+}) {
   const [detail, setDetail] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -265,9 +270,10 @@ export default function ConsignmentDetailPanel({ id, backHref = ROUTES.sales.con
   const [isRejecting, setIsRejecting] = useState(false);
   const [approvedTrackingCode, setApprovedTrackingCode] = useState(null);
 
-  const canSendQuotation = detail ? canStaffSendConsignmentQuotation(detail) : false;
-  const canApprove = detail ? canStaffUpdateConsignmentStatus(detail.status) : false;
-  const canReject = detail ? canStaffRejectConsignmentStatus(detail.status) : false;
+  const canSendQuotation =
+    detail && !readOnly ? canStaffSendConsignmentQuotation(detail) : false;
+  const canApprove = detail && !readOnly ? canStaffUpdateConsignmentStatus(detail.status) : false;
+  const canReject = detail && !readOnly ? canStaffRejectConsignmentStatus(detail.status) : false;
   const isSubmitting = isApproving || isRejecting;
   const trackingCode = approvedTrackingCode || detail?.trackingCode;
   const displayCode = detail ? formatConsignmentDisplayCode(detail) : null;
@@ -459,6 +465,22 @@ export default function ConsignmentDetailPanel({ id, backHref = ROUTES.sales.con
                   : "Tư vấn & báo giá"}
               </Link>
             </div>
+          ) : detail.quotation ? (
+            <div className="bg-white rounded-xl border border-surface-muted p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-extrabold font-['Oswald']">Báo giá</h3>
+                <p className="text-sm text-muted mt-1">
+                  Xem lại chi tiết báo giá đã lập cho yêu cầu này.
+                </p>
+              </div>
+              <Link
+                href={quotationHref ?? ROUTES.sales.consignmentQuotation(detail.id)}
+                className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-lg border border-primary/30 text-primary text-sm font-bold hover:bg-primary/5 transition-colors"
+              >
+                <Icon icon="lucide:file-text" className="w-4 h-4" />
+                Xem chi tiết báo giá
+              </Link>
+            </div>
           ) : null}
 
           {detail.status === "QUOTATION_SENT" ? (
@@ -549,7 +571,7 @@ export default function ConsignmentDetailPanel({ id, backHref = ROUTES.sales.con
 
           {detail.quotation ? <QuotationSummary quotation={detail.quotation} /> : null}
 
-          {detail.status === "APPROVED" ? (
+          {!readOnly && detail.status === "APPROVED" ? (
             <div className="bg-white rounded-xl border border-secondary/20 p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
                 <h3 className="text-lg font-extrabold font-['Oswald']">Phiếu tiếp nhận kho</h3>
@@ -629,6 +651,7 @@ export default function ConsignmentDetailPanel({ id, backHref = ROUTES.sales.con
               ) : null}
             </div>
           ) : (
+            !readOnly &&
             !canSendQuotation && (
               <div className="rounded-lg border border-surface-muted bg-surface px-4 py-3 text-sm text-muted">
                 Yêu cầu này không thể cập nhật vì đã hủy, đã nhập kho hoặc đã được xử lý.

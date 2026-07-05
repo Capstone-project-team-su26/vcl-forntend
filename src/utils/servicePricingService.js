@@ -571,13 +571,48 @@ async function listInternationalWarehousesMock() {
 export async function listInternationalWarehouses() {
   if (isMockMode()) return listInternationalWarehousesMock();
 
-  const raw = await apiRequest("/api/warehouses");
+  const raw = await apiRequest("/api/warehouses/active");
   const items = normalizeWarehouseListResponse(raw).filter((entry) => entry.isActive !== false);
   const originWarehouses = items.filter(
     (entry) => String(entry.warehouseType ?? "").toLowerCase() === "origin"
   );
 
   return originWarehouses.length ? originWarehouses : items;
+}
+
+function servicePricingRouteKey(pricing) {
+  return [
+    String(pricing.originCountry ?? "").trim().toUpperCase(),
+    String(pricing.destinationCountry ?? "").trim().toUpperCase(),
+    String(pricing.serviceType ?? "").trim().toUpperCase(),
+  ].join("|");
+}
+
+/** Các tuyến + loại dịch vụ khả dụng từ bảng giá (fallback khi chưa chọn được kho). */
+export function listServicePricingRouteOptions(servicePricings = []) {
+  const seen = new Set();
+
+  return servicePricings
+    .filter((entry) => isConfiguredServicePricing(entry))
+    .map((pricing) => {
+      const route = buildConsignmentRouteFromPricing(pricing);
+      const key = servicePricingRouteKey(pricing);
+
+      return {
+        key,
+        route,
+        serviceType: String(pricing.serviceType ?? "STANDARD").toUpperCase(),
+        originCountry: pricing.originCountry,
+        destinationCountry: pricing.destinationCountry,
+        pricing,
+        label: `${pricing.originCountry ?? "—"} → ${pricing.destinationCountry ?? "—"} · ${formatServiceTypeLabel(pricing.serviceType)}`,
+      };
+    })
+    .filter((entry) => {
+      if (!entry.route || seen.has(entry.key)) return false;
+      seen.add(entry.key);
+      return true;
+    });
 }
 
 export function formatInternationalWarehouseLabel(warehouse) {
@@ -619,7 +654,7 @@ function countriesMatch(left, right) {
   return a === b;
 }
 
-function parseConsignmentRoute(consignment) {
+export function parseConsignmentRoute(consignment) {
   const parts = String(consignment?.route ?? "")
     .split(/[-–—>/]+/)
     .map((part) => part.trim())
@@ -629,6 +664,60 @@ function parseConsignmentRoute(consignment) {
     origin: parts[0] ?? null,
     destination: parts[1] ?? null,
   };
+}
+
+/** Nhãn tuyến từ yêu cầu ký gửi (ưu tiên `route` BE, không dùng kho/bảng giá mặc định). */
+export function formatConsignmentRouteLabel(consignment) {
+  if (!consignment) return "—";
+  const raw = String(consignment.route ?? "").trim();
+  if (!raw) return "—";
+
+  const { origin, destination } = parseConsignmentRoute(consignment);
+  if (origin && destination) return `${origin} → ${destination}`;
+  return raw;
+}
+
+/** Suy ra mã quốc gia khi BE không trả `warehouse.code`. */
+export function inferWarehouseCountryCode(warehouse) {
+  if (!warehouse) return null;
+
+  const code = warehouse.code?.trim();
+  if (code) return code;
+
+  const country = warehouse.country?.trim();
+  if (country) return country;
+
+  const name = String(warehouse.name ?? "")
+    .toUpperCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+  if (/(^|\W)(US|USA|MỸ|MY|CALIFORNIA|\bLA\b)/.test(name)) return "US";
+  if (/(TRUNG QUOC|TRUNG QUỐC|CHINA|\bCN\b|\bTQ\b)/.test(name)) return "CN";
+  if (/(NHAT BAN|NHẬT BẢN|JAPAN|\bJP\b)/.test(name)) return "JP";
+  if (/(HAN QUOC|HÀN QUỐC|KOREA|\bKR\b)/.test(name)) return "KR";
+  if (/(VIET NAM|VIỆT NAM|VIETNAM|\bVN\b|HCM|HA NOI|HÀ NỘI)/.test(name)) return "VN";
+
+  return null;
+}
+
+export function buildConsignmentRouteFromPricing(pricing) {
+  if (!pricing) return null;
+
+  const origin = pricing.originCountry?.trim();
+  const destination = pricing.destinationCountry?.trim();
+  if (origin && destination) return `${origin}-${destination}`;
+  return origin || null;
+}
+
+export function resolveConsignmentRouteForCreate({ pricing, warehouse, serviceType } = {}) {
+  const fromPricing = buildConsignmentRouteFromPricing(pricing);
+  if (fromPricing) return fromPricing;
+
+  const origin = inferWarehouseCountryCode(warehouse);
+  if (origin) return `${origin}-VN`;
+
+  return serviceType ? String(serviceType).toUpperCase() : "US";
 }
 
 /**
@@ -642,7 +731,7 @@ export function filterServicePricingsForQuotation(
   if (!active.length) return [];
 
   const { origin, destination } = parseConsignmentRoute(consignment);
-  const originHint = origin ?? warehouse?.code ?? null;
+  const originHint = origin ?? inferWarehouseCountryCode(warehouse) ?? warehouse?.code ?? null;
   const destinationHint = destination ?? "VN";
 
   if (originHint || destinationHint) {
@@ -652,6 +741,19 @@ export function filterServicePricingsForQuotation(
         (!destinationHint || countriesMatch(entry.destinationCountry, destinationHint))
     );
     if (byRoute.length) return byRoute;
+    // Đơn đã có báo giá từ BE — khớp theo loại dịch vụ để hiển thị (không đổi tuyến hiển thị).
+    if (String(consignment?.route ?? "").trim()) {
+      if (consignment?.quotation) {
+        const serviceType = String(
+          consignment.consignmentType ?? consignment.shippingOption ?? "STANDARD"
+        ).toUpperCase();
+        const byType = active.filter(
+          (entry) => String(entry.serviceType ?? "").toUpperCase() === serviceType
+        );
+        if (byType.length) return byType;
+      }
+      return [];
+    }
   }
 
   if (warehouse?.id) {

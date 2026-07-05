@@ -45,6 +45,9 @@ export function normalizeConsignmentSummary(item) {
     totalWeight: item.totalWeight,
     totalVolume: item.totalVolume,
     createdAt: item.createdAt,
+    route: item.route ?? null,
+    warehouseName: item.warehouseName ?? item.warehouse?.name ?? null,
+    destination: item.route ?? item.shippingOption ?? item.destination ?? null,
   };
 }
 
@@ -1039,19 +1042,34 @@ export function toApiValidateItemsPayload({ items }) {
 }
 
 export function toApiStaffConsignmentPayload(payload) {
-  const warehouseCode = payload.warehouseCode || payload.route || "US";
+  const rawServiceType = String(
+    payload.serviceType ?? payload.shippingOption ?? "STANDARD"
+  ).trim();
+  const shippingOption =
+    !rawServiceType || rawServiceType.toUpperCase() === "CONSIGNMENT"
+      ? "STANDARD"
+      : rawServiceType;
+
+  let route = payload.route?.trim() || null;
+  if (!route && payload.originCountry && payload.destinationCountry) {
+    route = `${String(payload.originCountry).trim()}-${String(payload.destinationCountry).trim()}`;
+  }
+  if (!route) {
+    route = payload.warehouseCode?.trim() || "US";
+  }
+
   const noteParts = [payload.salesNote?.trim()].filter(Boolean);
 
   if (payload.quotation) {
     noteParts.push(
-      `Báo giá kho ${warehouseCode}: ${payload.quotation.total} VND (${payload.quotation.lines?.length ?? 0} khoản phí)`
+      `Báo giá tuyến ${route}: ${payload.quotation.total} VND (${payload.quotation.lines?.length ?? 0} khoản phí)`
     );
   }
 
   return {
     customerId: payload.customerId,
-    route: warehouseCode,
-    shippingOption: payload.shippingOption || "CONSIGNMENT",
+    route,
+    shippingOption,
     note: noteParts.join("\n") || null,
     requiresInspection: payload.requiresInspection ?? false,
     items: payload.items.map((item) => ({
