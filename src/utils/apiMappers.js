@@ -671,6 +671,105 @@ export function normalizeShippingMethodListResponse(raw) {
   return items.map(normalizeShippingMethodFromApi);
 }
 
+const CARRIER_TYPE_FROM_API = {
+  carrier: "CARRIER",
+  forwarder: "FORWARDER",
+  logistics_partner: "LOGISTICS_PARTNER",
+  logisticspartner: "LOGISTICS_PARTNER",
+  partner: "LOGISTICS_PARTNER",
+};
+
+function parseStringList(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) {
+    return value.map((entry) => String(entry).trim()).filter(Boolean);
+  }
+  return String(value)
+    .split(/[,;\n]+/)
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
+function normalizeContactInfoFromApi(raw) {
+  if (!raw) return null;
+  if (typeof raw === "string") {
+    const trimmed = raw.trim();
+    return trimmed || null;
+  }
+
+  const parts = [
+    raw.contactPerson ?? raw.contact_person ?? raw.name,
+    raw.email,
+    raw.phone ?? raw.phoneNumber ?? raw.phone_number,
+    raw.address,
+  ]
+    .map((entry) => (entry == null ? "" : String(entry).trim()))
+    .filter(Boolean);
+
+  return parts.length ? parts.join(" · ") : null;
+}
+
+export function normalizeCarrierFromApi(item) {
+  if (!item) return null;
+
+  const rawType = String(
+    item.carrierType ?? item.carrier_type ?? item.type ?? "CARRIER"
+  )
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+
+  return {
+    id: item.id ?? item.carrierId ?? item.carrier_id,
+    code: item.code ?? item.carrierCode ?? item.carrier_code ?? "",
+    name: item.name ?? item.carrierName ?? item.carrier_name ?? "—",
+    carrierType: CARRIER_TYPE_FROM_API[rawType] ?? rawType.toUpperCase(),
+    supportedShippingMethods: parseStringList(
+      item.supportedShippingMethods ??
+        item.supported_shipping_methods ??
+        item.shippingMethods ??
+        item.shipping_methods
+    ),
+    supportedCountriesRegions: parseStringList(
+      item.supportedCountriesRegions ??
+        item.supported_countries_regions ??
+        item.supportedCountries ??
+        item.supported_countries ??
+        item.supportedRegions ??
+        item.supported_regions
+    ),
+    contactInfo: normalizeContactInfoFromApi(
+      item.contactInfo ?? item.contact_info ?? item.contact
+    ),
+    internalNotes: item.internalNotes ?? item.internal_notes ?? item.note ?? null,
+    isActive: item.isActive !== false && item.is_active !== false,
+  };
+}
+
+export function toApiCarrierPayload(payload) {
+  const supportedShippingMethods = parseStringList(payload.supportedShippingMethods);
+  const supportedCountriesRegions = parseStringList(payload.supportedCountriesRegions);
+
+  return {
+    name: payload.name?.trim(),
+    code: payload.code?.trim(),
+    carrierType: payload.carrierType?.trim() || "CARRIER",
+    supportedShippingMethods,
+    supportedCountriesRegions,
+    contactInfo: payload.contactInfo?.trim() || null,
+    internalNotes: payload.internalNotes?.trim() || null,
+    isActive: payload.isActive !== false,
+  };
+}
+
+export function normalizeCarrierListResponse(raw) {
+  const data = raw?.data ?? raw;
+  const items = Array.isArray(data)
+    ? data
+    : data?.items ?? data?.carriers ?? [];
+  return items.map(normalizeCarrierFromApi).filter(Boolean);
+}
+
 const FEE_CALCULATION_FROM_API = {
   fixed: "FIXED",
   flat: "FIXED",

@@ -16,6 +16,7 @@ export const ROUTES = {
     pricingRules: `${PAGES}/admin/pricing-rules`,
     warehouses: `${PAGES}/admin/warehouses`,
     shippingMethods: `${PAGES}/admin/shipping-methods`,
+    carriers: `${PAGES}/admin/carriers`,
     additionalServiceFees: `${PAGES}/admin/additional-service-fees`,
   },
   sales: {
