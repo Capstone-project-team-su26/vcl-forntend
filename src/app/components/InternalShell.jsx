@@ -38,7 +38,9 @@ export default function InternalShell({
 
         <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
           {navItems.map((item) => {
-            const isActive = item.id === activeNav;
+            const isActive = Array.isArray(activeNav)
+              ? activeNav.includes(item.id)
+              : item.id === activeNav;
             return (
               <Link
                 key={item.id}

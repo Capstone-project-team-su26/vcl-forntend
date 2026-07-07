@@ -34,7 +34,7 @@ export default function OperationalDashboardPage() {
     session?.fullName?.split(" ")?.[0] || dashboard?.userName?.split(" ")?.[0] || "Ops";
 
   return (
-    <OperationsShell activeNav="dashboard">
+    <OperationsShell activeNav={["dashboard", "consolidation"]}>
       <div className="space-y-8">
         <section>
           <h1 className="text-3xl lg:text-4xl font-black tracking-tight">
