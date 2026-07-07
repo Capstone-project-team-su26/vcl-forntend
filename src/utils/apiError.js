@@ -23,9 +23,12 @@ export async function parseApiError(response) {
   }
 
   if (!body.message && body.errors) {
-    const first = Object.values(body.errors)[0];
-    if (Array.isArray(first) && first[0]) {
-      body.message = first[0];
+    const messages = Object.entries(body.errors).flatMap(([field, msgs]) => {
+      const list = Array.isArray(msgs) ? msgs : [msgs];
+      return list.filter(Boolean).map((entry) => (field ? `${field}: ${entry}` : entry));
+    });
+    if (messages.length) {
+      body.message = messages.join(" ");
     }
   }
 

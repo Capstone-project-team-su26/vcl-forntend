@@ -4,11 +4,18 @@ import { Icon } from "@iconify/react";
 import Link from "next/link";
 import { useState } from "react";
 import AppLogo from "@/app/components/AppLogo";
+import ThemeToggle from "@/app/components/ThemeToggle";
 import UserNavMenu from "@/app/components/UserNavMenu";
 import { ROUTES } from "@/utils/appRoutes";
 const navItems = [
   { id: "dashboard", label: "Dashboard", icon: "lucide:layout-dashboard" },
   { id: "users", label: "Users", icon: "lucide:users", href: ROUTES.admin.users },
+  {
+    id: "consignments",
+    label: "Y\xEAu c\u1EA7u k\xFD g\u1EEDi",
+    icon: "lucide:package-search",
+    href: ROUTES.admin.consignments
+  },
   {
     id: "restricted-items",
     label: "H\xE0ng c\u1EA5m",
@@ -17,9 +24,27 @@ const navItems = [
   },
   {
     id: "pricing-rules",
-    label: "B\u1EA3ng gi\xE1",
+    label: "Giá DV chính",
     icon: "lucide:receipt",
     href: ROUTES.admin.pricingRules
+  },
+  {
+    id: "warehouses",
+    label: "Qu\u1EA3n l\xFD kho",
+    icon: "lucide:warehouse",
+    href: ROUTES.admin.warehouses
+  },
+  {
+    id: "shipping-methods",
+    label: "V\u1EADn chuy\u1EC3n",
+    icon: "lucide:truck",
+    href: ROUTES.admin.shippingMethods
+  },
+  {
+    id: "additional-service-fees",
+    label: "Ph\u00ED DV b\u1ED5 sung",
+    icon: "lucide:layers",
+    href: ROUTES.admin.additionalServiceFees
   },
   { id: "alerts", label: "Alerts", icon: "lucide:bell" },
   { id: "settings", label: "Settings", icon: "lucide:settings" }
@@ -53,7 +78,8 @@ function AdminLayout({ activeNav, children }) {
               /* @__PURE__ */ jsx(Icon, { icon: item.icon, className: "w-5 h-5" }),
               item.label
             ] }, item.id);
-          }) })
+          }) }),
+          /* @__PURE__ */ jsx("div", { className: "px-3 py-4 border-t border-border-muted shrink-0", children: /* @__PURE__ */ jsx(ThemeToggle, {}) })
         ]
       }
     ),

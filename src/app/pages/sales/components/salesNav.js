@@ -9,10 +9,22 @@ export const SALES_NAV = [
     icon: "/assets/IMG_2.svg",
   },
   {
+    id: "customers",
+    label: "Khách hàng",
+    href: ROUTES.sales.customers,
+    icon: "/assets/IMG_3.svg",
+  },
+  {
     id: "consignments",
     label: "Quản lý ký gửi",
     href: ROUTES.sales.consignments,
     icon: "/assets/IMG_4.svg",
+  },
+  {
+    id: "purchase-requests",
+    label: "Mua hộ",
+    href: ROUTES.sales.purchaseRequests,
+    icon: "/assets/IMG_5.svg",
   },
 ];
 
