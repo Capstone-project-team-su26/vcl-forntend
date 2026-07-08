@@ -7,7 +7,15 @@ export const CHAT_EVENTS = {
 };
 
 const HUB_CACHE_KEY = "vcl:chatHubAvailable";
+const HUB_CACHE_AT_KEY = "vcl:chatHubAvailableAt";
+const HUB_CACHE_TTL_MS = 60_000;
 let hubProbePromise = null;
+
+export function clearChatHubCache() {
+  if (typeof window === "undefined") return;
+  sessionStorage.removeItem(HUB_CACHE_KEY);
+  sessionStorage.removeItem(HUB_CACHE_AT_KEY);
+}
 
 /**
  * Hub SignalR phải trỏ thẳng backend (không qua proxy /api của Next.js).
@@ -65,8 +73,11 @@ async function probeChatHubOnce() {
 
   if (typeof window !== "undefined") {
     const cached = sessionStorage.getItem(HUB_CACHE_KEY);
-    if (cached === "0") return false;
-    if (cached === "1") return true;
+    const cachedAt = Number(sessionStorage.getItem(HUB_CACHE_AT_KEY) || 0);
+    // Chỉ cache khi hub OK; không cache 404 cũ (BE có thể deploy sau).
+    if (cached === "1" && Date.now() - cachedAt < HUB_CACHE_TTL_MS) {
+      return true;
+    }
   }
 
   const token = getAccessToken();
@@ -80,14 +91,17 @@ async function probeChatHubOnce() {
     const available = response.ok;
 
     if (typeof window !== "undefined") {
-      sessionStorage.setItem(HUB_CACHE_KEY, available ? "1" : "0");
+      if (available) {
+        sessionStorage.setItem(HUB_CACHE_KEY, "1");
+        sessionStorage.setItem(HUB_CACHE_AT_KEY, String(Date.now()));
+      } else {
+        clearChatHubCache();
+      }
     }
 
     return available;
   } catch {
-    if (typeof window !== "undefined") {
-      sessionStorage.setItem(HUB_CACHE_KEY, "0");
-    }
+    clearChatHubCache();
     return false;
   }
 }

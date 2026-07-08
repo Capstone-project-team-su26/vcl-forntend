@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   CHAT_EVENTS,
+  clearChatHubCache,
   createChatHubConnection,
   isHubNotFoundError,
   joinConversation,
@@ -38,6 +39,7 @@ export function useConversationChat({ conversationId, onMessage, onMessagesRead 
     let cancelled = false;
 
     const connect = async () => {
+      clearChatHubCache();
       const available = await probeChatHubAvailability();
       if (cancelled) return;
 
