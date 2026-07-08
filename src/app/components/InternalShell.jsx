@@ -46,14 +46,14 @@ export default function InternalShell({
                 onClick={() => setIsSidebarOpen(false)}
                 className={`w-full flex items-center gap-3 pl-2.5 pr-3 py-2.5 rounded-lg border-l-[3px] transition-all ${
                   isActive
-                    ? "border-l-secondary bg-primary/20 text-secondary font-bold"
-                    : "border-l-transparent text-muted hover:bg-surface-muted hover:text-secondary"
+                    ? "border-l-primary bg-surface-muted text-ink font-bold"
+                    : "border-l-transparent text-muted hover:bg-surface-muted hover:text-ink"
                 }`}
               >
                 <span
                   className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border-2 ${
                     isActive
-                      ? "border-secondary bg-primary text-secondary"
+                      ? "border-primary/40 bg-surface-elevated text-primary"
                       : "border-border bg-surface-elevated text-muted"
                   }`}
                 >

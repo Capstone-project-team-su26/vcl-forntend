@@ -56,50 +56,54 @@
   --theme-on-solid: #f9f9f9;
 }
 
-/* ─── Dark theme (cùng 4 màu) ─── */
+/* ─── Dark theme — TRUE DARK trung tính ───
+   Nền xám than gần trung tính (không phải navy bão hòa) để đỡ mỏi mắt.
+   Brand turquoise/navy chỉ dùng làm ACCENT (chữ nhấn, link, viền nhẹ).
+   Vì secondary/primary là màu SÁNG trên nền tối → chữ trên nút solid dùng
+   `on-solid` MÀU TỐI cho đủ tương phản. */
 .dark {
   color-scheme: dark;
 
-  --theme-primary: #98ded9;
-  --theme-primary-hover: #c7ffd8;
-  --theme-secondary: #161d6f;
-  --theme-secondary-hover: #98ded9;
-  --theme-accent: #c7ffd8;
-  --theme-accent-subtle: #f9f9f9;
+  --theme-primary: #7ed4ce;
+  --theme-primary-hover: #a7ead8;
+  --theme-secondary: #93b4ff;
+  --theme-secondary-hover: #b9d0ff;
+  --theme-accent: #a7ead8;
+  --theme-accent-subtle: #1a1d22;
 
-  --theme-ink: #f9f9f9;
-  --theme-ink-deep: #f9f9f9;
-  --theme-muted: color-mix(in srgb, #f9f9f9 75%, #161d6f);
-  --theme-nav: #f9f9f9;
-  --theme-subtle: color-mix(in srgb, #f9f9f9 88%, #161d6f);
-  --theme-faint: color-mix(in srgb, #98ded9 70%, #161d6f);
+  --theme-ink: #e4e6ea;
+  --theme-ink-deep: #f2f3f5;
+  --theme-muted: #9aa0aa;
+  --theme-nav: #e4e6ea;
+  --theme-subtle: #c3c7ce;
+  --theme-faint: #6c727c;
 
-  --theme-border: #98ded9;
-  --theme-border-muted: color-mix(in srgb, #98ded9 45%, #161d6f);
-  --theme-surface: #161d6f;
-  --theme-surface-elevated: color-mix(in srgb, #161d6f 92%, #98ded9);
-  --theme-surface-alt: color-mix(in srgb, #c7ffd8 18%, #161d6f);
-  --theme-surface-muted: color-mix(in srgb, #98ded9 12%, #161d6f);
-  --theme-surface-soft: #161d6f;
-  --theme-surface-panel: #161d6f;
-  --theme-surface-tint: color-mix(in srgb, #98ded9 20%, #161d6f);
+  --theme-border: #2c313a;
+  --theme-border-muted: #23272f;
+  --theme-surface: #16181c;
+  --theme-surface-elevated: #1d2024;
+  --theme-surface-alt: #202329;
+  --theme-surface-muted: #1a1d22;
+  --theme-surface-soft: #16181c;
+  --theme-surface-panel: #16181c;
+  --theme-surface-tint: color-mix(in srgb, #7ed4ce 10%, #16181c);
 
-  --theme-danger: #f87171;
-  --theme-danger-bg: color-mix(in srgb, #dc2626 22%, #161d6f);
-  --theme-danger-border: #f87171;
-  --theme-danger-hover-bg: color-mix(in srgb, #dc2626 38%, #161d6f);
-  --theme-success: #98ded9;
-  --theme-insight: #98ded9;
-  --theme-warning-bg: color-mix(in srgb, #c7ffd8 35%, #161d6f);
-  --theme-warning-text: #f9f9f9;
-  --theme-success-bg: color-mix(in srgb, #98ded9 30%, #161d6f);
-  --theme-success-text: #f9f9f9;
-  --theme-info-bg: color-mix(in srgb, #98ded9 22%, #161d6f);
-  --theme-info-text: #f9f9f9;
+  --theme-danger: #f27a7a;
+  --theme-danger-bg: color-mix(in srgb, #dc2626 16%, #16181c);
+  --theme-danger-border: color-mix(in srgb, #f27a7a 55%, #16181c);
+  --theme-danger-hover-bg: color-mix(in srgb, #dc2626 26%, #16181c);
+  --theme-success: #7ed4ce;
+  --theme-insight: #93b4ff;
+  --theme-warning-bg: color-mix(in srgb, #c7ffd8 14%, #16181c);
+  --theme-warning-text: #e4e6ea;
+  --theme-success-bg: color-mix(in srgb, #7ed4ce 14%, #16181c);
+  --theme-success-text: #e4e6ea;
+  --theme-info-bg: color-mix(in srgb, #93b4ff 14%, #16181c);
+  --theme-info-text: #e4e6ea;
 
-  --theme-background: #161d6f;
-  --theme-foreground: #f9f9f9;
-  --theme-on-solid: #f9f9f9;
+  --theme-background: #0f1012;
+  --theme-foreground: #e4e6ea;
+  --theme-on-solid: #0f1012;
 }
 
 @theme inline {
@@ -351,26 +355,43 @@ button:focus {
   background-color: var(--theme-surface-elevated);
 }
 
-/* Dark: các lớp nền cứng phổ biến */
-.dark .bg-white {
+/* Dark: trung hòa mọi lớp nền/viền/chữ xám cứng còn sót (không dùng biến theme) */
+.dark .bg-white,
+.dark .bg-gray-50,
+.dark .bg-gray-100,
+.dark .bg-gray-200 {
   background-color: var(--theme-surface-elevated);
 }
 
-.dark .bg-gray-50,
-.dark .hover\:bg-gray-50:hover {
-  background-color: color-mix(in srgb, var(--theme-surface-elevated) 85%, var(--theme-primary) 15%);
+.dark .hover\:bg-gray-50:hover,
+.dark .hover\:bg-gray-100:hover,
+.dark .hover\:bg-gray-200:hover {
+  background-color: var(--theme-surface-muted);
 }
 
-.dark .hover\:bg-gray-100:hover {
-  background-color: color-mix(in srgb, var(--theme-surface-elevated) 75%, var(--theme-primary) 25%);
-}
-
-.dark .divide-gray-50 > :not([hidden]) ~ :not([hidden]) {
+.dark .border-gray-50,
+.dark .border-gray-100,
+.dark .border-gray-200,
+.dark .border-gray-300 {
   border-color: var(--theme-border-muted);
 }
 
-.dark .border-gray-50 {
+.dark .divide-gray-50 > :not([hidden]) ~ :not([hidden]),
+.dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]) {
   border-color: var(--theme-border-muted);
+}
+
+.dark .text-gray-400,
+.dark .text-gray-500,
+.dark .text-gray-600 {
+  color: var(--theme-muted);
+}
+
+.dark .text-gray-700,
+.dark .text-gray-800,
+.dark .text-gray-900,
+.dark .text-black {
+  color: var(--theme-ink);
 }
 
 @layer base {

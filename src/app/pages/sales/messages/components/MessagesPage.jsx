@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useConversationChat } from "@/hooks/useConversationChat";
 import { getSession } from "@/utils/authSession";
 import { getErrorMessage } from "@/utils/apiError";
+import { isMockMode } from "@/utils/mocks/dataSource";
 import {
   CONVERSATION_RELATED_TYPE_LABELS,
   formatMessageTime,

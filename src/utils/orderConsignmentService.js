@@ -53,7 +53,7 @@ export const CONSIGNMENT_STATUS_LABELS = {
 };
 
 export const CONSIGNMENT_STATUS_STYLES = {
-  PENDING_REVIEW: "bg-accent text-secondary border-2 border-secondary",
+  PENDING_REVIEW: "bg-warning-bg text-warning-text border-2 border-primary",
   QUOTATION_SENT: "bg-info-bg text-info-text border-2 border-primary",
   QUOTATION_CONFIRMED: "bg-success-bg text-success-text border-2 border-primary",
   QUOTATION_REJECTED: "bg-danger-bg text-danger border-2 border-danger-border",
@@ -63,7 +63,7 @@ export const CONSIGNMENT_STATUS_STYLES = {
   IN_WAREHOUSE: "bg-info-bg text-info-text border-2 border-primary",
   WAREHOUSE_RECEIVED: "bg-success-bg text-success-text border-2 border-primary",
   CANCELLED: "bg-surface-muted text-ink border-2 border-border",
-  COMPLETED: "bg-primary/30 text-secondary border-2 border-secondary",
+  COMPLETED: "bg-success-bg text-success-text border-2 border-primary",
 };
 
 export const CONSIGNMENT_STATUS_ICONS = {
