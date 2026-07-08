@@ -53,17 +53,31 @@ export const CONSIGNMENT_STATUS_LABELS = {
 };
 
 export const CONSIGNMENT_STATUS_STYLES = {
-  PENDING_REVIEW: "bg-warning-bg text-warning-text",
-  QUOTATION_SENT: "bg-primary/15 text-primary",
-  QUOTATION_CONFIRMED: "bg-success-bg text-success-text",
-  QUOTATION_REJECTED: "bg-danger/10 text-danger",
-  APPROVED: "bg-success-bg text-success-text",
-  REJECTED: "bg-danger/10 text-danger",
-  IN_PROGRESS: "bg-info-bg text-info-text",
-  IN_WAREHOUSE: "bg-info-bg text-info-text",
-  WAREHOUSE_RECEIVED: "bg-info-bg text-info-text",
-  CANCELLED: "bg-surface text-muted",
-  COMPLETED: "bg-surface text-muted",
+  PENDING_REVIEW: "bg-accent text-secondary border-2 border-secondary",
+  QUOTATION_SENT: "bg-info-bg text-info-text border-2 border-primary",
+  QUOTATION_CONFIRMED: "bg-success-bg text-success-text border-2 border-primary",
+  QUOTATION_REJECTED: "bg-danger-bg text-danger border-2 border-danger-border",
+  APPROVED: "bg-success-bg text-success-text border-2 border-primary",
+  REJECTED: "bg-danger-bg text-danger border-2 border-danger-border",
+  IN_PROGRESS: "bg-info-bg text-info-text border-2 border-primary",
+  IN_WAREHOUSE: "bg-info-bg text-info-text border-2 border-primary",
+  WAREHOUSE_RECEIVED: "bg-success-bg text-success-text border-2 border-primary",
+  CANCELLED: "bg-surface-muted text-ink border-2 border-border",
+  COMPLETED: "bg-primary/30 text-secondary border-2 border-secondary",
+};
+
+export const CONSIGNMENT_STATUS_ICONS = {
+  PENDING_REVIEW: "lucide:clock",
+  QUOTATION_SENT: "lucide:send",
+  QUOTATION_CONFIRMED: "lucide:check-circle",
+  QUOTATION_REJECTED: "lucide:x-circle",
+  APPROVED: "lucide:package-check",
+  REJECTED: "lucide:ban",
+  IN_PROGRESS: "lucide:truck",
+  IN_WAREHOUSE: "lucide:warehouse",
+  WAREHOUSE_RECEIVED: "lucide:package",
+  CANCELLED: "lucide:minus-circle",
+  COMPLETED: "lucide:circle-check",
 };
 
 /** Sales chỉ duyệt sau khi khách xác nhận báo giá. */
@@ -134,8 +148,9 @@ function getSortValue(item, sortBy) {
   switch (sortBy) {
     case "code":
       return (formatConsignmentDisplayCode(item) ?? item.consignmentCode ?? item.id ?? "").toString().toLowerCase();
+    case "receiverName":
     case "customerName":
-      return (item.customerName ?? "").toString().toLowerCase();
+      return (item.receiverName ?? item.customerName ?? "").toString().toLowerCase();
     case "consignmentType":
       return (item.consignmentType ?? "").toString().toLowerCase();
     case "status":
@@ -220,7 +235,7 @@ function filterConsignments(items, { status, search, consignmentType, dateFrom, 
     const query = search.toLowerCase();
     filtered = filtered.filter((item) => {
       const code = formatConsignmentDisplayCode(item) ?? item.consignmentCode ?? item.id ?? "";
-      const haystack = [code, item.id, item.customerName, item.consignmentType]
+      const haystack = [code, item.id, item.receiverName, item.customerName, item.consignmentType]
         .filter(Boolean)
         .join(" ")
         .toLowerCase();

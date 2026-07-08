@@ -901,7 +901,7 @@ export default function ConsignmentQuotationWizard({ preselectedCustomerId }) {
                         <button
                           type="button"
                           onClick={() => removeCustomFee(fee.id)}
-                          className="text-danger hover:text-danger/80"
+                          className="btn-delete-icon"
                           aria-label="Xóa phí"
                         >
                           <Icon icon="lucide:trash-2" className="w-4 h-4" />

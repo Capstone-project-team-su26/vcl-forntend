@@ -6,13 +6,13 @@ import { useEffect, useMemo, useState } from "react";
 import AdminLayout from "@/app/pages/admin/components/AdminLayout";
 import DataTable from "@/app/components/DataTable";
 import * as orderConsignmentService from "@/utils/orderConsignmentService";
+import ConsignmentStatusBadge from "@/app/pages/sales/consignments/components/ConsignmentStatusBadge";
 import { getErrorMessage } from "@/utils/apiError";
 import { ROUTES } from "@/utils/appRoutes";
 
 const {
   CONSIGNMENT_TYPE_LABELS,
   CONSIGNMENT_STATUS_LABELS,
-  CONSIGNMENT_STATUS_STYLES,
   formatConsignmentDate,
   formatConsignmentDisplayCode,
 } = orderConsignmentService;
@@ -22,15 +22,7 @@ const STATUS_FILTER_OPTIONS = Object.entries(CONSIGNMENT_STATUS_LABELS).map(
 );
 
 function StatusBadge({ status }) {
-  return (
-    <span
-      className={`inline-block px-3 py-1 rounded-full text-[12px] font-bold ${
-        CONSIGNMENT_STATUS_STYLES[status] || "bg-surface text-muted"
-      }`}
-    >
-      {CONSIGNMENT_STATUS_LABELS[status] || status}
-    </span>
-  );
+  return <ConsignmentStatusBadge status={status} />;
 }
 
 function getRoute(item) {
@@ -104,12 +96,12 @@ export default function AdminConsignmentsPage() {
         render: (item) => formatConsignmentDisplayCode(item) ?? "—",
       },
       {
-        key: "customerName",
-        title: "Khách hàng",
+        key: "receiverName",
+        title: "Người nhận",
         sortable: true,
         searchable: true,
         className: "font-medium",
-        render: (item) => item.customerName || "—",
+        render: (item) => item.receiverName || "—",
       },
       {
         key: "consignmentType",
@@ -165,10 +157,11 @@ export default function AdminConsignmentsPage() {
         render: (item) => (
           <Link
             href={ROUTES.admin.consignment(item.id)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-secondary/30 text-secondary text-sm font-bold hover:bg-surface-muted transition-colors"
+            className="inline-flex items-center justify-center p-2 rounded-lg border border-secondary/30 text-secondary hover:bg-surface-muted transition-colors"
+            title="Xem chi tiết"
+            aria-label="Xem chi tiết"
           >
             <Icon icon="lucide:eye" className="w-4 h-4" />
-            Xem
           </Link>
         ),
       },

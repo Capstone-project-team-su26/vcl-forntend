@@ -41,6 +41,12 @@ const navItems = [
     href: ROUTES.admin.shippingMethods
   },
   {
+    id: "carriers",
+    label: "\u0110\u01A1n v\u1ECB v\u1EADn chuy\u1EC3n",
+    icon: "lucide:plane",
+    href: ROUTES.admin.carriers
+  },
+  {
     id: "additional-service-fees",
     label: "Ph\u00ED DV b\u1ED5 sung",
     icon: "lucide:layers",

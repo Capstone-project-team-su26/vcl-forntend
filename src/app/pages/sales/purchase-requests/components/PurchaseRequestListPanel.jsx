@@ -112,10 +112,11 @@ export default function PurchaseRequestListPanel() {
         render: (row) => (
           <Link
             href={ROUTES.sales.purchaseRequest(row.id)}
-            className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
+            className="inline-flex items-center justify-center p-2 rounded-lg border border-secondary/30 text-secondary hover:bg-surface-muted transition-colors"
+            title="Xem chi tiết"
+            aria-label="Xem chi tiết"
           >
-            Xem chi tiết
-            <Icon icon="lucide:arrow-right" className="w-4 h-4" />
+            <Icon icon="lucide:eye" className="w-4 h-4" />
           </Link>
         ),
       },

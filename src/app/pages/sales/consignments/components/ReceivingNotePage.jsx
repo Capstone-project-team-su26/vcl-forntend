@@ -181,7 +181,26 @@ export default function ReceivingNotePage({ consignmentId }) {
               <h2 className="text-lg font-extrabold font-['Oswald'] mb-2">Yêu cầu ký gửi</h2>
               <dl>
                 <DetailRow label="Mã yêu cầu" value={consignmentCode} />
-                <DetailRow label="Tên khách hàng" value={consignment.customerName} />
+                <DetailRow
+                  label="Người gửi"
+                  value={consignment.senderName || consignment.customerName || "—"}
+                />
+                <DetailRow
+                  label="SĐT người gửi"
+                  value={consignment.senderPhone || "—"}
+                />
+                <DetailRow
+                  label="Người nhận"
+                  value={consignment.receiverName || "—"}
+                />
+                <DetailRow
+                  label="SĐT người nhận"
+                  value={consignment.receiverPhone || "—"}
+                />
+                <DetailRow
+                  label="Địa chỉ nhận"
+                  value={consignment.receiverAddress || "—"}
+                />
                 <DetailRow
                   label="Loại ký gửi"
                   value={

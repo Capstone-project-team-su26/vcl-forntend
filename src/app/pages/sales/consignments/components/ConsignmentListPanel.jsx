@@ -4,6 +4,7 @@ import { Icon } from "@iconify/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import ConsignmentStatusBadge from "@/app/pages/sales/consignments/components/ConsignmentStatusBadge";
 import * as orderConsignmentService from "@/utils/orderConsignmentService";
 import { getErrorMessage } from "@/utils/apiError";
 import { ROUTES } from "@/utils/appRoutes";
@@ -14,7 +15,6 @@ const {
   CONSIGNMENT_TYPE_LABELS,
   CONSIGNMENT_TYPE_FILTER_OPTIONS,
   CONSIGNMENT_STATUS_LABELS,
-  CONSIGNMENT_STATUS_STYLES,
   formatConsignmentDate,
   formatConsignmentDisplayCode,
 } = orderConsignmentService;
@@ -50,15 +50,7 @@ const POPOVER_INPUT_CLASS =
   "w-full h-9 px-2.5 rounded-md border border-border-muted bg-surface text-sm text-ink input-focus-ring";
 
 function StatusBadge({ status }) {
-  return (
-    <span
-      className={`inline-block px-3 py-1 rounded-full text-[12px] font-bold ${
-        CONSIGNMENT_STATUS_STYLES[status] || "bg-surface text-muted"
-      }`}
-    >
-      {CONSIGNMENT_STATUS_LABELS[status] || status}
-    </span>
-  );
+  return <ConsignmentStatusBadge status={status} />;
 }
 
 function hasActiveFilters(filters) {
@@ -397,8 +389,8 @@ export default function ConsignmentListPanel() {
                 <ColumnHeader {...columnHeaderProps} title="Mã yêu cầu" sortKey="code" />
                 <ColumnHeader
                   {...columnHeaderProps}
-                  title="Tên khách hàng"
-                  sortKey="customerName"
+                  title="Người nhận"
+                  sortKey="receiverName"
                 />
                 <ColumnHeader
                   {...columnHeaderProps}
@@ -456,7 +448,7 @@ export default function ConsignmentListPanel() {
                     <td className="px-6 py-4 text-sm font-bold text-secondary">
                       {formatConsignmentDisplayCode(item) ?? "—"}
                     </td>
-                    <td className="px-6 py-4 text-sm font-medium">{item.customerName}</td>
+                    <td className="px-6 py-4 text-sm font-medium">{item.receiverName || "—"}</td>
                     <td className="px-6 py-4 text-sm text-muted">
                       {CONSIGNMENT_TYPE_LABELS[item.consignmentType] || item.consignmentType}
                     </td>
@@ -470,10 +462,11 @@ export default function ConsignmentListPanel() {
                       <Link
                         href={ROUTES.sales.consignment(item.id)}
                         onClick={(event) => event.stopPropagation()}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-secondary/30 text-secondary text-sm font-bold hover:bg-surface-muted transition-colors"
+                        className="inline-flex items-center justify-center p-2 rounded-lg border border-secondary/30 text-secondary hover:bg-surface-muted transition-colors"
+                        title="Xem chi tiết"
+                        aria-label="Xem chi tiết"
                       >
                         <Icon icon="lucide:eye" className="w-4 h-4" />
-                        Xem chi tiết
                       </Link>
                     </td>
                   </tr>

@@ -398,7 +398,7 @@ export default function WarehousesPage() {
                             type="button"
                             disabled={isPending}
                             onClick={() => handleDeleteWarehouse(warehouse)}
-                            className="p-2 text-danger hover:bg-danger/10 rounded-lg disabled:opacity-50"
+                            className="btn-delete-icon disabled:opacity-50"
                             title="Xóa"
                           >
                             <Icon icon="lucide:trash-2" className="w-4 h-4" />
@@ -501,7 +501,7 @@ export default function WarehousesPage() {
                                             onClick={() =>
                                               handleDeleteLocation(warehouse.id, location)
                                             }
-                                            className="p-2 text-danger hover:bg-danger/10 rounded-lg disabled:opacity-50"
+                                            className="btn-delete-icon disabled:opacity-50"
                                             title="Xóa"
                                           >
                                             <Icon icon="lucide:trash-2" className="w-4 h-4" />

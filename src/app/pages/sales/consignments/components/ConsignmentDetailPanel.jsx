@@ -7,18 +7,17 @@ import * as orderConsignmentService from "@/utils/orderConsignmentService";
 import * as consignmentQuotationService from "@/utils/consignmentQuotationService";
 import { getErrorMessage } from "@/utils/apiError";
 import { ROUTES } from "@/utils/appRoutes";
-import { formatVolumeCm3, volumeM3ToCm3, formatItemDimensions, formatItemDimFormula } from "@/utils/servicePricingService";
+import ConsignmentStatusBadge from "@/app/pages/sales/consignments/components/ConsignmentStatusBadge";
+import { formatVolumeCm3, volumeM3ToCm3, formatItemDimensions, calculateItemDimWeightKg } from "@/utils/servicePricingService";
 
 const {
   CONSIGNMENT_TYPE_LABELS,
   CONSIGNMENT_STATUS_LABELS,
-  CONSIGNMENT_STATUS_STYLES,
   canStaffSendConsignmentQuotation,
   canStaffUpdateConsignmentStatus,
   canStaffRejectConsignmentStatus,
   formatConsignmentDate,
   formatConsignmentDisplayCode,
-  formatConsignmentPageTitle,
   isImageReferenceUrl,
 } = orderConsignmentService;
 
@@ -27,6 +26,7 @@ const {
   getQuotationDisplayLines,
   getConsignmentQuotationHeading,
   isDraftConsignmentQuotation,
+  formatMoney,
 } = consignmentQuotationService;
 
 function formatConsignmentTypeLabel(detail) {
@@ -44,21 +44,151 @@ function formatConsignmentTypeLabel(detail) {
   return orderLabel || "—";
 }
 
-function DetailRow({ label, value }) {
+function shortenReferenceId(value) {
+  if (!value || typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (trimmed.length <= 18) return trimmed;
+  return `${trimmed.slice(0, 8)}…${trimmed.slice(-4)}`;
+}
+
+function NoticeBanner({ variant = "info", icon, children }) {
+  const tone =
+    variant === "success"
+      ? "border-primary bg-success-bg text-success-text"
+      : variant === "warning" || variant === "error"
+        ? "border-accent bg-warning-bg text-warning-text"
+        : "border-primary bg-info-bg text-info-text";
+
   return (
-    <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4 py-3 border-b border-gray-50 last:border-0">
-      <dt className="text-sm font-bold text-muted sm:w-44 shrink-0">{label}</dt>
-      <dd className="text-sm font-medium text-ink">{value}</dd>
+    <div className={`flex gap-3 rounded-lg border px-4 py-3 text-sm ${tone}`}>
+      <Icon icon={icon} className="w-5 h-5 shrink-0 text-secondary" aria-hidden />
+      <div className="min-w-0 font-medium text-secondary leading-relaxed">{children}</div>
     </div>
   );
 }
 
+function DetailRow({ label, value }) {
+  return (
+    <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4 py-3 border-b border-border-muted last:border-0">
+      <dt className="text-sm font-semibold text-faint sm:w-44 shrink-0">{label}</dt>
+      <dd className="text-sm font-semibold text-secondary">{value}</dd>
+    </div>
+  );
+}
+
+function CopyCodeButton({ value }) {
+  const [copied, setCopied] = useState(false);
+
+  if (!value) return null;
+
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      className="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-border-muted text-muted hover:text-primary hover:border-primary/30 hover:bg-primary/5 transition-colors"
+      title={copied ? "Đã sao chép" : "Sao chép mã"}
+      aria-label={copied ? "Đã sao chép mã" : "Sao chép mã"}
+    >
+      <Icon icon={copied ? "lucide:check" : "lucide:copy"} className="w-4 h-4" />
+    </button>
+  );
+}
+
+function PartySection({ title, name, phone, address }) {
+  return (
+    <div className="rounded-lg border border-primary bg-surface-elevated overflow-hidden">
+      <div className="px-4 py-3 border-b border-primary">
+        <p className="text-xs font-bold uppercase tracking-wide text-secondary">{title}</p>
+        <p className="mt-1 text-base font-bold text-secondary">{name || "—"}</p>
+      </div>
+      <div className="px-4 pb-1">
+        <dl>
+          <DetailRow label="Số điện thoại" value={phone || "—"} />
+          <DetailRow label="Địa chỉ" value={address || "—"} />
+        </dl>
+      </div>
+    </div>
+  );
+}
+
+function NextStepCard({ detail, canSendQuotation }) {
+  if (!canSendQuotation) return null;
+
+  const isRejected = detail.status === "QUOTATION_REJECTED";
+  const hasDraft = detail.quotation && isDraftConsignmentQuotation(detail.quotation);
+
+  const title = isRejected
+    ? "Gửi báo giá mới"
+    : hasDraft
+      ? "Kiểm tra và gửi báo giá"
+      : "Lập báo giá cho khách";
+
+  const description = isRejected
+    ? "Khách đã từ chối báo giá trước đó. Bạn cần rà soát lại phí và gửi báo giá mới."
+    : hasDraft
+      ? "Hệ thống đã tạo báo giá tạm tính. Bạn cần kiểm tra phí, điều chỉnh nếu cần và gửi cho khách."
+      : "Yêu cầu mới cần được tư vấn. Bạn cần lập báo giá và gửi cho khách xác nhận.";
+
+  return (
+    <div className="rounded-xl border-2 border-primary bg-surface-elevated p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex gap-4 min-w-0">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-primary bg-surface-tint text-secondary">
+          <Icon icon="lucide:clipboard-check" className="w-5 h-5" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-xs font-bold uppercase tracking-wide text-secondary">Việc cần làm</p>
+          <h3 className="text-base font-bold text-secondary mt-0.5">{title}</h3>
+          <p className="text-sm text-secondary mt-1 leading-relaxed">{description}</p>
+        </div>
+      </div>
+      <Link
+        href={ROUTES.sales.consignmentQuotation(detail.id)}
+        className="inline-flex shrink-0 items-center justify-center gap-2 h-11 px-5 rounded-lg bg-secondary text-accent-subtle text-sm font-bold hover:bg-primary transition-colors"
+      >
+        <Icon icon="lucide:calculator" className="w-4 h-4" />
+        {isRejected ? "Gửi báo giá mới" : "Tư vấn & báo giá"}
+      </Link>
+    </div>
+  );
+}
+
+function formatDeclaredValue(value) {
+  if (value == null || Number.isNaN(Number(value))) return "—";
+  return formatMoney(Number(value));
+}
+
+function formatDimDisplay(length, width, height) {
+  const dimKg = calculateItemDimWeightKg(length, width, height);
+  if (dimKg == null) return null;
+
+  const l = Number(length);
+  const w = Number(width);
+  const h = Number(height);
+  const value = `${dimKg.toLocaleString("vi-VN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })} kg`;
+  const formula = `(${l}×${w}×${h}) / 5.000`;
+
+  return { value, formula };
+}
+
 function ProductColumnHeader({ title, hint, className = "" }) {
   return (
-    <th className={`px-4 py-3 text-[11px] font-bold uppercase tracking-wide text-muted ${className}`}>
+    <th className={`px-4 py-3 text-xs font-bold text-secondary ${className}`}>
       <span className="block">{title}</span>
       {hint ? (
-        <span className="block mt-0.5 font-normal normal-case text-[10px] text-muted/80">{hint}</span>
+        <span className="block mt-0.5 font-normal text-xs text-faint">{hint}</span>
       ) : null}
     </th>
   );
@@ -82,13 +212,13 @@ function ConsignmentProductsTable({ items }) {
   if (!items?.length) return null;
 
   return (
-    <div className="bg-white rounded-xl shadow-[0px_2px_4px_0px_#00000012] p-6 border border-surface-muted/50 space-y-4">
+    <div className="bg-surface-elevated rounded-xl p-6 border border-border space-y-4">
       <div>
         <div className="flex items-center gap-2">
-          <Icon icon="lucide:package" className="w-5 h-5 text-accent" />
+          <Icon icon="lucide:package" className="w-5 h-5 text-secondary" />
           <h3 className="text-lg font-extrabold font-['Oswald'] text-ink">Danh sách sản phẩm</h3>
         </div>
-        <p className="text-sm text-muted mt-1">
+        <p className="text-sm text-subtle mt-1">
           Có {items.length} dòng sản phẩm trong lô hàng. Trọng lượng là <strong className="text-ink">tổng dòng</strong>;
           kích thước và DIM tính theo <strong className="text-ink">từng kiện</strong>.
         </p>
@@ -97,15 +227,15 @@ function ConsignmentProductsTable({ items }) {
       <div className="overflow-x-auto rounded-xl border border-surface-muted/60">
         <table className="w-full min-w-[880px] text-left text-sm">
           <thead>
-            <tr className="border-b border-surface-muted/80 bg-surface/80">
+            <tr className="border-b-2 border-primary bg-surface-elevated">
               <ProductColumnHeader title="STT" />
-              <ProductColumnHeader title="Hình ảnh" />
+              <ProductColumnHeader title="Ảnh" />
               <ProductColumnHeader title="Sản phẩm" />
-              <ProductColumnHeader title="Số lượng" hint="(kiện)" className="text-center" />
-              <ProductColumnHeader title="TL thực" hint="(tổng dòng)" />
-              <ProductColumnHeader title="Kích thước" hint="(mỗi kiện)" />
-              <ProductColumnHeader title="DIM" hint="(mỗi kiện)" />
-              <ProductColumnHeader title="Giá trị khai báo" hint="(tổng dòng)" />
+              <ProductColumnHeader title="SL" hint="kiện" className="text-right" />
+              <ProductColumnHeader title="TL" hint="tổng dòng" className="text-right" />
+              <ProductColumnHeader title="Kích thước" hint="mỗi kiện" className="text-right" />
+              <ProductColumnHeader title="DIM" hint="mỗi kiện" className="text-right" />
+              <ProductColumnHeader title="Giá khai báo" hint="tổng dòng" className="text-right" />
             </tr>
           </thead>
           <tbody>
@@ -113,24 +243,29 @@ function ConsignmentProductsTable({ items }) {
               const thumbUrl =
                 item.imageUrls?.[0] ?? (isImageReferenceUrl(item.referenceUrl) ? item.referenceUrl : null);
               const dimensions = formatItemDimensions(item.length, item.width, item.height);
-              const dimFormula = formatItemDimFormula(item.length, item.width, item.height);
+              const dimDisplay = formatDimDisplay(item.length, item.width, item.height);
               const weightDisplay = formatItemWeightDisplay(item.weight, item.quantity);
               const productLink =
                 item.referenceUrl && !isImageReferenceUrl(item.referenceUrl) ? item.referenceUrl : null;
+              const skuLabel = shortenReferenceId(item.domesticTrackingCode || item.id);
+              const showProductType =
+                item.productType &&
+                item.productType !== "GENERAL" &&
+                item.productType !== "—";
 
               return (
                 <tr
                   key={item.id ?? `${item.productName}-${index}`}
-                  className="border-b border-surface-muted/50 last:border-0 align-middle"
+                  className="border-b border-surface-muted/50 last:border-0 align-middle hover:bg-surface/50"
                 >
-                  <td className="px-4 py-4 text-muted font-semibold">{index + 1}</td>
+                  <td className="px-4 py-4 text-subtle font-semibold tabular-nums">{index + 1}</td>
                   <td className="px-4 py-4">
                     {thumbUrl ? (
                       <a
                         href={thumbUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="block w-12 h-12 rounded-lg overflow-hidden border border-surface-muted bg-surface"
+                        className="block w-14 h-14 rounded-lg overflow-hidden border border-surface-muted bg-surface"
                       >
                         <img
                           src={thumbUrl}
@@ -140,15 +275,20 @@ function ConsignmentProductsTable({ items }) {
                         />
                       </a>
                     ) : (
-                      <div className="w-12 h-12 rounded-lg border border-dashed border-surface-muted bg-surface flex items-center justify-center">
+                      <div className="w-14 h-14 rounded-lg border border-dashed border-surface-muted bg-surface flex items-center justify-center">
                         <Icon icon="lucide:image-off" className="w-5 h-5 text-muted" />
                       </div>
                     )}
                   </td>
-                  <td className="px-4 py-4">
+                  <td className="px-4 py-4 min-w-[180px]">
                     <p className="font-semibold text-ink">{item.productName || "—"}</p>
-                    {item.productType ? (
-                      <span className="inline-block mt-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-surface text-muted border border-surface-muted">
+                    {skuLabel ? (
+                      <p className="mt-1 text-xs font-mono text-faint" title={item.domesticTrackingCode || item.id}>
+                        Mã: {skuLabel}
+                      </p>
+                    ) : null}
+                    {showProductType ? (
+                      <span className="inline-block mt-1.5 px-2 py-0.5 rounded text-xs font-semibold bg-surface-tint text-secondary border border-primary">
                         {item.productType}
                       </span>
                     ) : null}
@@ -164,15 +304,17 @@ function ConsignmentProductsTable({ items }) {
                       </a>
                     ) : null}
                   </td>
-                  <td className="px-4 py-4 text-center font-semibold text-ink">
+                  <td className="px-4 py-4 text-right font-semibold text-ink tabular-nums">
                     {item.quantity ?? "—"}
                   </td>
-                  <td className="px-4 py-4">
+                  <td className="px-4 py-4 text-right">
                     {weightDisplay ? (
                       <div>
-                        <p className="font-semibold text-ink whitespace-nowrap">{weightDisplay.totalLabel}</p>
+                        <p className="font-semibold text-ink whitespace-nowrap tabular-nums">
+                          {weightDisplay.totalLabel}
+                        </p>
                         {weightDisplay.perUnitLabel ? (
-                          <p className="text-[11px] text-muted mt-0.5 whitespace-nowrap">
+                          <p className="text-xs text-faint mt-0.5 whitespace-nowrap tabular-nums">
                             ≈ {weightDisplay.perUnitLabel}
                           </p>
                         ) : null}
@@ -181,18 +323,21 @@ function ConsignmentProductsTable({ items }) {
                       "—"
                     )}
                   </td>
-                  <td className="px-4 py-4 text-ink whitespace-nowrap">{dimensions ?? "—"}</td>
-                  <td className="px-4 py-4 text-ink">
-                    {dimFormula ? (
-                      <span className="font-mono text-[13px] leading-snug">{dimFormula}</span>
+                  <td className="px-4 py-4 text-right text-ink whitespace-nowrap tabular-nums">
+                    {dimensions ?? "—"}
+                  </td>
+                  <td className="px-4 py-4 text-right">
+                    {dimDisplay ? (
+                      <div>
+                        <p className="font-semibold text-ink tabular-nums">{dimDisplay.value}</p>
+                        <p className="text-xs text-faint mt-0.5 font-mono">{dimDisplay.formula}</p>
+                      </div>
                     ) : (
                       "—"
                     )}
                   </td>
-                  <td className="px-4 py-4 text-ink whitespace-nowrap">
-                    {item.declaredValue != null
-                      ? `${Number(item.declaredValue).toLocaleString("vi-VN")} đ`
-                      : "—"}
+                  <td className="px-4 py-4 text-right font-semibold text-ink whitespace-nowrap tabular-nums">
+                    {formatDeclaredValue(item.declaredValue)}
                   </td>
                 </tr>
               );
@@ -212,12 +357,12 @@ function QuotationSummary({ quotation }) {
   const isDraft = isDraftConsignmentQuotation(quotation);
 
   return (
-    <div className="bg-white rounded-xl shadow-[0px_2px_4px_0px_#00000012] p-6 border border-surface-muted/50 space-y-4">
+    <div className="bg-surface-elevated rounded-xl p-6 border border-border space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h3 className="text-lg font-extrabold font-['Oswald']">{heading}</h3>
           {isDraft && quotation.expiredAt ? (
-            <p className="text-xs text-muted mt-1">
+            <p className="text-xs text-subtle mt-1">
               Hết hạn tạm tính: {formatConsignmentDate(quotation.expiredAt)}
             </p>
           ) : null}
@@ -240,7 +385,7 @@ function QuotationSummary({ quotation }) {
         </ul>
       ) : null}
       {quotation.salesNote ? (
-        <p className="text-sm text-muted">
+        <p className="text-sm text-subtle">
           <span className="font-semibold text-ink">Ghi chú tư vấn:</span> {quotation.salesNote}
         </p>
       ) : null}
@@ -401,81 +546,69 @@ export default function ConsignmentDetailPanel({
         </div>
       ) : detail ? (
         <>
-          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
-            <div>
-              <h2 className="text-2xl lg:text-3xl font-black tracking-tight font-['Oswald']">
-                {formatConsignmentPageTitle(detail)}
-              </h2>
-              <p className="text-muted text-sm mt-2">
-                Yêu cầu ký gửi của{" "}
-                <span className="font-bold text-ink">{detail.customerName}</span>
-              </p>
+          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 pb-1">
+            <div className="min-w-0">
+              <p className="text-xs font-bold uppercase tracking-wide text-subtle">Mã ký gửi</p>
+              <div className="mt-1 flex items-center gap-2 min-w-0">
+                <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-ink-deep font-mono truncate">
+                  {displayCode ?? "Yêu cầu ký gửi"}
+                </h2>
+                {displayCode ? <CopyCodeButton value={displayCode} /> : null}
+              </div>
             </div>
-            <div className="flex flex-col items-start gap-2">
-              <span className="text-xs font-bold text-muted uppercase tracking-wider">
-                Trạng thái hiện tại
+            <div className="flex flex-col items-start gap-2 shrink-0">
+              <span className="text-xs font-bold text-secondary uppercase tracking-wider">
+                Trạng thái
               </span>
-              <span
-                className={`inline-flex px-4 py-1.5 rounded-full text-sm font-bold ${
-                  CONSIGNMENT_STATUS_STYLES[detail.status] || "bg-surface text-muted"
-                }`}
-              >
-                {CONSIGNMENT_STATUS_LABELS[detail.status] || detail.status}
-              </span>
+              <ConsignmentStatusBadge status={detail.status} className="text-sm" />
             </div>
           </div>
 
+          <div className="grid gap-4 sm:grid-cols-2">
+            <PartySection
+              title="Người gửi"
+              name={detail.senderName || detail.customerName}
+              phone={detail.senderPhone}
+              address={detail.senderAddress}
+            />
+            <PartySection
+              title="Người nhận"
+              name={detail.receiverName}
+              phone={detail.receiverPhone}
+              address={detail.receiverAddress}
+            />
+          </div>
+
           {successMessage ? (
-            <div className="rounded-lg border border-success/30 bg-success-bg px-4 py-3 text-sm text-success-text">
+            <NoticeBanner variant="success" icon="lucide:check-circle">
               <p className="font-semibold">{successMessage}</p>
               {trackingCode && detail.status === "APPROVED" ? (
                 <p className="mt-1">
-                  Mã gửi hàng:{" "}
-                  <span className="font-bold text-ink">{trackingCode}</span>
+                  Mã gửi hàng: <span className="font-bold">{trackingCode}</span>
                 </p>
               ) : null}
-            </div>
+            </NoticeBanner>
           ) : null}
 
           {actionError ? (
-            <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
+            <NoticeBanner variant="error" icon="lucide:alert-circle">
               {actionError}
-            </div>
+            </NoticeBanner>
           ) : null}
 
-          {canSendQuotation ? (
-            <div className="bg-white rounded-xl border border-primary/20 p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
-                <h3 className="text-lg font-extrabold font-['Oswald']">Bước tiếp theo</h3>
-                <p className="text-sm text-muted mt-1">
-                  {detail.status === "QUOTATION_REJECTED"
-                    ? "Khách đã từ chối báo giá trước đó. Sales có thể tư vấn và gửi báo giá mới."
-                    : detail.quotation && isDraftConsignmentQuotation(detail.quotation)
-                      ? "Đã có báo giá tạm tính từ hệ thống. Sales kiểm tra, chỉnh phí và gửi cho khách."
-                      : "Khách đã gửi yêu cầu. Sales tư vấn, chỉnh phí và gửi báo giá."}
-                </p>
-              </div>
-              <Link
-                href={ROUTES.sales.consignmentQuotation(detail.id)}
-                className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-lg bg-primary text-white text-sm font-bold hover:opacity-90 transition-opacity"
-              >
-                <Icon icon="lucide:calculator" className="w-4 h-4" />
-                {detail.status === "QUOTATION_REJECTED"
-                  ? "Gửi báo giá mới"
-                  : "Tư vấn & báo giá"}
-              </Link>
-            </div>
-          ) : detail.quotation ? (
-            <div className="bg-white rounded-xl border border-surface-muted p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <NextStepCard detail={detail} canSendQuotation={canSendQuotation} />
+
+          {!canSendQuotation && detail.quotation ? (
+            <div className="bg-surface-elevated rounded-xl border border-border p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
                 <h3 className="text-lg font-extrabold font-['Oswald']">Báo giá</h3>
-                <p className="text-sm text-muted mt-1">
+                <p className="text-sm text-subtle mt-1">
                   Xem lại chi tiết báo giá đã lập cho yêu cầu này.
                 </p>
               </div>
               <Link
                 href={quotationHref ?? ROUTES.sales.consignmentQuotation(detail.id)}
-                className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-lg border border-primary/30 text-primary text-sm font-bold hover:bg-primary/5 transition-colors"
+                className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-lg border-2 border-primary bg-surface-elevated text-secondary text-sm font-bold hover:bg-surface-tint transition-colors"
               >
                 <Icon icon="lucide:file-text" className="w-4 h-4" />
                 Xem chi tiết báo giá
@@ -484,40 +617,39 @@ export default function ConsignmentDetailPanel({
           ) : null}
 
           {detail.status === "QUOTATION_SENT" ? (
-            <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-ink">
+            <NoticeBanner variant="info" icon="lucide:hourglass">
               Báo giá đã gửi cho khách. Đang chờ khách <strong>xác nhận hoặc từ chối</strong> báo
-              giá — Sales chưa thể duyệt yêu cầu lúc này.
-            </div>
+              giá — bạn chưa thể duyệt yêu cầu lúc này.
+            </NoticeBanner>
           ) : null}
 
           {detail.status === "QUOTATION_REJECTED" ? (
-            <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
+            <NoticeBanner variant="warning" icon="lucide:x-circle">
               Khách đã từ chối báo giá
               {detail.quotation?.rejectionReason ? (
                 <>
                   {": "}
-                  <span className="font-medium text-ink">{detail.quotation.rejectionReason}</span>
+                  <span className="font-semibold">{detail.quotation.rejectionReason}</span>
                 </>
               ) : null}
-              . Sales có thể gửi báo giá mới nếu thỏa thuận lại với khách.
-            </div>
+              . Bạn có thể gửi báo giá mới nếu thỏa thuận lại với khách.
+            </NoticeBanner>
           ) : null}
 
           {detail.status === "QUOTATION_CONFIRMED" ? (
-            <div className="rounded-lg border border-success/30 bg-success-bg px-4 py-3 text-sm text-success-text">
-              Khách đã xác nhận báo giá. Sales có thể duyệt yêu cầu và tạo phiếu nhập kho.
-            </div>
+            <NoticeBanner variant="success" icon="lucide:check-circle">
+              Khách đã xác nhận báo giá. Bạn có thể duyệt yêu cầu và tạo phiếu nhập kho.
+            </NoticeBanner>
           ) : null}
 
           {detail.items?.length ? (
             <ConsignmentProductsTable items={detail.items} />
           ) : null}
 
-          <div className="bg-white rounded-xl shadow-[0px_2px_4px_0px_#00000012] p-6 border border-surface-muted/50">
+          <div className="bg-surface-elevated rounded-xl p-6 border border-border space-y-4">
             <h3 className="text-lg font-extrabold font-['Oswald'] mb-2">Thông tin yêu cầu</h3>
             <dl>
               {displayCode ? <DetailRow label="Mã yêu cầu" value={displayCode} /> : null}
-              <DetailRow label="Tên khách hàng" value={detail.customerName} />
               <DetailRow
                 label="Loại ký gửi"
                 value={formatConsignmentTypeLabel(detail)}
@@ -546,15 +678,6 @@ export default function ConsignmentDetailPanel({
               {detail.quantity != null && !detail.items?.length ? (
                 <DetailRow label="Số lượng" value={String(detail.quantity)} />
               ) : null}
-              {detail.receiverName ? (
-                <DetailRow label="Người nhận" value={detail.receiverName} />
-              ) : null}
-              {detail.receiverPhone ? (
-                <DetailRow label="SĐT người nhận" value={detail.receiverPhone} />
-              ) : null}
-              {detail.receiverAddress ? (
-                <DetailRow label="Địa chỉ nhận" value={detail.receiverAddress} />
-              ) : null}
               {detail.requiresInspection ? (
                 <DetailRow label="Kiểm đếm" value="Có" />
               ) : null}
@@ -572,16 +695,16 @@ export default function ConsignmentDetailPanel({
           {detail.quotation ? <QuotationSummary quotation={detail.quotation} /> : null}
 
           {!readOnly && detail.status === "APPROVED" ? (
-            <div className="bg-white rounded-xl border border-secondary/20 p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="bg-surface-elevated rounded-xl border border-secondary p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
                 <h3 className="text-lg font-extrabold font-['Oswald']">Phiếu tiếp nhận kho</h3>
-                <p className="text-sm text-muted mt-1">
+                <p className="text-sm text-subtle mt-1">
                   Gửi phiếu tiếp nhận online — kho nhận và xử lý trực tiếp trên hệ thống.
                 </p>
               </div>
               <Link
                 href={ROUTES.sales.receivingNote(detail.id)}
-                className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-lg bg-secondary text-white text-sm font-bold hover:opacity-90 transition-opacity"
+                className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-lg bg-secondary text-accent-subtle text-sm font-bold hover:bg-primary transition-colors"
               >
                 <Icon icon="lucide:send" className="w-4 h-4" />
                 Gửi / xem phiếu tiếp nhận
@@ -590,7 +713,7 @@ export default function ConsignmentDetailPanel({
           ) : null}
 
           {canApprove || canReject ? (
-            <div className="bg-white rounded-xl border border-surface-muted p-6 space-y-5">
+            <div className="bg-surface-elevated rounded-xl border border-border p-6 space-y-5">
               <h3 className="text-lg font-extrabold font-['Oswald']">Xử lý yêu cầu</h3>
 
               {canApprove ? (
@@ -599,7 +722,7 @@ export default function ConsignmentDetailPanel({
                     type="button"
                     disabled={isSubmitting}
                     onClick={handleApprove}
-                    className="inline-flex items-center justify-center gap-2 h-11 px-6 rounded-lg bg-success text-white text-sm font-bold hover:opacity-90 disabled:opacity-60 transition-opacity"
+                    className="inline-flex items-center justify-center gap-2 h-11 px-6 rounded-lg bg-secondary text-accent-subtle text-sm font-bold hover:bg-primary disabled:opacity-60 transition-colors"
                   >
                     {isApproving ? (
                       <Icon icon="lucide:loader-2" className="w-4 h-4 animate-spin" />
@@ -613,11 +736,11 @@ export default function ConsignmentDetailPanel({
 
               {canReject ? (
                 <div className="space-y-3">
-                  <p className="text-sm text-muted">
+                  <p className="text-sm text-subtle">
                     Từ chối yêu cầu khi hàng không đủ điều kiện ký gửi (trước khi gửi báo giá).
                   </p>
                   <label htmlFor="rejectionReason" className="text-sm font-bold text-ink">
-                    Lý do từ chối <span className="text-danger">*</span>
+                    Lý do từ chối <span className="text-secondary">*</span>
                   </label>
                   <textarea
                     id="rejectionReason"
@@ -632,13 +755,13 @@ export default function ConsignmentDetailPanel({
                     className="w-full px-4 py-3 rounded-lg border border-surface-muted text-sm resize-y focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
                   />
                   {rejectValidation ? (
-                    <p className="text-sm text-danger">{rejectValidation}</p>
+                    <p className="text-sm text-secondary font-semibold">{rejectValidation}</p>
                   ) : null}
                   <button
                     type="button"
                     disabled={isSubmitting}
                     onClick={handleReject}
-                    className="inline-flex items-center justify-center gap-2 h-11 px-6 rounded-lg border border-danger/40 text-danger text-sm font-bold hover:bg-danger/5 disabled:opacity-60 transition-colors"
+                    className="btn-destructive"
                   >
                     {isRejecting ? (
                       <Icon icon="lucide:loader-2" className="w-4 h-4 animate-spin" />
@@ -653,7 +776,7 @@ export default function ConsignmentDetailPanel({
           ) : (
             !readOnly &&
             !canSendQuotation && (
-              <div className="rounded-lg border border-surface-muted bg-surface px-4 py-3 text-sm text-muted">
+              <div className="rounded-lg border border-border-muted bg-surface-muted px-4 py-3 text-sm text-subtle">
                 Yêu cầu này không thể cập nhật vì đã hủy, đã nhập kho hoặc đã được xử lý.
               </div>
             )

@@ -449,7 +449,7 @@ export default function PurchaseRequestDetailPanel({
               type="button"
               disabled={Boolean(pendingAction)}
               onClick={() => handleStatusUpdate("REJECTED")}
-              className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-lg border border-danger/30 bg-danger/5 text-danger text-sm font-bold hover:bg-danger/10 disabled:opacity-50"
+              className="btn-destructive disabled:opacity-50"
             >
               {pendingAction === "REJECTED" ? (
                 <Icon icon="lucide:loader-2" className="w-4 h-4 animate-spin" />

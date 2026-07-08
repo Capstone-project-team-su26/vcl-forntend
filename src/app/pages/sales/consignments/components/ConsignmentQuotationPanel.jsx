@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import * as orderConsignmentService from "@/utils/orderConsignmentService";
 import * as consignmentQuotationService from "@/utils/consignmentQuotationService";
+import ConsignmentStatusBadge from "@/app/pages/sales/consignments/components/ConsignmentStatusBadge";
 import * as servicePricingService from "@/utils/servicePricingService";
 import { getErrorMessage } from "@/utils/apiError";
 import { isMockMode } from "@/utils/mocks/dataSource";
@@ -13,7 +14,6 @@ import VndMoneyInput from "@/app/components/VndMoneyInput";
 
 const {
   CONSIGNMENT_STATUS_LABELS,
-  CONSIGNMENT_STATUS_STYLES,
   canStaffSendConsignmentQuotation,
   formatConsignmentDate,
   formatConsignmentDisplayCode,
@@ -174,15 +174,7 @@ function PricingFormulaBreakdown({ breakdown }) {
 }
 
 function StatusBadge({ status }) {
-  return (
-    <span
-      className={`inline-flex px-3 py-1 rounded-full text-xs font-bold ${
-        CONSIGNMENT_STATUS_STYLES[status] || "bg-surface text-muted"
-      }`}
-    >
-      {CONSIGNMENT_STATUS_LABELS[status] || status}
-    </span>
-  );
+  return <ConsignmentStatusBadge status={status} />;
 }
 
 export default function ConsignmentQuotationPanel({ id, backHref, readOnly = false }) {
@@ -696,13 +688,23 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
       <div className="rounded-xl border border-border-muted bg-surface-elevated p-6 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <p className="text-xs font-bold uppercase tracking-wide text-muted">Yêu cầu</p>
+            <p className="text-xs font-bold uppercase tracking-wide text-subtle">Mã ký gửi</p>
             {displayCode ? (
-              <p className="text-xl font-black font-['Oswald'] text-ink">{displayCode}</p>
+              <p className="text-xl font-bold font-mono text-ink-deep mt-0.5">{displayCode}</p>
             ) : null}
-            <p className={`text-sm text-muted ${displayCode ? "mt-1" : ""}`}>
-              {detail.customerName} · {formatConsignmentDate(detail.createdAt)}
-            </p>
+            <div className={`grid gap-2 sm:grid-cols-2 ${displayCode ? "mt-3" : ""}`}>
+              <div className="rounded-lg border border-primary bg-surface-elevated px-3 py-2.5">
+                <p className="text-xs font-bold uppercase tracking-wide text-secondary">Người gửi</p>
+                <p className="text-sm font-bold text-ink mt-0.5">
+                  {detail.senderName || detail.customerName || "—"}
+                </p>
+              </div>
+              <div className="rounded-lg border border-primary bg-surface-elevated px-3 py-2.5">
+                <p className="text-xs font-bold uppercase tracking-wide text-secondary">Người nhận</p>
+                <p className="text-sm font-bold text-ink mt-0.5">{detail.receiverName || "—"}</p>
+              </div>
+            </div>
+            <p className="text-sm text-subtle mt-2">{formatConsignmentDate(detail.createdAt)}</p>
           </div>
           <StatusBadge status={detail.status} />
         </div>

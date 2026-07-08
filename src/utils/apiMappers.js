@@ -39,6 +39,7 @@ export function normalizeConsignmentSummary(item) {
     id: orderId,
     consignmentCode: item.consignmentCode || null,
     customerName: item.customerName ?? item.customer?.fullName ?? "—",
+    receiverName: item.receiverName ?? null,
     consignmentType:
       item.orderType ?? item.consignmentType ?? item.shippingOption ?? "—",
     status: item.status,
@@ -171,6 +172,9 @@ export function normalizeConsignmentDetail(raw) {
     quantity: firstItem?.quantity,
     destination: item.route ?? item.shippingOption ?? item.destination,
     route: item.route ?? null,
+    senderName: item.senderName ?? item.customer?.fullName ?? item.customerName ?? null,
+    senderPhone: item.senderPhone ?? item.customer?.phone ?? item.customer?.phoneNumber ?? null,
+    senderAddress: item.senderAddress ?? item.customer?.address ?? null,
     receiverName: item.receiverName ?? null,
     receiverPhone: item.receiverPhone ?? null,
     receiverAddress: item.receiverAddress ?? null,
@@ -669,6 +673,57 @@ export function normalizeShippingMethodListResponse(raw) {
   const data = raw?.data ?? raw;
   const items = Array.isArray(data) ? data : data?.items ?? [];
   return items.map(normalizeShippingMethodFromApi);
+}
+
+function normalizeSupportedShippingMethodsFromApi(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) {
+    return value.map((entry) => String(entry).trim()).filter(Boolean);
+  }
+  return String(value)
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
+export function normalizeCarrierFromApi(item) {
+  return {
+    id: item.id ?? item.carrierId,
+    code: item.code ?? item.carrierCode ?? item.carrier_id,
+    name: item.name ?? item.carrierName ?? item.carrier_name ?? "—",
+    type: String(item.type ?? item.carrierType ?? "CARRIER").toUpperCase(),
+    supportedShippingMethods: normalizeSupportedShippingMethodsFromApi(
+      item.supportedShippingMethods ??
+        item.supported_shipping_methods ??
+        item.shippingMethods
+    ),
+    supportedRegions:
+      item.supportedRegions ?? item.supported_regions ?? item.regions ?? null,
+    contactInfo: item.contactInfo ?? item.contact_info ?? item.contact ?? null,
+    internalNotes: item.internalNotes ?? item.internalNote ?? item.note ?? null,
+    isActive: item.isActive !== false && item.is_active !== false,
+  };
+}
+
+export function toApiCarrierPayload(payload) {
+  return {
+    name: payload.name?.trim(),
+    code: payload.code?.trim(),
+    type: payload.type?.trim()?.toUpperCase(),
+    supportedShippingMethods: normalizeSupportedShippingMethodsFromApi(
+      payload.supportedShippingMethods
+    ),
+    supportedRegions: payload.supportedRegions?.trim() || null,
+    contactInfo: payload.contactInfo?.trim() || null,
+    internalNotes: payload.internalNotes?.trim() || null,
+    isActive: payload.isActive !== false,
+  };
+}
+
+export function normalizeCarrierListResponse(raw) {
+  const data = raw?.data ?? raw;
+  const items = Array.isArray(data) ? data : data?.carriers ?? data?.items ?? [];
+  return items.map(normalizeCarrierFromApi);
 }
 
 const FEE_CALCULATION_FROM_API = {

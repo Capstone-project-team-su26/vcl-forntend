@@ -147,7 +147,7 @@ export default function UserManagementPage() {
             onClick={() => handleLockToggle(user)}
             className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-colors disabled:opacity-50 ${
               user.status === "ACTIVE"
-                ? "text-danger hover:bg-danger/10"
+                ? "border-2 border-danger-border bg-danger-bg text-danger hover:bg-danger-hover-bg"
                 : "text-success-text hover:bg-success-bg"
             }`}
           >

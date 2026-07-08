@@ -16,6 +16,7 @@ export const ROUTES = {
     pricingRules: `${PAGES}/admin/pricing-rules`,
     warehouses: `${PAGES}/admin/warehouses`,
     shippingMethods: `${PAGES}/admin/shipping-methods`,
+    carriers: `${PAGES}/admin/carriers`,
     additionalServiceFees: `${PAGES}/admin/additional-service-fees`,
   },
   sales: {
@@ -33,6 +34,7 @@ export const ROUTES = {
     purchaseRequestPurchaseOrder: (id) =>
       `${PAGES}/sales/purchase-requests/${id}/purchase-order`,
     purchaseOrderStatus: (id) => `${PAGES}/sales/purchase-orders/${id}/status`,
+    messages: `${PAGES}/sales/messages`,
   },
   operations: {
     dashboard: `${PAGES}/operations`,
