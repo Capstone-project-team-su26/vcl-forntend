@@ -6,25 +6,31 @@ export const SALES_NAV = [
     id: "dashboard",
     label: "Tổng quan",
     href: ROUTES.sales.home,
-    icon: "/assets/IMG_2.svg",
+    icon: "lucide:layout-dashboard",
   },
   {
     id: "customers",
     label: "Khách hàng",
     href: ROUTES.sales.customers,
-    icon: "/assets/IMG_3.svg",
+    icon: "lucide:users",
   },
   {
     id: "consignments",
     label: "Quản lý ký gửi",
     href: ROUTES.sales.consignments,
-    icon: "/assets/IMG_4.svg",
+    icon: "lucide:package-search",
   },
   {
     id: "purchase-requests",
     label: "Mua hộ",
     href: ROUTES.sales.purchaseRequests,
-    icon: "/assets/IMG_5.svg",
+    icon: "lucide:shopping-bag",
+  },
+  {
+    id: "messages",
+    label: "Trao đổi",
+    href: ROUTES.sales.messages,
+    icon: "lucide:messages-square",
   },
 ];
 

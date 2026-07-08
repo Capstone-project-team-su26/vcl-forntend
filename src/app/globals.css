@@ -2,87 +2,108 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* ─── Light theme tokens (mặc định) ─── */
+/* ─── Bảng màu Color Hunt + đỏ semantic (hành động phá) ───
+   #F9F9F9  surface / nền
+   #C7FFD8  mint — accent nhẹ
+   #98DED9  turquoise — primary / viền / link
+   #161D6F  navy — chữ / CTA
+   #DC2626  đỏ — từ chối / xóa / lỗi
+──────────────────────────────────── */
+
+/* ─── Light theme ─── */
 :root {
-  --theme-primary: #9ecad6;
+  --theme-primary: #98ded9;
   color-scheme: light;
-  --theme-primary-hover: #8dbbc8;
-  --theme-secondary: #748dae;
-  --theme-secondary-hover: #637a99;
-  --theme-accent: #f5cbcb;
-  --theme-accent-subtle: #ffeaea;
+  --theme-primary-hover: #161d6f;
+  --theme-secondary: #161d6f;
+  --theme-secondary-hover: #161d6f;
+  --theme-accent: #c7ffd8;
+  --theme-accent-subtle: #f9f9f9;
 
-  --theme-ink: #16181d;
-  --theme-ink-deep: #171a1f;
-  --theme-muted: #575e6b;
-  --theme-nav: #343842;
-  --theme-subtle: #6b7280;
-  --theme-faint: #9ca3af;
+  --theme-ink: #161d6f;
+  --theme-ink-deep: #161d6f;
+  --theme-muted: color-mix(in srgb, #161d6f 78%, #f9f9f9);
+  --theme-nav: #161d6f;
+  --theme-subtle: color-mix(in srgb, #161d6f 88%, #f9f9f9);
+  --theme-faint: color-mix(in srgb, #161d6f 58%, #f9f9f9);
 
-  --theme-border: #e0e2e6;
-  --theme-border-muted: #e5e7eb;
-  --theme-surface: #f9fafb;
-  --theme-surface-elevated: #ffffff;
-  --theme-surface-alt: #f4f9fa;
-  --theme-surface-muted: #f3f4f6;
-  --theme-surface-soft: #f8fafb;
-  --theme-surface-panel: #f5f7f9;
-  --theme-surface-tint: #e9f3f6;
+  --theme-border: #98ded9;
+  --theme-border-muted: color-mix(in srgb, #98ded9 55%, #f9f9f9);
 
-  --theme-danger: #d92644;
-  --theme-success: #22c358;
-  --theme-insight: #2c5b68;
-  --theme-warning-bg: #fef9c3;
-  --theme-warning-text: #a16207;
-  --theme-success-bg: #dcfce7;
-  --theme-success-text: #15803d;
-  --theme-info-bg: #dbeafe;
-  --theme-info-text: #1d4ed8;
+  --theme-surface: #f9f9f9;
+  --theme-surface-elevated: #f9f9f9;
+  --theme-surface-alt: #c7ffd8;
+  --theme-surface-muted: color-mix(in srgb, #98ded9 14%, #f9f9f9);
+  --theme-surface-soft: #f9f9f9;
+  --theme-surface-panel: #f9f9f9;
+  --theme-surface-tint: color-mix(in srgb, #c7ffd8 40%, #f9f9f9);
 
-  --theme-background: #ffffff;
-  --theme-foreground: #171717;
+  --theme-danger: #dc2626;
+  --theme-danger-bg: #fef2f2;
+  --theme-danger-border: #dc2626;
+  --theme-danger-hover-bg: #fee2e2;
+  --theme-success: #161d6f;
+  --theme-insight: #161d6f;
+  --theme-warning-bg: #c7ffd8;
+  --theme-warning-text: #161d6f;
+  --theme-success-bg: color-mix(in srgb, #98ded9 40%, #c7ffd8);
+  --theme-success-text: #161d6f;
+  --theme-info-bg: color-mix(in srgb, #98ded9 48%, #f9f9f9);
+  --theme-info-text: #161d6f;
+
+  --theme-background: #f9f9f9;
+  --theme-foreground: #161d6f;
+  --theme-on-solid: #f9f9f9;
 }
 
-/* ─── Dark theme — pastel neon #B983FF · #94B3FD · #94DAFF · #99FEFF ─── */
+/* ─── Dark theme — TRUE DARK trung tính ───
+   Nền xám than gần trung tính (không phải navy bão hòa) để đỡ mỏi mắt.
+   Brand turquoise/navy chỉ dùng làm ACCENT (chữ nhấn, link, viền nhẹ).
+   Vì secondary/primary là màu SÁNG trên nền tối → chữ trên nút solid dùng
+   `on-solid` MÀU TỐI cho đủ tương phản. */
 .dark {
   color-scheme: dark;
 
-  --theme-primary: #94daff;
-  --theme-primary-hover: #99feff;
-  --theme-secondary: #94b3fd;
-  --theme-secondary-hover: #a8c4ff;
-  --theme-accent: #b983ff;
-  --theme-accent-subtle: color-mix(in srgb, #b983ff 20%, #0f1118);
+  --theme-primary: #7ed4ce;
+  --theme-primary-hover: #a7ead8;
+  --theme-secondary: #93b4ff;
+  --theme-secondary-hover: #b9d0ff;
+  --theme-accent: #a7ead8;
+  --theme-accent-subtle: #1a1d22;
 
-  --theme-ink: #e8fcff;
-  --theme-ink-deep: #ffffff;
-  --theme-muted: #94b3fd;
-  --theme-nav: #c8d8ff;
-  --theme-subtle: #7a9ee8;
-  --theme-faint: #5a7ab8;
+  --theme-ink: #e4e6ea;
+  --theme-ink-deep: #f2f3f5;
+  --theme-muted: #9aa0aa;
+  --theme-nav: #e4e6ea;
+  --theme-subtle: #c3c7ce;
+  --theme-faint: #6c727c;
 
-  --theme-border: color-mix(in srgb, #94b3fd 38%, #1c1f2e);
-  --theme-border-muted: #2a2e42;
-  --theme-surface: #161822;
-  --theme-surface-elevated: #1c1f2e;
-  --theme-surface-alt: #1a1d2a;
-  --theme-surface-muted: #12141c;
-  --theme-surface-soft: #141622;
-  --theme-surface-panel: #0f1118;
-  --theme-surface-tint: color-mix(in srgb, #94daff 12%, #161822);
+  --theme-border: #2c313a;
+  --theme-border-muted: #23272f;
+  --theme-surface: #16181c;
+  --theme-surface-elevated: #1d2024;
+  --theme-surface-alt: #202329;
+  --theme-surface-muted: #1a1d22;
+  --theme-surface-soft: #16181c;
+  --theme-surface-panel: #16181c;
+  --theme-surface-tint: color-mix(in srgb, #7ed4ce 10%, #16181c);
 
-  --theme-danger: #ff7b9c;
-  --theme-success: #5dffa8;
-  --theme-insight: #b983ff;
-  --theme-warning-bg: color-mix(in srgb, #fbbf24 16%, #0f1118);
-  --theme-warning-text: #ffe08a;
-  --theme-success-bg: color-mix(in srgb, #5dffa8 14%, #0f1118);
-  --theme-success-text: #99feff;
-  --theme-info-bg: color-mix(in srgb, #94daff 18%, #0f1118);
-  --theme-info-text: #99feff;
+  --theme-danger: #f27a7a;
+  --theme-danger-bg: color-mix(in srgb, #dc2626 16%, #16181c);
+  --theme-danger-border: color-mix(in srgb, #f27a7a 55%, #16181c);
+  --theme-danger-hover-bg: color-mix(in srgb, #dc2626 26%, #16181c);
+  --theme-success: #7ed4ce;
+  --theme-insight: #93b4ff;
+  --theme-warning-bg: color-mix(in srgb, #c7ffd8 14%, #16181c);
+  --theme-warning-text: #e4e6ea;
+  --theme-success-bg: color-mix(in srgb, #7ed4ce 14%, #16181c);
+  --theme-success-text: #e4e6ea;
+  --theme-info-bg: color-mix(in srgb, #93b4ff 14%, #16181c);
+  --theme-info-text: #e4e6ea;
 
-  --theme-background: #0f1118;
-  --theme-foreground: #e8fcff;
+  --theme-background: #0f1012;
+  --theme-foreground: #e4e6ea;
+  --theme-on-solid: #0f1012;
 }
 
 @theme inline {
@@ -111,6 +132,9 @@
   --color-surface-tint: var(--theme-surface-tint);
 
   --color-danger: var(--theme-danger);
+  --color-danger-bg: var(--theme-danger-bg);
+  --color-danger-border: var(--theme-danger-border);
+  --color-danger-hover-bg: var(--theme-danger-hover-bg);
   --color-success: var(--theme-success);
   --color-insight: var(--theme-insight);
   --color-warning-bg: var(--theme-warning-bg);
@@ -122,6 +146,11 @@
 
   --color-background: var(--theme-background);
   --color-foreground: var(--theme-foreground);
+  --color-on-solid: var(--theme-on-solid);
+
+  /* Map utility màu ngoài palette → màu trong palette */
+  --color-white: #f9f9f9;
+  --color-black: #161d6f;
 
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
@@ -209,11 +238,11 @@ button:focus {
 }
 
 .glass-card {
-  background: color-mix(in srgb, var(--theme-surface-elevated) 75%, transparent);
+  background: color-mix(in srgb, var(--theme-surface-elevated) 88%, var(--theme-primary) 12%);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid color-mix(in srgb, var(--theme-border) 60%, transparent);
-  box-shadow: 0 8px 32px 0 color-mix(in srgb, var(--theme-ink) 8%, transparent);
+  border: 1px solid var(--theme-border);
+  box-shadow: 0 8px 24px 0 color-mix(in srgb, var(--theme-secondary) 12%, transparent);
 }
 
 .auth-gradient-bg {
@@ -240,8 +269,8 @@ button:focus {
   width: 2rem;
   height: 2rem;
   border-radius: 9999px;
-  background-color: var(--theme-primary);
-  color: white;
+  background-color: var(--theme-secondary);
+  color: var(--theme-on-solid);
   font-weight: 700;
   font-size: 0.875rem;
   display: flex;
@@ -255,6 +284,64 @@ button:focus {
   background-color: color-mix(in srgb, var(--theme-primary) 15%, transparent);
 }
 
+/* Từ chối / hành động phá — đỏ rõ ràng */
+.btn-destructive {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  padding-inline: 1.25rem;
+  border-radius: 0.5rem;
+  border: 2px solid var(--theme-danger-border);
+  background-color: var(--theme-danger-bg);
+  color: var(--theme-danger);
+  font-size: 0.875rem;
+  font-weight: 700;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.btn-destructive:hover:not(:disabled) {
+  background-color: var(--theme-danger-hover-bg);
+  border-color: var(--theme-danger-border);
+  color: var(--theme-danger);
+}
+
+.btn-destructive:disabled {
+  opacity: 0.6;
+}
+
+.btn-delete-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  border: 2px solid var(--theme-danger-border);
+  background-color: var(--theme-danger-bg);
+  color: var(--theme-danger);
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.btn-delete-icon:hover:not(:disabled) {
+  background-color: var(--theme-danger-hover-bg);
+  color: var(--theme-danger);
+}
+
+.btn-delete-icon:disabled {
+  opacity: 0.5;
+}
+
+/* Nút solid: chữ luôn dùng #FFEAEA */
+.bg-primary.text-white,
+.bg-secondary.text-white,
+.bg-insight.text-white,
+.bg-success.text-white,
+.bg-primary .text-white,
+.bg-secondary .text-white {
+  color: var(--theme-on-solid);
+}
+
 .bg-platinum-gradient {
   background: linear-gradient(
     135deg,
@@ -263,26 +350,48 @@ button:focus {
   );
 }
 
-/* Dark: các lớp nền cứng phổ biến */
-.dark .bg-white {
+/* Card / panel: không dùng trắng (#FFF) — chỉ #FFEAEA */
+.bg-white {
   background-color: var(--theme-surface-elevated);
 }
 
+/* Dark: trung hòa mọi lớp nền/viền/chữ xám cứng còn sót (không dùng biến theme) */
+.dark .bg-white,
 .dark .bg-gray-50,
-.dark .hover\:bg-gray-50:hover {
-  background-color: color-mix(in srgb, var(--theme-surface-elevated) 85%, var(--theme-primary) 15%);
+.dark .bg-gray-100,
+.dark .bg-gray-200 {
+  background-color: var(--theme-surface-elevated);
 }
 
-.dark .hover\:bg-gray-100:hover {
-  background-color: color-mix(in srgb, var(--theme-surface-elevated) 75%, var(--theme-primary) 25%);
+.dark .hover\:bg-gray-50:hover,
+.dark .hover\:bg-gray-100:hover,
+.dark .hover\:bg-gray-200:hover {
+  background-color: var(--theme-surface-muted);
 }
 
-.dark .divide-gray-50 > :not([hidden]) ~ :not([hidden]) {
+.dark .border-gray-50,
+.dark .border-gray-100,
+.dark .border-gray-200,
+.dark .border-gray-300 {
   border-color: var(--theme-border-muted);
 }
 
-.dark .border-gray-50 {
+.dark .divide-gray-50 > :not([hidden]) ~ :not([hidden]),
+.dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]) {
   border-color: var(--theme-border-muted);
+}
+
+.dark .text-gray-400,
+.dark .text-gray-500,
+.dark .text-gray-600 {
+  color: var(--theme-muted);
+}
+
+.dark .text-gray-700,
+.dark .text-gray-800,
+.dark .text-gray-900,
+.dark .text-black {
+  color: var(--theme-ink);
 }
 
 @layer base {

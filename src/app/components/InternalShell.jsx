@@ -21,7 +21,7 @@ export default function InternalShell({
     <div className="flex min-h-screen bg-background font-open-sans text-ink">
       {isSidebarOpen ? (
         <div
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          className="fixed inset-0 z-40 bg-secondary/40 lg:hidden"
           onClick={() => setIsSidebarOpen(false)}
           aria-hidden
         />
@@ -36,7 +36,7 @@ export default function InternalShell({
           <AppLogo href={logoHref} />
         </div>
 
-        <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+        <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
             const isActive = item.id === activeNav;
             return (
@@ -44,14 +44,32 @@ export default function InternalShell({
                 key={item.id}
                 href={item.href}
                 onClick={() => setIsSidebarOpen(false)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
+                className={`w-full flex items-center gap-3 pl-2.5 pr-3 py-2.5 rounded-lg border-l-[3px] transition-all ${
                   isActive
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted hover:bg-surface-muted hover:text-ink"
+                    ? "border-l-primary bg-surface-muted text-ink font-bold"
+                    : "border-l-transparent text-muted hover:bg-surface-muted hover:text-ink"
                 }`}
               >
-                <img src={item.icon} alt="" className="w-5 h-5" />
-                <span className="text-sm font-semibold">{item.label}</span>
+                <span
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border-2 ${
+                    isActive
+                      ? "border-primary/40 bg-surface-elevated text-primary"
+                      : "border-border bg-surface-elevated text-muted"
+                  }`}
+                >
+                  {item.icon?.startsWith("/") ? (
+                    <img
+                      src={item.icon}
+                      alt=""
+                      className={`w-[18px] h-[18px] ${isActive ? "opacity-100" : "opacity-80"}`}
+                    />
+                  ) : (
+                    <Icon icon={item.icon} className="w-[18px] h-[18px]" aria-hidden />
+                  )}
+                </span>
+                <span className={`text-sm ${isActive ? "font-bold" : "font-semibold"}`}>
+                  {item.label}
+                </span>
               </Link>
             );
           })}

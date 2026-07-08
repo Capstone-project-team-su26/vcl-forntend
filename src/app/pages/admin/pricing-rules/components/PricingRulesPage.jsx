@@ -240,7 +240,7 @@ export default function PricingRulesPage() {
               type="button"
               onClick={() => handleDelete(item)}
               disabled={pendingId === item.id}
-              className="p-2 text-muted hover:text-danger hover:bg-danger/5 rounded-lg disabled:opacity-50"
+              className="btn-delete-icon disabled:opacity-50"
               title="Xóa"
             >
               <Icon icon="lucide:trash-2" className="w-4 h-4" />

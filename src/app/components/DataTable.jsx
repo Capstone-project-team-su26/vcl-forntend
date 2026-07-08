@@ -99,7 +99,7 @@ export default function DataTable({
   columns,
   rows,
   loading = false,
-  rowKey = (row) => row.id,
+  rowKey = (row, index) => row.id ?? index,
   onRowClick,
   title,
   countLabel = "mục",
@@ -378,9 +378,9 @@ export default function DataTable({
                 </td>
               </tr>
             ) : (
-              pageRows.map((row) => (
+              pageRows.map((row, index) => (
                 <tr
-                  key={rowKey(row)}
+                  key={rowKey(row, index)}
                   className={`transition-colors ${
                     onRowClick ? "hover:bg-surface-muted cursor-pointer" : "hover:bg-surface-muted/50"
                   }`}

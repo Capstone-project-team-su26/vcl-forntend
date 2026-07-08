@@ -84,11 +84,33 @@ function shouldDefaultEnableFee(
   return false;
 }
 
+/** Phí tính theo phần trăm (giá trị khai báo / dịch vụ chính) — Sales không chỉnh số lượng. */
+export function isPercentageFee(fee) {
+  return String(fee?.feeCalculationType ?? "").toUpperCase() === "PERCENTAGE";
+}
+
+/** Danh từ đơn vị số lượng để hiển thị (kiện / lần / ngày…). */
+function feeUnitNoun(fee) {
+  const raw = String(fee?.unit ?? "").toLowerCase();
+  if (isPerPackageFee(fee) || raw.includes("kiện")) return "kiện";
+  const afterSlash = raw.match(/\/\s*([^\s.]+)/);
+  if (afterSlash) return afterSlash[1];
+  if (raw.includes("ngày")) return "ngày";
+  if (raw.includes("lần")) return "lần";
+  return "đơn vị";
+}
+
+/** Số lượng mặc định: phí theo kiện = số kiện, còn lại = 1. Percentage không có số lượng. */
+export function getFeeDefaultQuantity(fee, { packageCount = 1 } = {}) {
+  if (isPercentageFee(fee)) return null;
+  return isPerPackageFee(fee) ? Math.max(1, Math.round(Number(packageCount) || 1)) : 1;
+}
+
 export function calculateAdditionalFeeAmount(
   fee,
-  { packageCount = 1, declaredValue = 0, mainServiceAmount = 0 } = {}
+  { packageCount = 1, declaredValue = 0, mainServiceAmount = 0, quantity } = {}
 ) {
-  if (fee.feeCalculationType === "PERCENTAGE") {
+  if (isPercentageFee(fee)) {
     const base = declaredValue > 0 ? declaredValue : mainServiceAmount;
     let amount = roundMoney(base * ((Number(fee.percentageRate) || 0) / 100));
     if (fee.minAmount != null) {
@@ -101,10 +123,72 @@ export function calculateAdditionalFeeAmount(
   }
 
   const fixed = Number(fee.fixedAmount) || 0;
-  if (isPerPackageFee(fee)) {
-    return roundMoney(fixed * (Number(packageCount) || 1));
+  const qty =
+    quantity != null ? Number(quantity) || 0 : getFeeDefaultQuantity(fee, { packageCount });
+  return roundMoney(fixed * qty);
+}
+
+/** Diễn giải cách tính một phụ phí — dùng trên màn báo giá Sales. */
+export function buildAdditionalFeeFormula(
+  fee,
+  { packageCount = 1, declaredValue = 0, mainServiceAmount = 0, quantity } = {}
+) {
+  if (!fee) return null;
+
+  const amount = calculateAdditionalFeeAmount(fee, {
+    packageCount,
+    declaredValue,
+    mainServiceAmount,
+    quantity,
+  });
+
+  if (isPercentageFee(fee)) {
+    const rate = Number(fee.percentageRate) || 0;
+    const declared = Number(declaredValue) || 0;
+    const base = declared > 0 ? declared : Number(mainServiceAmount) || 0;
+    const baseLabel = declared > 0 ? "giá trị khai báo" : "dịch vụ chính";
+    let formula = `${formatMoney(base)} (${baseLabel}) × ${rate}% = ${formatMoney(amount)}`;
+    if (fee.minAmount != null && amount === roundMoney(fee.minAmount)) {
+      formula += ` — áp dụng tối thiểu ${formatMoney(fee.minAmount)}`;
+    }
+    if (fee.maxAmount != null && amount === roundMoney(fee.maxAmount)) {
+      formula += ` — áp dụng tối đa ${formatMoney(fee.maxAmount)}`;
+    }
+    return formula;
   }
-  return roundMoney(fixed);
+
+  const fixed = Number(fee.fixedAmount) || 0;
+  const qty =
+    quantity != null ? Number(quantity) || 0 : getFeeDefaultQuantity(fee, { packageCount });
+  return `${formatMoney(fixed)} × ${qty} ${feeUnitNoun(fee)} = ${formatMoney(amount)}`;
+}
+
+/** Dựng 1 dòng phụ phí theo mô hình đơn giá × số lượng. */
+function buildFeeLine(fee, { enabled, quantity, isRequired, context }) {
+  const percentage = isPercentageFee(fee);
+  const qty = percentage
+    ? null
+    : quantity != null
+      ? Number(quantity) || 0
+      : getFeeDefaultQuantity(fee, { packageCount: context.packageCount });
+  const amount = enabled
+    ? calculateAdditionalFeeAmount(fee, { ...context, quantity: qty })
+    : 0;
+
+  return {
+    feeId: fee.id,
+    code: fee.code,
+    label: fee.name,
+    description: fee.description || fee.unit || "Phụ phí",
+    feeCalculationType: percentage ? "PERCENTAGE" : "FIXED",
+    unitPrice: percentage ? Number(fee.percentageRate) || 0 : Number(fee.fixedAmount) || 0,
+    unitNoun: percentage ? null : feeUnitNoun(fee),
+    quantity: qty,
+    quantityEditable: !percentage,
+    enabled,
+    isRequired,
+    amount,
+  };
 }
 
 export async function fetchActiveAdditionalFees() {
@@ -118,17 +202,14 @@ export function listActiveAdditionalFees() {
     .map((fee) => ({ ...fee }));
 }
 
-export function recalculateAdditionalFeeLine(
-  fee,
-  line,
-  { packageCount = 1, declaredValue = 0, mainServiceAmount = 0 } = {}
-) {
+export function recalculateAdditionalFeeLine(fee, line, context = {}) {
   const enabled = line.enabled !== false;
-  const amount = enabled
-    ? calculateAdditionalFeeAmount(fee, { packageCount, declaredValue, mainServiceAmount })
-    : 0;
-
-  return { ...line, amount };
+  return buildFeeLine(fee, {
+    enabled,
+    quantity: line.quantity,
+    isRequired: line.isRequired === true,
+    context,
+  });
 }
 
 export function buildDefaultAdditionalFeeLines({
@@ -137,26 +218,19 @@ export function buildDefaultAdditionalFeeLines({
   declaredValue,
   mainServiceAmount,
   enabledFeeIds,
+  quantityByFeeId,
   requiresInspection = false,
 }) {
+  const context = { packageCount, declaredValue, mainServiceAmount };
   return fees.map((fee) => {
     const enabled = enabledFeeIds
       ? enabledFeeIds[fee.id] !== false
       : shouldDefaultEnableFee(fee, { requiresInspection, declaredValue });
-    const amount = enabled
-      ? calculateAdditionalFeeAmount(fee, { packageCount, declaredValue, mainServiceAmount })
-      : 0;
-
-    return {
-      feeId: fee.id,
-      code: fee.code,
-      label: fee.name,
-      description: fee.description || fee.unit || "Phụ phí",
-      amount,
-      enabled,
-      isRequired:
-        fee.isRequired === true || (isInspectionFee(fee) && requiresInspection),
-    };
+    const isRequired =
+      fee.isRequired === true || (isInspectionFee(fee) && requiresInspection);
+    const quantity =
+      quantityByFeeId && quantityByFeeId[fee.id] != null ? quantityByFeeId[fee.id] : undefined;
+    return buildFeeLine(fee, { enabled, quantity, isRequired, context });
   });
 }
 
@@ -330,18 +404,26 @@ export function buildAdditionalFeeLinesFromQuotation(
 
   const apiFees = quotation.additionalFees ?? [];
   if (apiFees.length) {
-    return apiFees.map((fee) => ({
-      feeId: fee.feeId ?? fee.code ?? fee.id,
-      code: fee.code ?? null,
-      label: fee.label ?? fee.name ?? fee.code ?? "Phụ phí",
-      description: fee.description ?? "",
-      amount: Number(fee.amount) || 0,
-      baseAmount: Number(fee.amount) || 0,
-      enabled: fee.enabled !== false,
-      isRequired:
-        fee.isRequired === true ||
-        (isInspectionFee({ code: fee.code }) && requiresInspection),
-    }));
+    return apiFees.map((fee) => {
+      const amount = Number(fee.amount) || 0;
+      const quantity = fee.quantity != null ? Number(fee.quantity) || 0 : null;
+      return {
+        feeId: fee.feeId ?? fee.code ?? fee.id,
+        code: fee.code ?? null,
+        label: fee.label ?? fee.name ?? fee.code ?? "Phụ phí",
+        description: fee.description ?? "",
+        feeCalculationType: String(fee.feeCalculationType ?? "").toUpperCase() || null,
+        unitPrice: fee.unitPrice != null ? Number(fee.unitPrice) : null,
+        unitNoun: fee.unitNoun ?? null,
+        quantity,
+        quantityEditable: false,
+        amount,
+        enabled: fee.enabled !== false,
+        isRequired:
+          fee.isRequired === true ||
+          (isInspectionFee({ code: fee.code }) && requiresInspection),
+      };
+    });
   }
 
   if (quotation.serviceFee != null && Number(quotation.serviceFee) > 0) {
@@ -505,4 +587,19 @@ export function getQuotationDisplayLines(quotation) {
       amount: fee.amount,
     })),
   ];
+}
+
+// ponytail: self-check — fail nếu công thức phụ phí lệch với calculateAdditionalFeeAmount
+if (typeof process !== "undefined" && process.env?.NODE_ENV !== "production") {
+  const _fee = {
+    feeCalculationType: "FIXED",
+    fixedAmount: 35000,
+    unit: "VND/kiện",
+  };
+  const _amount = calculateAdditionalFeeAmount(_fee, { packageCount: 2 });
+  console.assert(
+    _amount === 70000 &&
+      buildAdditionalFeeFormula(_fee, { packageCount: 2 })?.includes("70.000"),
+    "buildAdditionalFeeFormula mismatch"
+  );
 }

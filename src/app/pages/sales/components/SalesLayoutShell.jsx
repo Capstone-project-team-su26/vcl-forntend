@@ -9,6 +9,7 @@ function resolveActiveNav(pathname) {
   if (!pathname) return "dashboard";
   if (pathname.startsWith(ROUTES.sales.customers)) return "customers";
   if (pathname.startsWith(ROUTES.sales.purchaseRequests)) return "purchase-requests";
+  if (pathname.startsWith(ROUTES.sales.messages)) return "messages";
   if (pathname.startsWith(ROUTES.sales.consignments)) return "consignments";
   return "dashboard";
 }

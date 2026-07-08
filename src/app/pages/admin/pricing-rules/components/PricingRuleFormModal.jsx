@@ -2,6 +2,7 @@
 
 import { Icon } from "@iconify/react";
 import { useEffect, useState } from "react";
+import * as carrierService from "@/utils/carrierService";
 import * as servicePricingService from "@/utils/servicePricingService";
 import { getErrorMessage } from "@/utils/apiError";
 import VndMoneyInput from "@/app/components/VndMoneyInput";
@@ -25,6 +26,8 @@ export default function ServicePricingFormModal({ open, mode, item, onClose, onS
   const [price, setPrice] = useState("");
   const [pricePerKg, setPricePerKg] = useState("");
   const [pricePerCbm, setPricePerCbm] = useState("");
+  const [carriers, setCarriers] = useState([]);
+  const [selectedCarrierCode, setSelectedCarrierCode] = useState(item?.carrierId ?? "");
 
   useEffect(() => {
     if (open) {
@@ -38,14 +41,42 @@ export default function ServicePricingFormModal({ open, mode, item, onClose, onS
             : ""
       );
       setPricePerCbm(item?.pricePerCbm != null ? String(item.pricePerCbm) : "");
+      setSelectedCarrierCode(item?.carrierId ?? "");
     }
   }, [open, item]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    let active = true;
+
+    async function loadCarriers() {
+      try {
+        const data = await carrierService.listCarriers({ activeOnly: true });
+        if (!active) return;
+        setCarriers(data);
+        setSelectedCarrierCode((current) => {
+          if (current && data.some((entry) => entry.code === current)) return current;
+          return data[0]?.code ?? "";
+        });
+      } catch {
+        if (active) setCarriers([]);
+      }
+    }
+
+    loadCarriers();
+    return () => {
+      active = false;
+    };
+  }, [open]);
 
   if (!open) return null;
 
   const showKg = unitType === "KG" || unitType === "KG_OR_CBM";
   const showCbm = unitType === "CBM" || unitType === "KG_OR_CBM";
   const showSinglePrice = unitType === "KG" || unitType === "CBM";
+  const selectedCarrier =
+    carriers.find((entry) => entry.code === selectedCarrierCode) ?? null;
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -53,8 +84,8 @@ export default function ServicePricingFormModal({ open, mode, item, onClose, onS
 
     const form = event.currentTarget;
     const payload = {
-      carrierId: form.carrierId.value,
-      carrierName: form.carrierName.value.trim() || null,
+      carrierId: selectedCarrierCode,
+      carrierName: selectedCarrier?.name ?? null,
       serviceType: form.serviceType.value,
       originCountry: form.originCountry.value,
       destinationCountry: form.destinationCountry.value,
@@ -112,27 +143,35 @@ export default function ServicePricingFormModal({ open, mode, item, onClose, onS
           ) : null}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
+            <div className="space-y-2 sm:col-span-2">
               <label htmlFor="carrierId" className="text-sm font-semibold text-ink">
-                Mã hãng vận chuyển <span className="text-danger">*</span>
+                Đơn vị vận chuyển <span className="text-danger">*</span>
               </label>
+              {carriers.length === 0 ? (
+                <p className="text-sm text-muted">
+                  Chưa có đơn vị vận chuyển đang hoạt động. Vui lòng cấu hình tại mục Đơn vị vận
+                  chuyển.
+                </p>
+              ) : (
+                <select
+                  id="carrierId"
+                  name="carrierId"
+                  required
+                  value={selectedCarrierCode}
+                  onChange={(event) => setSelectedCarrierCode(event.target.value)}
+                  className="form-select input-focus-ring"
+                >
+                  {carriers.map((carrier) => (
+                    <option key={carrier.id} value={carrier.code}>
+                      {carrier.code} · {carrier.name}
+                    </option>
+                  ))}
+                </select>
+              )}
               <input
-                id="carrierId"
-                name="carrierId"
-                required
-                defaultValue={item?.carrierId ?? "VCL"}
-                className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
-              />
-            </div>
-            <div className="space-y-2">
-              <label htmlFor="carrierName" className="text-sm font-semibold text-ink">
-                Tên hãng
-              </label>
-              <input
-                id="carrierName"
+                type="hidden"
                 name="carrierName"
-                defaultValue={item?.carrierName ?? "VCL Logistics"}
-                className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
+                value={selectedCarrier?.name ?? item?.carrierName ?? ""}
               />
             </div>
             <div className="space-y-2">
@@ -286,7 +325,7 @@ export default function ServicePricingFormModal({ open, mode, item, onClose, onS
             </button>
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || carriers.length === 0}
               className="h-11 px-5 rounded-lg bg-insight text-white text-sm font-bold disabled:opacity-60"
             >
               {isSubmitting ? "Đang lưu..." : mode === "create" ? "Thêm" : "Lưu"}
