@@ -7,4 +7,11 @@ export const OPS_NAV = [
     href: ROUTES.operations.dashboard,
     icon: "lucide:layout-dashboard",
   },
+  {
+    id: "consolidation",
+    label: "Chuc nang gom hang",
+    href: ROUTES.operations.consolidate,
+    icon: "lucide:layout-dashboard",
+  },
+  
 ];
