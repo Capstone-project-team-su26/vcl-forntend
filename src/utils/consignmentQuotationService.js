@@ -48,6 +48,13 @@ export function getConsignmentQuotationHeading(quotation) {
   return isDraftConsignmentQuotation(quotation) ? "Báo giá tạm tính" : "Báo giá đã gửi";
 }
 
+/** BE trả dịch vụ chính (MAIN_SERVICE) lẫn trong additionalFees — phải loại để không tính/hiển thị trùng với dòng "Dịch vụ chính". */
+function isMainServiceFee(fee) {
+  const code = String(fee?.code ?? "").toUpperCase();
+  const feeType = String(fee?.feeType ?? fee?.ruleType ?? "").toUpperCase();
+  return code === "MAIN_SERVICE" || feeType === "MAIN_SERVICE";
+}
+
 function isInspectionFee(fee) {
   const code = String(fee?.code ?? "").toUpperCase();
   const ruleType = String(fee?.ruleType ?? "").toUpperCase();
@@ -396,32 +403,122 @@ async function estimateConsignmentQuotationMock(orderId, params) {
   };
 }
 
+function findCatalogFee(catalogFees, feeRef) {
+  if (!feeRef || !catalogFees?.length) return null;
+  const feeId = feeRef.feeId ?? feeRef.id;
+  const code = feeRef.code;
+  return (
+    catalogFees.find(
+      (entry) =>
+        entry.id === feeId ||
+        entry.code === feeId ||
+        (code && (entry.code === code || entry.id === code))
+    ) ?? null
+  );
+}
+
+/** Giữ trạng thái bật/tắt & số lượng khi map dòng API ↔ catalog (id vs code). */
+export function buildEnabledFeeStateFromLines(lines, catalogFees = []) {
+  const enabledFeeIds = {};
+  const quantityByFeeId = {};
+
+  for (const line of lines) {
+    const catalogFee = findCatalogFee(catalogFees, line);
+    const key = catalogFee?.id ?? line.feeId;
+    enabledFeeIds[key] = line.enabled !== false;
+    if (line.quantity != null && line.quantity !== "") {
+      quantityByFeeId[key] = line.quantity;
+    }
+  }
+
+  return { enabledFeeIds, quantityByFeeId };
+}
+
+function resolveLineAmountFromApiFee(fee, { enabled, context, catalogFee }) {
+  if (enabled === false) return 0;
+
+  if (catalogFee) {
+    const quantity =
+      fee.quantity != null && fee.quantity !== ""
+        ? Number(fee.quantity) || 0
+        : undefined;
+    return calculateAdditionalFeeAmount(catalogFee, { ...context, quantity });
+  }
+
+  const feeCalculationType = String(fee.feeCalculationType ?? "").toUpperCase();
+  const unitPrice = fee.unitPrice != null ? Number(fee.unitPrice) : null;
+  const amount = Number(fee.amount) || 0;
+
+  if (feeCalculationType === "PERCENTAGE") {
+    return amount;
+  }
+
+  // FIXED: dùng cùng quy ước số lượng mặc định (=1) như dòng hiển thị,
+  // tránh trả về amount=0 của BE khi quantity null/thiếu.
+  if (unitPrice != null) {
+    const quantity = fee.quantity != null ? Number(fee.quantity) || 0 : 1;
+    return roundMoney(unitPrice * quantity);
+  }
+
+  return amount;
+}
+
 export function buildAdditionalFeeLinesFromQuotation(
   quotation,
-  { requiresInspection = false } = {}
+  {
+    requiresInspection = false,
+    catalogFees = [],
+    packageCount = 1,
+    declaredValue = 0,
+    mainServiceAmount = 0,
+  } = {}
 ) {
   if (!quotation) return [];
 
-  const apiFees = quotation.additionalFees ?? [];
+  const context = { packageCount, declaredValue, mainServiceAmount };
+  const apiFees = (quotation.additionalFees ?? []).filter((fee) => !isMainServiceFee(fee));
   if (apiFees.length) {
     return apiFees.map((fee) => {
-      const amount = Number(fee.amount) || 0;
-      const quantity = fee.quantity != null ? Number(fee.quantity) || 0 : null;
+      const catalogFee = findCatalogFee(catalogFees, fee);
+      const enabled = fee.enabled !== false;
+      const isRequired =
+        fee.isRequired === true ||
+        (catalogFee && isInspectionFee(catalogFee) && requiresInspection) ||
+        (isInspectionFee({ code: fee.code }) && requiresInspection);
+
+      if (catalogFee) {
+        const line = buildFeeLine(catalogFee, {
+          enabled,
+          quantity: fee.quantity,
+          isRequired,
+          context,
+        });
+        return {
+          ...line,
+          label: fee.label ?? fee.name ?? line.label,
+          description: fee.description ?? line.description,
+        };
+      }
+
+      const unitPrice = fee.unitPrice != null ? Number(fee.unitPrice) : null;
+      const feeCalculationType = String(fee.feeCalculationType ?? "").toUpperCase() || null;
+      const quantity =
+        fee.quantity != null ? Number(fee.quantity) || 0 : feeCalculationType === "PERCENTAGE" ? null : 1;
+      const amount = resolveLineAmountFromApiFee(fee, { enabled, context, catalogFee: null });
+
       return {
         feeId: fee.feeId ?? fee.code ?? fee.id,
         code: fee.code ?? null,
         label: fee.label ?? fee.name ?? fee.code ?? "Phụ phí",
         description: fee.description ?? "",
-        feeCalculationType: String(fee.feeCalculationType ?? "").toUpperCase() || null,
-        unitPrice: fee.unitPrice != null ? Number(fee.unitPrice) : null,
+        feeCalculationType,
+        unitPrice,
         unitNoun: fee.unitNoun ?? null,
         quantity,
-        quantityEditable: false,
+        quantityEditable: feeCalculationType !== "PERCENTAGE",
         amount,
-        enabled: fee.enabled !== false,
-        isRequired:
-          fee.isRequired === true ||
-          (isInspectionFee({ code: fee.code }) && requiresInspection),
+        enabled,
+        isRequired,
       };
     });
   }
@@ -456,10 +553,14 @@ export function resolveQuotationAdditionalFees({
   const quotationSource = estimate?.quotation ?? estimate ?? consignment?.quotation;
   const itemizedFees = quotationSource?.additionalFees;
 
-  if (Array.isArray(itemizedFees) && itemizedFees.length) {
+  if (Array.isArray(itemizedFees) && itemizedFees.some((fee) => !isMainServiceFee(fee))) {
     return {
       lines: buildAdditionalFeeLinesFromQuotation(quotationSource, {
         requiresInspection,
+        catalogFees,
+        packageCount,
+        declaredValue,
+        mainServiceAmount,
       }),
       fromApi: true,
     };
@@ -480,6 +581,10 @@ export function resolveQuotationAdditionalFees({
 
   const aggregatedLines = buildAdditionalFeeLinesFromQuotation(quotationSource, {
     requiresInspection,
+    catalogFees,
+    packageCount,
+    declaredValue,
+    mainServiceAmount,
   });
   if (aggregatedLines.length) {
     return { lines: aggregatedLines, fromApi: true };
@@ -502,17 +607,17 @@ export async function estimateConsignmentQuotation(orderId, params = {}) {
 }
 
 export function resolveInitialSalesNote(consignment) {
-  return (
-    consignment?.quotation?.salesNote?.trim() ||
-    consignment?.notes?.trim() ||
-    ""
-  );
+  // Chỉ dùng lại salesNote đã lập trước đó; KHÔNG đổ notes của đơn ký gửi
+  // (ghi chú khách) vào ô "Ghi chú tư vấn" của Sales — notes hiển thị riêng.
+  return consignment?.quotation?.salesNote?.trim() || "";
 }
 
 export function getQuotationDisplayLines(quotation) {
   if (!quotation) return [];
 
-  const additionalFees = quotation.additionalFees ?? [];
+  const additionalFees = (quotation.additionalFees ?? []).filter(
+    (fee) => !isMainServiceFee(fee)
+  );
   const enabledFees = additionalFees.filter((fee) => fee.enabled !== false);
   const additionalTotal = enabledFees.reduce(
     (sum, fee) => sum + (Number(fee.amount) || 0),
@@ -567,7 +672,7 @@ export function getQuotationDisplayLines(quotation) {
       },
     ];
 
-    for (const fee of quotation.additionalFees ?? []) {
+    for (const fee of additionalFees) {
       lines.push({
         label: fee.label || fee.name || fee.code,
         amount: fee.amount,
