@@ -38,6 +38,7 @@ export const ROUTES = {
   },
   operations: {
     dashboard: `${PAGES}/operations`,
+    consolidate: `${PAGES}/operations/consolidate`,
   },
 };
 
