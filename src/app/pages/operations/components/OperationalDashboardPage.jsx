@@ -6,7 +6,9 @@ import { useAuth } from "@/hooks/useAuth";
 import OperationsShell from "@/app/pages/operations/components/OperationsShell";
 
 export default function OperationalDashboardPage() {
-  const { session } = useAuth();
+  const { session, isReady } = useAuth();
+  const token = session?.token;
+  const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
   const [dashboard, setDashboard] = useState(null);
   const [consignments, setConsignments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -17,19 +19,26 @@ export default function OperationalDashboardPage() {
   const [isDetailLoading, setIsDetailLoading] = useState(false);
 
   useEffect(() => {
+    if (!isReady) return;
+    if (!token) {
+      setIsLoading(false);
+      return;
+    }
+
     let active = true;
     const API_URL =
       "https://api-vcl.zushin.io.vn/api/orders/consignments?pageNumber=1&pageSize=10&status=approved";
 
     async function load() {
       try {
-        const res = await fetch(API_URL);
+        const res = await fetch(API_URL, {
+          headers: authHeaders,
+        });
         if (!res.ok) throw new Error("Network response was not ok");
         const json = await res.json();
         const items = (json?.data?.items) || [];
         if (active) {
           setConsignments(items);
-          // keep dashboard null/unused but mark loading finished
           setIsLoading(false);
         }
       } catch (err) {
@@ -41,7 +50,7 @@ export default function OperationalDashboardPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [authHeaders, isReady, token]);
 
   function toggleSelectOne(id) {
     setSelectedIds((prev) =>
@@ -67,7 +76,10 @@ export default function OperationalDashboardPage() {
     try {
       const res = await fetch(API_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...authHeaders,
+        },
         body: JSON.stringify({ orderIds: selectedIds, status: "waiting" }),
       });
       if (!res.ok) throw new Error("Network response was not ok");
@@ -88,7 +100,9 @@ export default function OperationalDashboardPage() {
     setIsDetailLoading(true);
     setDetailData(null);
     try {
-      const res = await fetch(`https://api-vcl.zushin.io.vn/api/orders/consignments/${orderId}`);
+      const res = await fetch(`https://api-vcl.zushin.io.vn/api/orders/consignments/${orderId}`, {
+        headers: authHeaders,
+      });
       if (!res.ok) throw new Error('Network response was not ok');
       const json = await res.json();
       setDetailData(json?.data || null);

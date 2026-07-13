@@ -1,11 +1,62 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 import { useAuth } from "@/hooks/useAuth";
 import OperationsShell from "@/app/pages/operations/components/OperationsShell";
 
-export default function OperationalBlankPage() {
-  const { session } = useAuth();
+function formatPdfValue(value) {
+  if (value === null || value === undefined || value === "") return "-";
+  return String(value);
+}
+
+function buildConsolidatePdfRows(detailData) {
+  const rows = [
+    ["Field", "Value"],
+    ["Master code", formatPdfValue(detailData?.masterCode)],
+    ["Status", formatPdfValue(detailData?.status)],
+    ["Tổng trọng lượng", formatPdfValue(detailData?.totalWeight)],
+    ["Tổng thể tích", formatPdfValue(detailData?.totalVolume)],
+    ["Số đơn", formatPdfValue(detailData?.orders?.length ?? 0)],
+  ];
+
+  (detailData?.orders || []).forEach((order, orderIndex) => {
+    rows.push([`Order ${orderIndex + 1} - Mã kiện`, formatPdfValue(order.consignmentCode)]);
+    rows.push([`Order ${orderIndex + 1} - Trạng thái`, formatPdfValue(order.status)]);
+    rows.push([`Order ${orderIndex + 1} - Tuyến`, formatPdfValue(order.route)]);
+    rows.push([`Order ${orderIndex + 1} - Số lượng parcel`, formatPdfValue(order.parcels?.length ?? 0)]);
+
+    (order.parcels || []).forEach((parcel, parcelIndex) => {
+      rows.push([
+        `Parcel ${parcelIndex + 1} - Mã kiện`,
+        formatPdfValue(parcel.packageCode),
+      ]);
+      rows.push([
+        `Parcel ${parcelIndex + 1} - Trạng thái`,
+        formatPdfValue(parcel.packageStatus),
+      ]);
+      rows.push([
+        `Parcel ${parcelIndex + 1} - Trọng lượng thực tế`,
+        formatPdfValue(parcel.actualWeight),
+      ]);
+      rows.push([
+        `Parcel ${parcelIndex + 1} - Chargeable`,
+        formatPdfValue(parcel.chargeableWeight),
+      ]);
+    });
+  });
+
+  return rows;
+}
+
+export default function OperationalConsolidate() {
+  const { session, isReady } = useAuth();
+  const token = session?.token;
+  const authHeaders = useMemo(
+    () => (token ? { Authorization: `Bearer ${token}` } : {}),
+    [token]
+  );
   const [consolidations, setConsolidations] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -14,6 +65,8 @@ export default function OperationalBlankPage() {
   const [isDetailLoading, setIsDetailLoading] = useState(false);
 
   const displayName = session?.fullName?.split(" ")?.[0] || "Ops";
+  const authError = isReady && !token ? "Bạn cần đăng nhập để xem consolidation." : null;
+  const currentError = error || authError;
 
   const summary = useMemo(() => {
     const totalWeight = consolidations.reduce((sum, item) => sum + (item.totalWeight ?? 0), 0);
@@ -23,12 +76,16 @@ export default function OperationalBlankPage() {
   }, [consolidations]);
 
   useEffect(() => {
+    if (!isReady || !token) return;
+
     let active = true;
     const API_URL = "https://api-vcl.zushin.io.vn/api/consolidation";
 
     async function load() {
       try {
-        const res = await fetch(API_URL);
+        const res = await fetch(API_URL, {
+          headers: authHeaders,
+        });
         if (!res.ok) throw new Error("Network response was not ok");
         const json = await res.json();
         if (active) {
@@ -38,7 +95,7 @@ export default function OperationalBlankPage() {
         }
       } catch (err) {
         if (active) {
-          setError("Không tải được consolidation data.");
+          setError("Không tải được data lo gom hang.");
           setIsLoading(false);
         }
       }
@@ -48,26 +105,56 @@ export default function OperationalBlankPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [authHeaders, isReady, token]);
 
   async function openDetail(id) {
     if (!id) return;
     setDetailOpen(true);
     setIsDetailLoading(true);
     setDetailData(null);
+    setError(null);
 
     try {
-      const res = await fetch(`https://api-vcl.zushin.io.vn/api/consolidation/${id}`);
+      const res = await fetch(`https://api-vcl.zushin.io.vn/api/consolidation/${id}`, {
+        headers: authHeaders,
+      });
       if (!res.ok) throw new Error("Network response was not ok");
       const json = await res.json();
       setDetailData(json || null);
     } catch (err) {
       console.error(err);
       setDetailData(null);
-      setError("Không tải được chi tiết consolidation.");
+      setError("Không tải được chi tiết lo gom.");
     } finally {
       setIsDetailLoading(false);
     }
+  }
+
+  function createConsolidatePdf() {
+    if (!detailData) return;
+
+    const pdf = new jsPDF();
+    const fileName = `${formatPdfValue(detailData?.masterCode || "consolidation")}.pdf`;
+
+    pdf.setFontSize(16);
+    pdf.text("Consolidation Report", 14, 15);
+    pdf.setFontSize(10);
+    pdf.text(`Master code: ${formatPdfValue(detailData?.masterCode)}`, 14, 22);
+
+    autoTable(pdf, {
+      startY: 30,
+      head: [["Field", "Value"]],
+      body: buildConsolidatePdfRows(detailData),
+      styles: {
+        fontSize: 8,
+      },
+      headStyles: {
+        fillColor: [22, 163, 74],
+      },
+      margin: { left: 14, right: 14 },
+    });
+
+    pdf.save(fileName);
   }
 
   function closeDetail() {
@@ -126,10 +213,10 @@ export default function OperationalBlankPage() {
                       Đang tải...
                     </td>
                   </tr>
-                ) : error ? (
+                ) : currentError ? (
                   <tr>
                     <td colSpan={6} className="px-6 py-8 text-center text-danger">
-                      {error}
+                      {currentError}
                     </td>
                   </tr>
                 ) : consolidations.length === 0 ? (
@@ -167,9 +254,18 @@ export default function OperationalBlankPage() {
             <div className="bg-white rounded-lg max-w-4xl w-full mx-4 overflow-auto max-h-[90vh]">
               <div className="px-6 py-4 border-b flex items-center justify-between">
                 <h3 className="font-bold">Chi tiết lô gom hàng</h3>
-                <button onClick={closeDetail} className="text-sm px-3 py-1">
-                  Đóng
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={createConsolidatePdf}
+                    disabled={!detailData || isDetailLoading}
+                    className="text-sm px-3 py-1 bg-primary text-white rounded-md disabled:opacity-50"
+                  >
+                    Create Consolidate PDF
+                  </button>
+                  <button onClick={closeDetail} className="text-sm px-3 py-1">
+                    Đóng
+                  </button>
+                </div>
               </div>
               <div className="p-6 space-y-6">
                 {isDetailLoading ? (
