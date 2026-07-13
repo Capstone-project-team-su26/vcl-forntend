@@ -23,6 +23,7 @@ const {
 const {
   buildDefaultAdditionalFeeLines,
   buildConsignmentQuotationDraft,
+  buildEnabledFeeStateFromLines,
   calculateQuotationTotal,
   estimateConsignmentQuotation,
   fetchActiveAdditionalFees,
@@ -527,7 +528,7 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
   }, [id]);
 
   useEffect(() => {
-    if (feesFromApi || !selectedServicePricing || !weightKg || !volumeCm3 || !feeCatalog.length) {
+    if (!selectedServicePricing || !weightKg || !volumeCm3 || !feeCatalog.length) {
       return;
     }
 
@@ -542,21 +543,17 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
 
     setMainServiceAmount(String(draft.mainServiceAmount));
     setAdditionalFeeLines((current) => {
-      const enabledMap = Object.fromEntries(
-        current.map((line) => [line.feeId, line.enabled !== false])
-      );
-      const quantityMap = Object.fromEntries(
-        current
-          .filter((line) => line.quantity != null)
-          .map((line) => [line.feeId, line.quantity])
+      const { enabledFeeIds, quantityByFeeId } = buildEnabledFeeStateFromLines(
+        current,
+        feeCatalog
       );
       return buildDefaultAdditionalFeeLines({
         fees: feeCatalog,
         packageCount,
         declaredValue,
         mainServiceAmount: draft.mainServiceAmount,
-        enabledFeeIds: Object.keys(enabledMap).length ? enabledMap : undefined,
-        quantityByFeeId: Object.keys(quantityMap).length ? quantityMap : undefined,
+        enabledFeeIds: Object.keys(enabledFeeIds).length ? enabledFeeIds : undefined,
+        quantityByFeeId: Object.keys(quantityByFeeId).length ? quantityByFeeId : undefined,
         requiresInspection: detail?.requiresInspection === true,
       });
     });
@@ -568,7 +565,6 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
     declaredValue,
     discountPercent,
     feeCatalog,
-    feesFromApi,
     detail?.requiresInspection,
   ]);
 
@@ -582,8 +578,14 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
     setSuccessMessage("");
   }
 
+  function findCatalogFeeEntry(feeId) {
+    return (
+      feeCatalog.find((entry) => entry.id === feeId || entry.code === feeId) ?? null
+    );
+  }
+
   function updateAdditionalFeeQuantity(feeId, value) {
-    const fee = feeCatalog.find((entry) => entry.id === feeId);
+    const fee = findCatalogFeeEntry(feeId);
     setAdditionalFeeLines((current) =>
       current.map((line) => {
         if (line.feeId !== feeId) return line;
@@ -612,6 +614,7 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
     }
     setCustomFees([]);
     setDiscountPercent("0");
+    setFeesFromApi(false);
     setAdditionalFeeLines(
       buildDefaultAdditionalFeeLines({
         fees: feeCatalog,
@@ -645,37 +648,20 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
   }
 
   function toggleAdditionalFee(feeId) {
-    if (feesFromApi) {
-      setAdditionalFeeLines((current) =>
-        current.map((line) => {
-          if (line.feeId !== feeId || line.isRequired) return line;
-          const enabled = line.enabled === false;
-          const baseAmount = line.baseAmount ?? line.amount;
-          return {
-            ...line,
-            enabled,
-            baseAmount,
-            amount: enabled ? baseAmount : 0,
-          };
-        })
-      );
-      resetSubmitState();
-      return;
-    }
-
-    const fee = feeCatalog.find((entry) => entry.id === feeId);
-    const context = {
-      packageCount,
-      declaredValue,
-      mainServiceAmount: Number(mainServiceAmount) || 0,
-    };
+    const fee = findCatalogFeeEntry(feeId);
 
     setAdditionalFeeLines((current) =>
       current.map((line) => {
         if (line.feeId !== feeId) return line;
+        if (line.isRequired) return line;
         const enabled = line.enabled === false;
-        if (!fee) return { ...line, enabled, amount: 0 };
-        return recalculateAdditionalFeeLine(fee, { ...line, enabled }, context);
+        if (fee) {
+          return recalculateAdditionalFeeLine(fee, { ...line, enabled }, feeCalculationContext);
+        }
+        const amount = enabled
+          ? (Number(line.unitPrice) || 0) * (Number(line.quantity) || 0)
+          : 0;
+        return { ...line, enabled, amount };
       })
     );
     resetSubmitState();
@@ -1163,7 +1149,7 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
                             type="number"
                             min="0"
                             step="1"
-                            value={line.quantity}
+                            value={line.quantity ?? ""}
                             onChange={(e) => updateAdditionalFeeQuantity(line.feeId, e.target.value)}
                             className="w-20 h-10 px-2 rounded-lg border border-border-muted text-sm text-center input-focus-ring"
                           />
@@ -1222,7 +1208,7 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
                             type="number"
                             min="0"
                             step="1"
-                            value={fee.quantity}
+                            value={fee.quantity ?? ""}
                             onChange={(e) => updateCustomFee(fee.id, "quantity", e.target.value)}
                             className="w-20 h-10 px-2 rounded-lg border border-border-muted text-sm text-center input-focus-ring"
                           />
