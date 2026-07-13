@@ -348,8 +348,15 @@ function normalizeServicePricingUnitType(raw) {
     .replace(/\s+/g, "_");
   if (!upper) return null;
   if (upper === "KG" || upper === "KILOGRAM") return "KG";
-  if (upper === "CBM" || upper === "M3" || upper === "M³") return "CBM";
-  if (upper.includes("KG") && upper.includes("CBM")) return "KG_OR_CBM";
+  if (upper === "CBM" || upper === "CM3" || upper === "CM³" || upper === "M3" || upper === "M³") {
+    return "CBM";
+  }
+  if (
+    (upper.includes("KG") && upper.includes("CBM")) ||
+    (upper.includes("KG") && upper.includes("CM3"))
+  ) {
+    return "KG_OR_CBM";
+  }
   return upper;
 }
 
@@ -375,20 +382,23 @@ export function normalizeServicePricingFromApi(item) {
 }
 
 export function toApiServicePricingPayload(data) {
+  // CreateServicePricingRequest: chỉ các field swagger; carrierId phải là UUID thuần.
+  const price =
+    data.unitType === "KG_OR_CBM"
+      ? data.pricePerKg ?? data.price
+      : data.price ?? data.pricePerKg;
+
+  const carrierId = extractGuid(data.carrierId);
+
   return {
-    carrierId: data.carrierId,
-    carrierName: data.carrierName,
+    carrierId: carrierId || null,
     serviceType: data.serviceType,
     originCountry: data.originCountry,
     destinationCountry: data.destinationCountry,
-    warehouseId: data.warehouseId,
     unitType: data.unitType,
-    price: data.price,
-    pricePerKg: data.pricePerKg,
-    pricePerCbm: data.pricePerCbm,
+    price: price == null ? null : Number(price),
     currency: data.currency ?? "VND",
     effectiveDate: data.effectiveDate,
-    isActive: data.isActive !== false,
   };
 }
 
@@ -418,6 +428,15 @@ function isUuid(value) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
     String(value ?? "")
   );
+}
+
+/** Lấy UUID từ id/code dạng `CARRIER_<guid>` hoặc chuỗi có guid. */
+export function extractGuid(value) {
+  if (isUuid(value)) return String(value);
+  const match = String(value ?? "").match(
+    /[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/
+  );
+  return match ? match[0] : null;
 }
 
 /** Bỏ null/undefined — giống body Swagger (không gửi field rỗng). */

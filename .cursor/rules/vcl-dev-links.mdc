@@ -1,11 +1,11 @@
 ---
-description: Link môi trường dev/test VCL — frontend, API, tài khoản nội bộ
+description: Link môi trường dev/test VCL — frontend, API (không chứa mật khẩu)
 alwaysApply: true
 ---
 
 # VCL — Link dev & test
 
-Dùng khi cần test trên web, gọi API, hoặc tra tài khoản đăng nhập.
+Dùng khi cần test trên web hoặc gọi API. **Không** ghi mật khẩu / connection string vào rule hoặc source.
 
 ## Môi trường
 
@@ -13,10 +13,9 @@ Dùng khi cần test trên web, gọi API, hoặc tra tài khoản đăng nhập
 |-----|-----|
 | Frontend (Vercel) | https://vcl-forntend.vercel.app/ |
 | API backend | https://api-vcl.zushin.io.vn |
-| Tài khoản test nội bộ | https://docs.google.com/spreadsheets/d/17uxcZ6MTQb5ajwkHUdCoKgY9EFWZ4h0f3ihDaLU-HuA/edit?gid=0#gid=0 |
 
 ## Ghi chú
 
-- Repo dùng `NEXT_PUBLIC_DATA_SOURCE=api` và `NEXT_PUBLIC_API_URL=https://api-vcl.zushin.io.vn` (xem `.env.local`).
-- Email / password / role test: tra sheet **List tài khoản nội bộ VCL System** (link trên).
-- Ví dụ nhanh Sales: `salestaff01@vcl.com` / `Employee123!` (chi tiết đầy đủ trong sheet).
+- Local: copy `.env.example` → `.env.local`, set `NEXT_PUBLIC_DATA_SOURCE` và `API_URL` / `NEXT_PUBLIC_API_URL`.
+- Tài khoản test nội bộ: hỏi team / sheet nội bộ — **không** commit email+password vào repo.
+- FE chỉ gọi HTTP API (proxy `/api/*`). **Không** kết nối thẳng database.

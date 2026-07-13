@@ -51,12 +51,12 @@ function RestrictedItemFormModal({
       "button",
       {
         type: "button",
-        className: "absolute inset-0 bg-black/40",
+        className: "absolute inset-0 bg-background/70 backdrop-blur-sm",
         onClick: onClose,
         "aria-label": "\u0110\xF3ng"
       }
     ),
-    /* @__PURE__ */ jsxs("div", { className: "relative w-full max-w-lg bg-surface-elevated rounded-xl border border-border-muted shadow-xl", children: [
+    /* @__PURE__ */ jsxs("div", { className: "relative w-full max-w-lg bg-surface rounded-xl border border-border shadow-xl", children: [
       /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between px-6 py-4 border-b border-border-muted", children: [
         /* @__PURE__ */ jsx("h2", { className: "text-lg font-bold text-ink", children: mode === "create" ? "Th\xEAm h\xE0ng c\u1EA5m/h\u1EA1n ch\u1EBF" : "Ch\u1EC9nh s\u1EEDa m\u1EB7t h\xE0ng" }),
         /* @__PURE__ */ jsx("button", { type: "button", onClick: onClose, className: "p-2 text-muted hover:text-ink", children: /* @__PURE__ */ jsx(Icon, { icon: "lucide:x", className: "w-5 h-5" }) })

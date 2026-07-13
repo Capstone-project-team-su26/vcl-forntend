@@ -171,14 +171,13 @@ export default function AdminConsignmentsPage() {
 
   return (
     <AdminLayout activeNav="consignments">
-      <div className="max-w-7xl mx-auto w-full space-y-6">
+      <div className="space-y-5">
         <div>
-          <h1 className="text-2xl lg:text-3xl font-bold text-ink tracking-tight">
+          <h1 className="text-xl lg:text-2xl font-bold text-ink tracking-tight">
             Yêu cầu ký gửi
           </h1>
-          <p className="text-sm text-muted mt-1 max-w-2xl">
-            Xem toàn bộ yêu cầu ký gửi trong hệ thống. Lọc theo trạng thái, khách hàng, tuyến,
-            kho và ngày tạo.
+          <p className="text-sm text-muted mt-1 leading-relaxed">
+            Lọc theo trạng thái, khách hàng, tuyến, kho và ngày tạo.
           </p>
         </div>
 

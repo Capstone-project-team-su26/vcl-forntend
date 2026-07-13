@@ -1,18 +1,16 @@
 import { getMockStore } from "@/utils/mocks/mockStore";
 import { ROUTES } from "@/utils/appRoutes";
 
-/** Tài khoản test trên server khi NEXT_PUBLIC_DATA_SOURCE=api */
+/** Email gợi ý khi NEXT_PUBLIC_DATA_SOURCE=api — mật khẩu không commit vào repo. */
 export const API_TEST_ACCOUNTS = [
   {
     email: "sale01@vcl.com",
-    password: "Sale@123",
     role: "Sale",
     label: "Sale (API)",
     hint: "Quản lý ký gửi — /pages/sales/consignments",
   },
   {
     email: "admin@test.com",
-    password: "Admin123",
     role: "Admin",
     label: "Admin (API)",
     hint: "Seed: GET /api/Test/seed-admin",

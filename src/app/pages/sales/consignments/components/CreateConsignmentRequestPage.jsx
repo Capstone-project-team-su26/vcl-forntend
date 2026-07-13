@@ -14,7 +14,6 @@ import VndMoneyInput from "@/app/components/VndMoneyInput";
 const { ITEM_VALIDATION_LABELS, ITEM_VALIDATION_STYLES } = orderConsignmentService;
 const {
   formatInternationalWarehouseLabel,
-  volumeCm3ToM3,
   formatServiceTypeLabel,
   isConfiguredServicePricing,
   listServicePricings,
@@ -248,7 +247,7 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
         originCountry: selectedPricing.originCountry,
         destinationCountry: selectedPricing.destinationCountry,
         weightKg: Number(weightKg),
-        volumeM3: volumeCm3ToM3(volumeCm3),
+        volumeM3: Number(volumeCm3),
         packageCount: Number(packageCount),
         salesNote: notes,
         items: [

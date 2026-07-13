@@ -52,11 +52,11 @@ export default function WarehouseFormModal({ open, mode, warehouse, onClose, onS
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button
         type="button"
-        className="absolute inset-0 bg-black/40"
+        className="absolute inset-0 bg-background/70 backdrop-blur-sm"
         onClick={onClose}
         aria-label="Đóng"
       />
-      <div className="relative w-full max-w-lg bg-surface-elevated rounded-xl border border-border-muted shadow-xl">
+      <div className="relative w-full max-w-lg bg-surface rounded-xl border border-border shadow-xl">
         <div className="flex items-center justify-between px-6 py-4 border-b border-border-muted">
           <h2 className="text-lg font-bold text-ink">
             {mode === "create" ? "Thêm kho mới" : "Chỉnh sửa kho"}

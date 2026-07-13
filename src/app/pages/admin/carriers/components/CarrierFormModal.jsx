@@ -86,11 +86,11 @@ export default function CarrierFormModal({ open, mode, carrier, onClose, onSaved
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button
         type="button"
-        className="absolute inset-0 bg-black/40"
+        className="absolute inset-0 bg-background/70 backdrop-blur-sm"
         onClick={onClose}
         aria-label="Đóng"
       />
-      <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-surface-elevated rounded-xl border border-border-muted shadow-xl">
+      <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-surface rounded-xl border border-border shadow-xl">
         <div className="flex items-center justify-between px-6 py-4 border-b border-border-muted sticky top-0 bg-surface-elevated">
           <h2 className="text-lg font-bold text-ink">
             {mode === "create" ? "Thêm đơn vị vận chuyển" : "Chỉnh sửa đơn vị vận chuyển"}

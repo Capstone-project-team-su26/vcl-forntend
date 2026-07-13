@@ -52,7 +52,8 @@ function LoginPage() {
     const emailInput = form.elements.namedItem("email");
     const passwordInput = form.elements.namedItem("password");
     if (emailInput) emailInput.value = account.email;
-    if (passwordInput) passwordInput.value = account.password;
+    // ponytail: không autofill mật khẩu API — tránh commit/leak credential.
+    if (passwordInput) passwordInput.value = "";
     setError("");
   }
   async function handleSubmit(e) {
@@ -174,12 +175,7 @@ function LoginPage() {
           account.email
         )) }),
         /* @__PURE__ */ jsxs("p", { className: "text-xs text-muted", children: [
-          "Sale k\xFD g\u1EEDi: ",
-          /* @__PURE__ */ jsx("strong", { children: "sale01@vcl.com" }),
-          " / ",
-          /* @__PURE__ */ jsx("strong", { children: "Sale@123" }),
-          " \u2192 ",
-          /* @__PURE__ */ jsx("strong", { children: "Qu\u1EA3n l\xFD k\xFD g\u1EEDi" })
+          "Ch\u1ECDn email \u0111\u1EC3 \u0111i\u1EC1n s\u1EB5n \u2014 nh\u1EADp m\u1EADt kh\u1EA9u t\u1EEB t\xE0i kho\u1EA3n n\u1ED9i b\u1ED9 (kh\xF4ng l\u01B0u trong repo)."
         ] })
       ] }) : null,
       /* @__PURE__ */ jsxs(

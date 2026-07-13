@@ -1,8 +1,9 @@
 "use client";
 
 import { Icon } from "@iconify/react";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import * as authService from "@/utils/authService";
+import * as warehouseService from "@/utils/warehouseService";
 import { ApiError, getErrorMessage } from "@/utils/apiError";
 import { normalizeEmployeeRole } from "@/utils/apiMappers";
 
@@ -14,10 +15,52 @@ const EMPLOYEE_ROLES = [
   { value: "Admin", label: "Admin" },
 ];
 
-const WAREHOUSE_REGIONS = [
-  { value: "VN", label: "VN" },
-  { value: "TQ", label: "TQ" },
-];
+/** VN-HCM → VN, US → US. */
+function regionFromWarehouseCode(code) {
+  const raw = String(code || "").trim().toUpperCase();
+  if (!raw) return null;
+  const prefix = raw.includes("-") ? raw.split("-")[0] : raw;
+  if (!prefix || prefix.length > 4) return null;
+  return prefix === "CN" ? "TQ" : prefix;
+}
+
+/**
+ * Kho API thường để code rỗng — suy region từ mã, rồi tên/địa chỉ.
+ * ponytail: heuristic đủ cho VN/US/TQ/TH/JP; kho lạ fallback theo code hoặc id ngắn.
+ */
+function inferWarehouseRegion(warehouse) {
+  const fromCode = regionFromWarehouseCode(warehouse?.code);
+  if (fromCode) return fromCode;
+
+  const text = `${warehouse?.name || ""} ${warehouse?.address || ""}`.toUpperCase();
+
+  if (/(HCM|HA NOI|HANOI|HÀ NỘI|DA NANG|ĐÀ NẴNG|VIET|VIỆT|\bVN\b|TÂN BÌNH|TAN BINH)/.test(text)) {
+    return "VN";
+  }
+  if (/(TRUNG QUOC|TRUNG QUỐC|CHINA|\bTQ\b|\bCN\b|GUANGZHOU|SHENZHEN|SHANGHAI)/.test(text)) {
+    return "TQ";
+  }
+  if (/(CALIFORNIA|\bUSA\b|\bUS\b|\bLA\b|NEW YORK|AMERICA)/.test(text)) {
+    return "US";
+  }
+  if (/(BANGKOK|THAILAND|\bTH\b)/.test(text)) return "TH";
+  if (/(JAPAN|TOKYO|\bJP\b)/.test(text)) return "JP";
+  if (/(KOREA|SEOUL|\bKR\b)/.test(text)) return "KR";
+
+  return null;
+}
+
+function buildRegionOptions(warehouses) {
+  const regions = new Set();
+  for (const warehouse of warehouses || []) {
+    if (warehouse?.isActive === false) continue;
+    const region = inferWarehouseRegion(warehouse);
+    if (region) regions.add(region);
+  }
+  return Array.from(regions)
+    .sort((a, b) => a.localeCompare(b))
+    .map((value) => ({ value, label: value }));
+}
 
 function getInitials(name) {
   return name
@@ -32,10 +75,44 @@ export default function CreateUserModal({ open, onClose, onCreated }) {
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedRole, setSelectedRole] = useState("Sale");
-
-  if (!open) return null;
+  const [selectedRegion, setSelectedRegion] = useState("");
+  const [warehouses, setWarehouses] = useState(undefined);
+  const [regionsError, setRegionsError] = useState("");
 
   const needsRegion = selectedRole === "Warehouse";
+  const regionsLoading = warehouses === undefined;
+  const regionOptions = useMemo(
+    () => buildRegionOptions(Array.isArray(warehouses) ? warehouses : []),
+    [warehouses]
+  );
+  const selectedRegionValue = regionOptions.some((item) => item.value === selectedRegion)
+    ? selectedRegion
+    : (regionOptions[0]?.value ?? "");
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    let active = true;
+
+    warehouseService
+      .listWarehouses({ isActive: true })
+      .then((data) => {
+        if (!active) return;
+        setWarehouses(Array.isArray(data) ? data : []);
+        setRegionsError("");
+      })
+      .catch((err) => {
+        if (!active) return;
+        setWarehouses([]);
+        setRegionsError(getErrorMessage(err));
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [open]);
+
+  if (!open) return null;
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -46,10 +123,14 @@ export default function CreateUserModal({ open, onClose, onCreated }) {
     const password = form.password.value;
     const phone = form.phone.value.trim();
     const role = form.employeeRole.value;
-    const region = needsRegion ? form.region?.value || "" : "";
+    const region = needsRegion ? selectedRegionValue : "";
 
     if (needsRegion && !region) {
-      setError("Vui lòng chọn region cho tài khoản Warehouse.");
+      setError(
+        regionsLoading
+          ? "Đang tải danh sách kho, thử lại sau giây lát."
+          : "Không suy ra được region từ kho hiện có."
+      );
       return;
     }
 
@@ -80,6 +161,7 @@ export default function CreateUserModal({ open, onClose, onCreated }) {
       });
       form.reset();
       setSelectedRole("Sale");
+      setSelectedRegion("");
       onClose();
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
@@ -98,17 +180,15 @@ export default function CreateUserModal({ open, onClose, onCreated }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button
         type="button"
-        className="absolute inset-0 bg-black/40"
+        className="absolute inset-0 bg-background/70 backdrop-blur-sm"
         aria-label="Đóng"
         onClick={onClose}
       />
-      <div className="relative w-full max-w-lg bg-surface-elevated rounded-2xl border border-border-muted shadow-xl p-6">
+      <div className="relative w-full max-w-lg bg-surface rounded-2xl border border-border shadow-xl p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-xl font-bold text-ink">Thêm nhân viên</h2>
-            <p className="text-sm text-muted mt-1">
-              Tạo tài khoản nhân viên mới qua API admin.
-            </p>
+            <p className="text-sm text-muted mt-1">Tạo tài khoản nhân viên mới.</p>
           </div>
           <button type="button" onClick={onClose} className="p-2 text-muted hover:text-ink">
             <Icon icon="lucide:x" className="w-5 h-5" />
@@ -136,7 +216,7 @@ export default function CreateUserModal({ open, onClose, onCreated }) {
               id="fullName"
               name="fullName"
               required
-              className="w-full h-11 px-4 border border-border-muted rounded-lg text-sm input-focus-ring"
+              className="w-full h-11 px-4 border border-border-muted rounded-lg text-sm bg-surface-muted text-ink input-focus-ring"
             />
           </div>
 
@@ -149,7 +229,7 @@ export default function CreateUserModal({ open, onClose, onCreated }) {
               name="email"
               type="email"
               required
-              className="w-full h-11 px-4 border border-border-muted rounded-lg text-sm input-focus-ring"
+              className="w-full h-11 px-4 border border-border-muted rounded-lg text-sm bg-surface-muted text-ink input-focus-ring"
             />
           </div>
 
@@ -162,7 +242,7 @@ export default function CreateUserModal({ open, onClose, onCreated }) {
                 id="phone"
                 name="phone"
                 required
-                className="w-full h-11 px-4 border border-border-muted rounded-lg text-sm input-focus-ring"
+                className="w-full h-11 px-4 border border-border-muted rounded-lg text-sm bg-surface-muted text-ink input-focus-ring"
               />
             </div>
             <div className="space-y-2">
@@ -174,8 +254,12 @@ export default function CreateUserModal({ open, onClose, onCreated }) {
                 name="employeeRole"
                 required
                 value={selectedRole}
-                onChange={(e) => setSelectedRole(e.target.value)}
-                className="w-full h-11 px-4 border border-border-muted rounded-lg text-sm input-focus-ring bg-surface-elevated"
+                onChange={(e) => {
+                  const nextRole = e.target.value;
+                  setSelectedRole(nextRole);
+                  if (nextRole !== "Warehouse") setSelectedRegion("");
+                }}
+                className="w-full h-11 px-4 border border-border-muted rounded-lg text-sm input-focus-ring bg-surface-muted text-ink"
               >
                 {EMPLOYEE_ROLES.map((item) => (
                   <option key={item.value} value={item.value}>
@@ -195,15 +279,26 @@ export default function CreateUserModal({ open, onClose, onCreated }) {
                 id="region"
                 name="region"
                 required
-                defaultValue="VN"
-                className="w-full h-11 px-4 border border-border-muted rounded-lg text-sm input-focus-ring bg-surface-elevated"
+                value={selectedRegionValue}
+                onChange={(e) => setSelectedRegion(e.target.value)}
+                disabled={regionsLoading || regionOptions.length === 0}
+                className="w-full h-11 px-4 border border-border-muted rounded-lg text-sm input-focus-ring bg-surface-muted text-ink disabled:opacity-60"
               >
-                {WAREHOUSE_REGIONS.map((item) => (
-                  <option key={item.value} value={item.value}>
-                    {item.label}
-                  </option>
-                ))}
+                {regionsLoading ? (
+                  <option value="">Đang tải...</option>
+                ) : regionOptions.length === 0 ? (
+                  <option value="">Không có region</option>
+                ) : (
+                  regionOptions.map((item) => (
+                    <option key={item.value} value={item.value}>
+                      {item.label}
+                    </option>
+                  ))
+                )}
               </select>
+              {regionsError ? (
+                <p className="text-xs text-danger">Không tải được kho: {regionsError}</p>
+              ) : null}
             </div>
           ) : null}
 
@@ -218,7 +313,7 @@ export default function CreateUserModal({ open, onClose, onCreated }) {
               required
               minLength={8}
               maxLength={100}
-              className="w-full h-11 px-4 border border-border-muted rounded-lg text-sm input-focus-ring"
+              className="w-full h-11 px-4 border border-border-muted rounded-lg text-sm bg-surface-muted text-ink input-focus-ring"
             />
           </div>
 
@@ -226,14 +321,14 @@ export default function CreateUserModal({ open, onClose, onCreated }) {
             <button
               type="button"
               onClick={onClose}
-              className="h-11 px-4 rounded-lg text-sm font-semibold text-muted hover:bg-surface"
+              className="h-11 px-4 rounded-lg text-sm font-semibold text-muted hover:bg-surface-muted"
             >
               Hủy
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="h-11 px-5 rounded-lg text-sm font-bold bg-insight text-white hover:bg-secondary disabled:opacity-60"
+              className="h-11 px-5 rounded-lg text-sm font-bold bg-insight text-on-solid hover:bg-secondary disabled:opacity-60"
             >
               {isSubmitting ? "Đang tạo..." : "Tạo tài khoản"}
             </button>

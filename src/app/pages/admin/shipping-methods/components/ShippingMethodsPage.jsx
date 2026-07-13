@@ -239,20 +239,20 @@ export default function ShippingMethodsPage() {
 
   return (
     <AdminLayout activeNav="shipping-methods">
-      <div className="space-y-8">
+      <div className="space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl lg:text-4xl font-black tracking-tight font-['Oswald'] text-ink">
+            <h1 className="text-xl lg:text-2xl font-bold text-ink tracking-tight">
               Phương thức vận chuyển
             </h1>
-            <p className="text-muted text-sm font-medium mt-2">
-              Cấu hình lựa chọn vận chuyển cho yêu cầu ký gửi, báo giá và điều phối logistics.
+            <p className="text-sm text-muted mt-1 leading-relaxed">
+              Cấu hình lựa chọn vận chuyển cho ký gửi, báo giá và điều phối.
             </p>
           </div>
           <button
             type="button"
             onClick={openCreate}
-            className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-lg bg-insight hover:bg-secondary text-white text-sm font-bold shrink-0"
+            className="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-lg bg-insight hover:bg-secondary text-white text-sm font-bold shrink-0"
           >
             <Icon icon="lucide:plus" className="w-4 h-4" />
             Thêm phương thức

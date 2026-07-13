@@ -307,6 +307,7 @@ export function resolveServicePricingForConsignment(servicePricing, consignment)
 export function buildConsignmentQuotationDraft({
   servicePricing,
   weightKg,
+  volumeCm3,
   volumeM3,
   packageCount,
   declaredValue,
@@ -316,13 +317,19 @@ export function buildConsignmentQuotationDraft({
   salesNote,
 }) {
   const weight = Number(weightKg) || 0;
-  const volume = Number(volumeM3) || 0;
+  const volume =
+    volumeCm3 != null && volumeCm3 !== ""
+      ? Number(volumeCm3) || 0
+      : Number(volumeM3) || 0;
   const volumetricWeight = calculateVolumetricWeight(volume);
   const chargeableWeight = calculateChargeableWeight(weight, volume);
   const mainServiceAmount =
     mainServiceAmountOverride != null && mainServiceAmountOverride !== ""
       ? roundMoney(mainServiceAmountOverride)
-      : calculateMainServiceAmount(servicePricing, { weightKg: weight, volumeM3: volume });
+      : calculateMainServiceAmount(servicePricing, {
+          weightKg: weight,
+          volumeCm3: volume,
+        });
 
   const feeLines =
     additionalFees ??
@@ -385,7 +392,7 @@ async function estimateConsignmentQuotationMock(orderId, params) {
   const draft = buildConsignmentQuotationDraft({
     servicePricing,
     weightKg: params.weightKg ?? order.totalWeight,
-    volumeM3: params.volumeM3 ?? order.totalVolume,
+    volumeCm3: params.volumeCm3 ?? params.volumeM3 ?? order.totalVolume,
     packageCount: params.packageCount ?? order.packageCount,
     declaredValue: params.declaredValue,
     discountPercent: params.discountPercent,
