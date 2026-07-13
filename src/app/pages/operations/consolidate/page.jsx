@@ -1,8 +1,8 @@
 "use client";
 import { jsx } from "react/jsx-runtime";
-import OperationalBlankPage from "../components/OperationalBlankPage";
+import OperationalConsolidate from "../components/OperationalConsolidate";
 function Page() {
-  return /* @__PURE__ */ jsx(OperationalBlankPage, {});
+  return /* @__PURE__ */ jsx(OperationalConsolidate, {});
 }
 export {
   Page as default
