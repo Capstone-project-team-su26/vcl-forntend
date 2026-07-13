@@ -11,12 +11,31 @@ import { getErrorMessage } from "@/utils/apiError";
 const STATUS_FILTER_OPTIONS = [
   { value: "ACTIVE", label: "ACTIVE" },
   { value: "LOCKED", label: "LOCKED" },
+  { value: "PENDING_VERIFICATION", label: "PENDING" },
 ];
 
-function RoleBadge({ role }) {
+const USER_TYPE_FILTER_OPTIONS = [
+  { value: "Employee", label: "Employee" },
+  { value: "Customer", label: "Customer" },
+];
+
+const STATUS_LABEL = {
+  ACTIVE: "ACTIVE",
+  LOCKED: "LOCKED",
+  PENDING_VERIFICATION: "PENDING",
+};
+
+function RoleBadge({ role, region }) {
   return (
-    <span className="inline-block px-3 py-1 rounded-md text-[11px] font-bold tracking-wide bg-info-bg text-info-text">
-      {role}
+    <span className="inline-flex items-center gap-1.5">
+      <span className="inline-block px-3 py-1 rounded-md text-[11px] font-bold tracking-wide bg-info-bg text-info-text">
+        {role}
+      </span>
+      {region ? (
+        <span className="inline-block px-2 py-1 rounded-md text-[10px] font-bold tracking-wide bg-surface text-muted">
+          {region}
+        </span>
+      ) : null}
     </span>
   );
 }
@@ -25,12 +44,15 @@ function StatusBadge({ status }) {
   const styles = {
     ACTIVE: "bg-success-bg text-success-text",
     LOCKED: "bg-danger/10 text-danger",
+    PENDING_VERIFICATION: "bg-warning-bg text-warning-text",
   };
   return (
     <span
-      className={`inline-block px-3 py-1 rounded-full text-[11px] font-bold ${styles[status] || "bg-surface text-muted"}`}
+      className={`inline-block px-3 py-1 rounded-full text-[11px] font-bold ${
+        styles[status] || "bg-surface text-muted"
+      }`}
     >
-      {status === "ACTIVE" ? "ACTIVE" : "LOCKED"}
+      {STATUS_LABEL[status] || status}
     </span>
   );
 }
@@ -70,15 +92,19 @@ export default function UserManagementPage() {
         const response = await userService.lockUser(user.id);
         setUsers((current) =>
           current.map((item) =>
-            item.id === user.id ? { ...item, status: "LOCKED", lastSeen: "Đã khóa" } : item
+            item.id === user.id
+              ? { ...item, status: "LOCKED", lastSeen: "Đã khóa" }
+              : item
           )
         );
         setActionMessage(response?.message || "Khóa tài khoản thành công.");
-      } else {
+      } else if (user.status === "LOCKED") {
         const response = await userService.unlockUser(user.id);
         setUsers((current) =>
           current.map((item) =>
-            item.id === user.id ? { ...item, status: "ACTIVE", lastSeen: "Vừa mở khóa" } : item
+            item.id === user.id
+              ? { ...item, status: "ACTIVE", lastSeen: "Vừa mở khóa" }
+              : item
           )
         );
         setActionMessage(response?.message || "Mở khóa tài khoản thành công.");
@@ -102,7 +128,8 @@ export default function UserManagementPage() {
         title: "Người dùng",
         sortable: true,
         searchable: true,
-        searchAccessor: (user) => `${user.name || ""} ${user.email || ""} ${user.id || ""}`,
+        searchAccessor: (user) =>
+          `${user.name || ""} ${user.email || ""} ${user.phone || ""} ${user.id || ""}`,
         render: (user) => (
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-primary/25 flex items-center justify-center text-xs font-bold text-insight shrink-0">
@@ -111,9 +138,18 @@ export default function UserManagementPage() {
             <div>
               <p className="text-sm font-bold text-ink">{user.name}</p>
               <p className="text-xs text-muted">{user.email}</p>
-              <p className="text-[10px] text-faint mt-0.5">{user.id}</p>
+              <p className="text-[10px] text-faint mt-0.5">{user.phone || "—"}</p>
             </div>
           </div>
+        ),
+      },
+      {
+        key: "userType",
+        title: "Loại",
+        sortable: true,
+        filter: { options: USER_TYPE_FILTER_OPTIONS },
+        render: (user) => (
+          <span className="text-xs font-semibold text-muted">{user.userType || "—"}</span>
         ),
       },
       {
@@ -121,7 +157,7 @@ export default function UserManagementPage() {
         title: "Vai trò",
         sortable: true,
         filter: roleFilterOptions.length ? { options: roleFilterOptions } : undefined,
-        render: (user) => <RoleBadge role={user.role} />,
+        render: (user) => <RoleBadge role={user.role} region={user.region} />,
       },
       {
         key: "status",
@@ -132,7 +168,7 @@ export default function UserManagementPage() {
       },
       {
         key: "lastSeen",
-        title: "Lần cuối",
+        title: "Ngày tạo",
         className: "text-muted",
         render: (user) => user.lastSeen,
       },
@@ -140,34 +176,40 @@ export default function UserManagementPage() {
         key: "actions",
         title: "Hành động",
         align: "right",
-        render: (user) => (
-          <button
-            type="button"
-            disabled={pendingUserId === user.id}
-            onClick={() => handleLockToggle(user)}
-            className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-colors disabled:opacity-50 ${
-              user.status === "ACTIVE"
-                ? "border-2 border-danger-border bg-danger-bg text-danger hover:bg-danger-hover-bg"
-                : "text-success-text hover:bg-success-bg"
-            }`}
-          >
-            <Icon
-              icon={
-                pendingUserId === user.id
-                  ? "lucide:loader-2"
-                  : user.status === "ACTIVE"
-                    ? "lucide:lock"
-                    : "lucide:lock-open"
-              }
-              className={`w-4 h-4 ${pendingUserId === user.id ? "animate-spin" : ""}`}
-            />
-            {pendingUserId === user.id
-              ? "Đang xử lý..."
-              : user.status === "ACTIVE"
-                ? "Khóa"
-                : "Mở khóa"}
-          </button>
-        ),
+        render: (user) => {
+          const canToggleLock = user.status === "ACTIVE" || user.status === "LOCKED";
+          if (!canToggleLock) {
+            return <span className="text-xs text-faint">—</span>;
+          }
+          return (
+            <button
+              type="button"
+              disabled={pendingUserId === user.id}
+              onClick={() => handleLockToggle(user)}
+              className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-colors disabled:opacity-50 ${
+                user.status === "ACTIVE"
+                  ? "border-2 border-danger-border bg-danger-bg text-danger hover:bg-danger-hover-bg"
+                  : "text-success-text hover:bg-success-bg"
+              }`}
+            >
+              <Icon
+                icon={
+                  pendingUserId === user.id
+                    ? "lucide:loader-2"
+                    : user.status === "ACTIVE"
+                      ? "lucide:lock"
+                      : "lucide:lock-open"
+                }
+                className={`w-4 h-4 ${pendingUserId === user.id ? "animate-spin" : ""}`}
+              />
+              {pendingUserId === user.id
+                ? "Đang xử lý..."
+                : user.status === "ACTIVE"
+                  ? "Khóa"
+                  : "Mở khóa"}
+            </button>
+          );
+        },
       },
     ],
     [roleFilterOptions, pendingUserId]
@@ -182,8 +224,8 @@ export default function UserManagementPage() {
               Quản lý người dùng
             </h1>
             <p className="text-sm text-muted mt-1 max-w-xl">
-              Tạo nhân viên và khóa/mở khóa tài khoản qua API backend. Backend chưa có API danh
-              sách người dùng.
+              Tạo nhân viên (kèm region cho Warehouse), lọc theo loại/vai trò, và khóa/mở khóa
+              tài khoản.
             </p>
           </div>
           <button
@@ -213,10 +255,10 @@ export default function UserManagementPage() {
           loading={isLoadingUsers}
           title="Danh sách người dùng"
           countLabel="người dùng"
-          searchPlaceholder="Tìm theo tên, email hoặc ID..."
-          emptyText='Chưa có người dùng trong phiên này. Nhấn "Thêm người dùng" để tạo nhân viên mới.'
+          searchPlaceholder="Tìm theo tên, email, SĐT hoặc ID..."
+          emptyText='Chưa có người dùng. Nhấn "Thêm người dùng" để tạo nhân viên mới.'
           emptyFilteredText="Không tìm thấy người dùng phù hợp."
-          minWidth={800}
+          minWidth={900}
         />
       </div>
 
