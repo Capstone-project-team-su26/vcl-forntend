@@ -198,12 +198,12 @@ export default function OperationalConsolidate() {
             <table className="w-full text-left min-w-[640px]">
               <thead>
                 <tr className="border-b border-gray-50 text-sm font-bold">
-                  <th className="px-6 py-3">Mã master</th>
+                  <th className="px-6 py-3">Master code</th>
                   <th className="px-6 py-3">Tổng trọng lượng</th>
                   <th className="px-6 py-3">Tổng thể tích</th>
                   <th className="px-6 py-3">Trạng thái</th>
                   <th className="px-6 py-3">Số đơn</th>
-                  <th className="px-6 py-3">Hành động</th>
+                  <th className="px-6 py-3"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50 text-sm">

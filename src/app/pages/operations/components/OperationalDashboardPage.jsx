@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 // Fetch consignments directly from the API
 import { useAuth } from "@/hooks/useAuth";
 import OperationsShell from "@/app/pages/operations/components/OperationsShell";
@@ -8,9 +8,13 @@ import OperationsShell from "@/app/pages/operations/components/OperationsShell";
 export default function OperationalDashboardPage() {
   const { session, isReady } = useAuth();
   const token = session?.token;
-  const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+  const authHeaders = useMemo(() => (token ? { Authorization: `Bearer ${token}` } : {}), [token]);
   const [dashboard, setDashboard] = useState(null);
   const [consignments, setConsignments] = useState([]);
+  const [routes, setRoutes] = useState([]);
+  const [routesLoading, setRoutesLoading] = useState(false);
+  const [routesError, setRoutesError] = useState(null);
+  const [selectedRoute, setSelectedRoute] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -50,7 +54,35 @@ export default function OperationalDashboardPage() {
     return () => {
       active = false;
     };
-  }, [authHeaders, isReady, token]);
+  }, [isReady, token]);
+
+  useEffect(() => {
+    if (!isReady) return;
+    if (!token) return;
+
+    let active = true;
+    setRoutesLoading(true);
+    const ROUTES_API = "https://api-vcl.zushin.io.vn/api/orders/consignments/routes";
+
+    async function loadRoutes() {
+      try {
+        const res = await fetch(ROUTES_API, { headers: authHeaders });
+        if (!res.ok) throw new Error("Network response was not ok");
+        const json = await res.json();
+        const items = Array.isArray(json?.data) ? json.data : [];
+        if (active) setRoutes(items);
+      } catch (err) {
+        if (active) setRoutesError(err);
+      } finally {
+        if (active) setRoutesLoading(false);
+      }
+    }
+
+    loadRoutes();
+    return () => {
+      active = false;
+    };
+  }, [isReady, token]);
 
   function toggleSelectOne(id) {
     setSelectedIds((prev) =>
@@ -59,10 +91,11 @@ export default function OperationalDashboardPage() {
   }
 
   function toggleSelectAll() {
-    if (selectedIds.length === consignments.length) {
+    const visible = selectedRoute ? consignments.filter((c) => c.route === selectedRoute) : consignments;
+    if (selectedIds.length === visible.length) {
       setSelectedIds([]);
     } else {
-      setSelectedIds(consignments.map((c) => c.orderId).filter(Boolean));
+      setSelectedIds(visible.map((c) => c.orderId).filter(Boolean));
     }
   }
 
@@ -122,6 +155,7 @@ export default function OperationalDashboardPage() {
   }
 
   const recentActivity = consignments;
+  const recentActivityFiltered = selectedRoute ? consignments.filter((c) => c.route === selectedRoute) : consignments;
   const stats = dashboard?.stats ?? [];
   const displayName = session?.fullName?.split(" ")?.[0] || "Ops";
 
@@ -163,6 +197,21 @@ export default function OperationalDashboardPage() {
           <div className="px-6 py-4 border-b border-surface-muted flex items-center justify-between">
             <h2 className="text-lg font-bold font-['Oswald']">Hoạt động gần đây</h2>
             <div className="flex items-center space-x-3">
+              <select
+                value={selectedRoute}
+                onChange={(e) => setSelectedRoute(e.target.value)}
+                className="border rounded-md px-3 py-2 text-sm bg-white"
+                aria-label="Chọn tuyến"
+              >
+                <option value="">Tất cả tuyến</option>
+                {routesLoading ? (
+                  <option disabled>Đang tải tuyến...</option>
+                ) : (
+                  routes.map((r) => (
+                    <option key={r} value={r}>{r}</option>
+                  ))
+                )}
+              </select>
               <button
                 onClick={handleCreateConsolidation}
                 disabled={isLoading || isSubmitting || selectedIds.length === 0}
@@ -180,34 +229,33 @@ export default function OperationalDashboardPage() {
                     <input
                       type="checkbox"
                       onChange={toggleSelectAll}
-                      checked={selectedIds.length === consignments.length && consignments.length > 0}
+                      checked={selectedIds.length === recentActivityFiltered.length && recentActivityFiltered.length > 0}
                       aria-label="select all"
                     />
                   </th>
                   <th className="px-6 py-3">Mã</th>
                   <th className="px-6 py-3">Người gửi</th>
-                  <th className="px-6 py-3">Điểm đến</th>
-                  <th className="px-6 py-3">Trạng thái</th>
+                  <th className="px-6 py-3">Điểm đến</th>                  
                   <th className="px-6 py-3">Trọng lượng</th>
                   <th className="px-6 py-3 text-right">Ngày</th>
-                  <th className="px-6 py-3">Hành động</th>
+                  <th className="px-6 py-3"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50 text-sm">
                 {isLoading ? (
                   <tr>
-                    <td colSpan={8} className="px-6 py-8 text-center text-muted">
+                    <td colSpan={7} className="px-6 py-8 text-center text-muted">
                       Đang tải...
                     </td>
                   </tr>
-                ) : recentActivity.length === 0 ? (
+                ) : recentActivityFiltered.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-6 py-8 text-center text-muted">
+                    <td colSpan={7} className="px-6 py-8 text-center text-muted">
                       Chưa có hoạt động.
                     </td>
                   </tr>
                 ) : (
-                  recentActivity.map((row) => (
+                  recentActivityFiltered.map((row) => (
                     <tr key={row.orderId || row.consignmentCode} className="hover:bg-gray-50">
                       <td className="px-6 py-3">
                         <input
@@ -219,11 +267,7 @@ export default function OperationalDashboardPage() {
                       <td className="px-6 py-3 font-bold text-secondary">{row.consignmentCode}</td>
                       <td className="px-6 py-3">{row.customerName}</td>
                       <td className="px-6 py-3 text-muted">{row.route}</td>
-                      <td className="px-6 py-3">
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-bold`}>
-                          {row.status}
-                        </span>
-                      </td>
+                      
                       <td className="px-6 py-3">{row.totalWeight ?? "-"} kg</td>
                       <td className="px-6 py-3 text-right">{row.createdAt ? new Date(row.createdAt).toLocaleString() : "-"}</td>
                       <td className="px-6 py-3">
@@ -262,10 +306,7 @@ export default function OperationalDashboardPage() {
                         <p className="font-semibold">Loại</p>
                         <p>{detailData.consignmentType}</p>
                       </div>
-                      <div>
-                        <p className="font-semibold">Trạng thái</p>
-                        <p>{detailData.status}</p>
-                      </div>
+                      
                       <div>
                         <p className="font-semibold">Tổng trọng lượng</p>
                         <p>{detailData.totalWeight ?? '-'} kg</p>
