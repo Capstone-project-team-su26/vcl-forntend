@@ -8,6 +8,12 @@ import Login from "../pages/LoginPage/Login";
 import MainLayout from "../layouts/mainLayout";
 import RequireAuth from "./PrivateRoute";
 
+/* ================= SALE ================= */
+
+import PendingConsignmentList from "../pages/SalePage/ConsignmentsPage/PendingConsignmentList";
+
+/* ================= HELPERS ================= */
+
 const normalizeRole = (role) => {
   return String(role || "")
     .trim()
@@ -27,7 +33,7 @@ export default function AppRoutes() {
 
   const redirectByRole = {
     admin: "/admin",
-    sale: "/sale",
+    sale: "/sale/consignments",
     operationsmanager: "/operations-manager",
   };
 
@@ -36,6 +42,7 @@ export default function AppRoutes() {
   return (
     <Routes>
       {/* ================= LOGIN ================= */}
+
       <Route
         path="/login"
         element={
@@ -51,6 +58,7 @@ export default function AppRoutes() {
       />
 
       {/* ================= ADMIN ================= */}
+
       <Route
         path="/admin"
         element={
@@ -61,6 +69,7 @@ export default function AppRoutes() {
       />
 
       {/* ================= SALE ================= */}
+
       <Route
         path="/sale"
         element={
@@ -68,9 +77,18 @@ export default function AppRoutes() {
             <MainLayout />
           </RequireAuth>
         }
-      />
+      >
+    
+
+        {/* Danh sách yêu cầu ký gửi chờ duyệt */}
+        <Route
+          path="/sale/consignments"
+          element={<PendingConsignmentList />}
+        />
+      </Route>
 
       {/* ========== OPERATIONS MANAGER ========== */}
+
       <Route
         path="/operations-manager"
         element={
@@ -81,6 +99,7 @@ export default function AppRoutes() {
       />
 
       {/* ================= ROOT ================= */}
+
       <Route
         path="/"
         element={
@@ -99,6 +118,7 @@ export default function AppRoutes() {
       />
 
       {/* ================= FALLBACK ================= */}
+
       <Route
         path="*"
         element={
