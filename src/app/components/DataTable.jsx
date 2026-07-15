@@ -15,14 +15,16 @@ import { useEffect, useMemo, useRef, useState } from "react";
  *   sortable?: boolean,
  *   sortAccessor?: (row) => string | number,
  *   filter?: { options: { value: string, label: string }[] },
- *   filterAccessor?: (row) => string,     // giá trị so khớp với option đã chọn
+ *   filterAccessor?: (row) => string,
  *   searchable?: boolean,
- *   searchAccessor?: (row) => string,     // text đưa vào search tổng
- *   render?: (row) => ReactNode,          // mặc định row[key]
- *   className?: string,                   // class cho <td>
- *   headerClassName?: string,             // class cho <th>
+ *   searchAccessor?: (row) => string,
+ *   render?: (row) => ReactNode,
+ *   className?: string,
+ *   headerClassName?: string,
  * }
  */
+
+const SEARCH_DEBOUNCE_MS = 250;
 
 function OptionRow({ label, selected, onClick }) {
   return (
@@ -47,16 +49,20 @@ function OptionRow({ label, selected, onClick }) {
   );
 }
 
-function SortCarets({ direction }) {
+function SortCarets({ direction, active }) {
   return (
-    <span className="inline-flex flex-col items-center justify-center leading-0 -space-y-1">
+    <span
+      className={`inline-flex flex-col items-center justify-center leading-0 -space-y-0.5 ${
+        active ? "text-primary" : "text-muted/50"
+      }`}
+    >
       <Icon
         icon="lucide:chevron-up"
-        className={`w-3 h-3 ${direction === "asc" ? "text-primary" : "text-muted/40"}`}
+        className={`w-3.5 h-3.5 ${direction === "asc" ? "text-primary opacity-100" : "opacity-40"}`}
       />
       <Icon
         icon="lucide:chevron-down"
-        className={`w-3 h-3 ${direction === "desc" ? "text-primary" : "text-muted/40"}`}
+        className={`w-3.5 h-3.5 ${direction === "desc" ? "text-primary opacity-100" : "opacity-40"}`}
       />
     </span>
   );
@@ -110,6 +116,7 @@ export default function DataTable({
   headerRight = null,
   minWidth = 900,
 }) {
+  const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState({ by: "", dir: "asc" });
   const [filters, setFilters] = useState({});
@@ -117,12 +124,14 @@ export default function DataTable({
   const [openFilter, setOpenFilter] = useState(null);
   const [popoverPos, setPopoverPos] = useState(null);
   const popoverRef = useRef(null);
+  const searchRef = useRef(null);
 
   const hasSearch = useMemo(() => columns.some((col) => col.searchable), [columns]);
   const columnByKey = useMemo(
     () => Object.fromEntries(columns.map((col) => [col.key, col])),
     [columns]
   );
+  const searchPending = searchInput !== search;
 
   const filtersActive =
     Boolean(search.trim()) ||
@@ -131,8 +140,26 @@ export default function DataTable({
     );
 
   useEffect(() => {
-    setPage(1);
-  }, [search, sort, filters]);
+    if (searchInput === search) return undefined;
+    const timer = setTimeout(() => {
+      setSearch(searchInput);
+      setPage(1);
+    }, SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [searchInput, search]);
+
+  useEffect(() => {
+    if (!hasSearch) return undefined;
+    function handleSlash(event) {
+      if (event.key !== "/" || event.metaKey || event.ctrlKey || event.altKey) return;
+      const tag = event.target?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || event.target?.isContentEditable) return;
+      event.preventDefault();
+      searchRef.current?.focus();
+    }
+    document.addEventListener("keydown", handleSlash);
+    return () => document.removeEventListener("keydown", handleSlash);
+  }, [hasSearch]);
 
   useEffect(() => {
     if (!openFilter) return undefined;
@@ -196,11 +223,13 @@ export default function DataTable({
   }, [rows, search, hasSearch, columns, filters, columnByKey, sort]);
 
   const totalCount = processedRows.length;
+  const sourceCount = Array.isArray(rows) ? rows.length : 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
   const safePage = Math.min(page, totalPages);
   const pageRows = processedRows.slice((safePage - 1) * pageSize, safePage * pageSize);
 
   function handleSort(key) {
+    setPage(1);
     setSort((current) => {
       if (current.by !== key) return { by: key, dir: "asc" };
       if (current.dir === "asc") return { by: key, dir: "desc" };
@@ -221,6 +250,7 @@ export default function DataTable({
   }
 
   function toggleFilterValue(key, value) {
+    setPage(1);
     setFilters((current) => {
       const list = Array.isArray(current[key]) ? current[key] : [];
       const next = list.includes(value)
@@ -231,6 +261,7 @@ export default function DataTable({
   }
 
   function setDateRange(key, part, value) {
+    setPage(1);
     setFilters((current) => ({
       ...current,
       [key]: { ...(current[key] ?? {}), [part]: value },
@@ -238,6 +269,7 @@ export default function DataTable({
   }
 
   function resetColumnFilter(key, col) {
+    setPage(1);
     setFilters((current) => ({
       ...current,
       [key]: isDateRangeFilter(col) ? { from: "", to: "" } : [],
@@ -245,40 +277,71 @@ export default function DataTable({
   }
 
   function clearAll() {
+    setSearchInput("");
     setSearch("");
     setFilters({});
     setOpenFilter(null);
+    setPage(1);
   }
 
   const openColumn = openFilter ? columnByKey[openFilter] : null;
+  const showFilteredCount = filtersActive && !loading;
 
   return (
-    <div className="bg-surface-elevated rounded-xl shadow-sm overflow-hidden border border-border-muted">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-6 py-4 border-b border-border-muted">
-        <div className="flex items-center gap-3">
+    <div className="bg-surface-elevated rounded-xl shadow-sm overflow-hidden border border-border-muted ring-1 ring-black/[0.03]">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 sm:px-5 py-3 border-b border-border-muted">
+        <div className="flex items-center gap-2.5 min-w-0">
           {title ? (
-            <h3 className="text-lg font-extrabold font-['Oswald']">{title}</h3>
+            <h3 className="text-base font-bold text-ink truncate">{title}</h3>
           ) : null}
           {!loading ? (
-            <span className="text-sm text-muted font-medium">
-              {totalCount} {countLabel}
+            <span className="text-sm text-muted font-medium whitespace-nowrap">
+              {showFilteredCount
+                ? `${totalCount} / ${sourceCount} ${countLabel}`
+                : `${totalCount} ${countLabel}`}
             </span>
           ) : null}
         </div>
         <div className="flex items-center gap-2">
           {hasSearch ? (
-            <div className="relative flex-1 sm:w-72">
+            <div className="relative flex-1 sm:w-80">
               <Icon
                 icon="lucide:search"
                 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted pointer-events-none"
               />
               <input
+                ref={searchRef}
                 type="search"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
+                value={searchInput}
+                onChange={(event) => setSearchInput(event.target.value)}
                 placeholder={searchPlaceholder}
-                className="w-full h-10 pl-10 pr-3 rounded-lg border border-border-muted bg-surface-elevated text-sm text-ink input-focus-ring"
+                className="w-full h-10 pl-10 pr-16 rounded-lg border border-border-muted bg-surface text-sm text-ink placeholder:text-muted/70 input-focus-ring"
+                aria-label={searchPlaceholder}
               />
+              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
+                {searchPending ? (
+                  <Icon icon="lucide:loader-2" className="w-4 h-4 text-muted animate-spin" />
+                ) : null}
+                {searchInput ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchInput("");
+                      setSearch("");
+                      searchRef.current?.focus();
+                    }}
+                    className="flex h-7 w-7 items-center justify-center rounded-md text-muted hover:text-ink hover:bg-surface-muted"
+                    title="Xóa tìm kiếm"
+                    aria-label="Xóa tìm kiếm"
+                  >
+                    <Icon icon="lucide:x" className="w-3.5 h-3.5" />
+                  </button>
+                ) : (
+                  <kbd className="hidden sm:inline-flex h-6 min-w-6 items-center justify-center rounded border border-border-muted bg-surface-muted px-1.5 text-[10px] font-semibold text-muted">
+                    /
+                  </kbd>
+                )}
+              </div>
             </div>
           ) : null}
           {filtersActive ? (
@@ -289,17 +352,17 @@ export default function DataTable({
               title="Xóa bộ lọc"
             >
               <Icon icon="lucide:filter-x" className="w-3.5 h-3.5" />
-              Xóa lọc
+              Đặt lại
             </button>
           ) : null}
           {headerRight}
         </div>
       </div>
 
-      <div className="overflow-x-auto custom-scrollbar">
+      <div className="overflow-x-auto custom-scrollbar max-h-[min(70vh,720px)] overflow-y-auto">
         <table className="w-full text-left border-collapse" style={{ minWidth }}>
-          <thead>
-            <tr className="border-b border-border-muted bg-surface/60">
+          <thead className="sticky top-0 z-10">
+            <tr className="border-b border-border bg-surface-muted/90 backdrop-blur-sm">
               {columns.map((col) => {
                 const isSorted = col.sortable && sort.by === col.key;
                 const isOpen = openFilter === col.key;
@@ -307,9 +370,9 @@ export default function DataTable({
                 return (
                   <th
                     key={col.key}
-                    className={`px-6 py-4 text-sm font-bold select-none ${
+                    className={`px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-muted select-none ${
                       col.align === "right" ? "text-right" : ""
-                    } ${col.headerClassName ?? ""}`}
+                    } ${isSorted ? "text-primary" : ""} ${col.headerClassName ?? ""}`}
                   >
                     <div
                       className={`flex items-center gap-0.5 ${
@@ -320,15 +383,27 @@ export default function DataTable({
                         <button
                           type="button"
                           onClick={() => handleSort(col.key)}
-                          className="group inline-flex items-center gap-1 -mx-1 px-1 rounded transition-colors hover:bg-surface-muted/60"
-                          title="Sắp xếp"
+                          className={`group inline-flex items-center gap-1 min-h-8 -mx-1 px-1.5 rounded-md transition-colors hover:bg-surface-elevated ${
+                            isSorted ? "text-primary" : "text-ink"
+                          }`}
+                          title={
+                            isSorted
+                              ? sort.dir === "asc"
+                                ? "Đang tăng dần — nhấn để giảm dần"
+                                : "Đang giảm dần — nhấn để bỏ sắp xếp"
+                              : "Sắp xếp"
+                          }
                         >
-                          <span className="truncate">{col.title}</span>
-                          <SortCarets direction={isSorted ? sort.dir : null} />
+                          <span className="truncate normal-case tracking-normal text-sm">
+                            {col.title}
+                          </span>
+                          <SortCarets direction={isSorted ? sort.dir : null} active={isSorted} />
                         </button>
                       ) : (
-                        <span className="inline-flex items-center gap-1.5">
-                          <span className="truncate">{col.title}</span>
+                        <span className="inline-flex items-center min-h-8 px-1.5">
+                          <span className="truncate normal-case tracking-normal text-sm text-ink">
+                            {col.title}
+                          </span>
                         </span>
                       )}
 
@@ -336,20 +411,23 @@ export default function DataTable({
                         <button
                           type="button"
                           onClick={(event) => toggleFilter(col.key, event.currentTarget)}
-                          className={`shrink-0 flex items-center justify-center w-6 h-6 rounded transition-colors ${
+                          className={`relative shrink-0 flex items-center justify-center w-8 h-8 rounded-md transition-colors ${
                             isFilterActive
-                              ? "text-primary bg-primary/10"
+                              ? "text-primary bg-primary/15"
                               : isOpen
-                                ? "text-ink bg-surface-muted"
-                                : "text-muted/60 hover:text-ink hover:bg-surface-muted/60"
+                                ? "text-ink bg-surface-elevated"
+                                : "text-muted hover:text-ink hover:bg-surface-elevated"
                           }`}
-                          title="Lọc"
+                          title={isFilterActive ? "Đang lọc — nhấn để chỉnh" : "Lọc"}
                         >
                           <Icon
                             icon="lucide:filter"
-                            className="w-3.5 h-3.5"
+                            className="w-4 h-4"
                             fill={isFilterActive ? "currentColor" : "none"}
                           />
+                          {isFilterActive ? (
+                            <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-primary" />
+                          ) : null}
                         </button>
                       ) : null}
                     </div>
@@ -361,7 +439,7 @@ export default function DataTable({
           <tbody className="divide-y divide-border-muted">
             {loading ? (
               <tr>
-                <td colSpan={columns.length} className="px-6 py-12 text-center">
+                <td colSpan={columns.length} className="px-4 py-12 text-center">
                   <div className="inline-flex items-center gap-2 text-sm text-muted">
                     <Icon icon="lucide:loader-2" className="w-5 h-5 animate-spin" />
                     Đang tải dữ liệu...
@@ -370,7 +448,7 @@ export default function DataTable({
               </tr>
             ) : pageRows.length === 0 ? (
               <tr>
-                <td colSpan={columns.length} className="px-6 py-12 text-center">
+                <td colSpan={columns.length} className="px-4 py-12 text-center">
                   <Icon icon="lucide:inbox" className="w-10 h-10 text-muted mx-auto mb-3" />
                   <p className="text-sm text-muted">
                     {filtersActive ? emptyFilteredText : emptyText}
@@ -382,14 +460,18 @@ export default function DataTable({
                 <tr
                   key={rowKey(row, index)}
                   className={`transition-colors ${
-                    onRowClick ? "hover:bg-surface-muted cursor-pointer" : "hover:bg-surface-muted/50"
+                    index % 2 === 1 ? "bg-surface/40" : "bg-surface-elevated"
+                  } ${
+                    onRowClick
+                      ? "hover:bg-primary/6 cursor-pointer"
+                      : "hover:bg-primary/5"
                   }`}
                   onClick={onRowClick ? () => onRowClick(row) : undefined}
                 >
                   {columns.map((col) => (
                     <td
                       key={col.key}
-                      className={`px-6 py-4 text-sm ${
+                      className={`px-4 py-2.5 text-sm text-ink/90 ${
                         col.align === "right" ? "text-right" : ""
                       } ${col.className ?? ""}`}
                     >
@@ -403,31 +485,41 @@ export default function DataTable({
         </table>
       </div>
 
-      {!loading && totalCount > pageSize ? (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-6 py-4 border-t border-border-muted">
+      {!loading && totalCount > 0 ? (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 sm:px-5 py-3 border-t border-border-muted bg-surface/30">
           <p className="text-sm text-muted">
-            Trang {safePage} / {totalPages}
+            {totalCount <= pageSize
+              ? `Hiển thị ${totalCount} ${countLabel}`
+              : `Hiển thị ${(safePage - 1) * pageSize + 1}–${Math.min(
+                  safePage * pageSize,
+                  totalCount
+                )} / ${totalCount} ${countLabel}`}
           </p>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              disabled={safePage <= 1}
-              onClick={() => setPage((current) => Math.max(1, current - 1))}
-              className="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-border-muted text-sm font-semibold disabled:opacity-40 hover:bg-surface-muted"
-            >
-              <Icon icon="lucide:chevron-left" className="w-4 h-4" />
-              Trước
-            </button>
-            <button
-              type="button"
-              disabled={safePage >= totalPages}
-              onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
-              className="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-border-muted text-sm font-semibold disabled:opacity-40 hover:bg-surface-muted"
-            >
-              Sau
-              <Icon icon="lucide:chevron-right" className="w-4 h-4" />
-            </button>
-          </div>
+          {totalCount > pageSize ? (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={safePage <= 1}
+                onClick={() => setPage((current) => Math.max(1, current - 1))}
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-border-muted text-sm font-semibold disabled:opacity-40 hover:bg-surface-muted"
+              >
+                <Icon icon="lucide:chevron-left" className="w-4 h-4" />
+                Trước
+              </button>
+              <span className="text-sm text-muted tabular-nums px-1">
+                {safePage} / {totalPages}
+              </span>
+              <button
+                type="button"
+                disabled={safePage >= totalPages}
+                onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-border-muted text-sm font-semibold disabled:opacity-40 hover:bg-surface-muted"
+              >
+                Sau
+                <Icon icon="lucide:chevron-right" className="w-4 h-4" />
+              </button>
+            </div>
+          ) : null}
         </div>
       ) : null}
 

@@ -34,6 +34,14 @@ yarn-error.log*
 .env*
 !.env.example
 
+# secrets / local credentials (never commit)
+*.pfx
+*.p12
+*connection*.txt
+*connection*string*
+credentials*.json
+secrets*.json
+
 # vercel
 .vercel
 

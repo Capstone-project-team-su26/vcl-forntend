@@ -88,12 +88,11 @@ API_URL=https://api-vcl.purintech.id.vn
 NEXT_PUBLIC_DATA_SOURCE=api
 ```
 
-Tài khoản test trên server (gọi endpoint seed):
+Tài khoản test trên server: seed qua backend (`GET /api/Test/seed-admin`, `GET /api/Test/seed-staff`) — mật khẩu lấy từ team/BE, **không** commit vào repo.
 
-- Admin: `GET /api/Test/seed-admin` → `admin@test.com` / `Admin123`
-- Staff kho: `GET /api/Test/seed-staff` → `staff@employee.com` / `Employee123`
+Swagger: xem host API trong `.env.local` (vd. `{API_URL}/swagger`).
 
-Swagger: `https://api-vcl.purintech.id.vn/swagger/v1/swagger.json`
+> FE chỉ gọi HTTP API qua proxy `/api/*`. **Không** có connection string / truy cập thẳng database.
 
 ### Thêm / sửa dữ liệu Mock
 

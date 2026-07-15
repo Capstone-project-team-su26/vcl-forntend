@@ -1,5 +1,6 @@
 import { mockDelay } from "@/utils/mocks/mockDelay";
 import { resolveMockAccount } from "@/utils/mocks/mockAccounts";
+import { getMockStore } from "@/utils/mocks/mockStore";
 
 function mockAuthResponse({ email, role, fullName }) {
   return {
@@ -37,13 +38,27 @@ export async function mockResetPassword() {
 
 export async function mockAdminRegisterEmployee(payload) {
   await mockDelay();
-  return {
-    message: "Tạo nhân viên thành công.",
-    user: {
-      id: `mock-user-${Date.now()}`,
-      email: payload.email,
-      fullName: payload.fullName,
-      role: payload.role,
-    },
+  const id = `mock-user-${Date.now()}`;
+  const role = payload.role;
+  const user = {
+    id,
+    name: payload.fullName,
+    email: payload.email,
+    phone: payload.phone,
+    role: /^warehouse/i.test(role) ? "Warehouse" : role,
+    rawRole: role,
+    userType: "Employee",
+    region: payload.region || null,
+    isEmailVerified: false,
+    status: "ACTIVE",
+    lastSeen: "Vừa tạo",
+    avatar: (payload.fullName || "?")
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() || "")
+      .join(""),
   };
+  getMockStore().users.unshift(user);
+  return { message: "Tạo nhân viên thành công.", user: { id, ...user, fullName: payload.fullName } };
 }

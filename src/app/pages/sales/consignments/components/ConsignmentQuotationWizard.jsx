@@ -8,7 +8,7 @@ import * as orderConsignmentService from "@/utils/orderConsignmentService";
 import * as pricingService from "@/utils/internationalWarehousePricingService";
 import { getErrorMessage } from "@/utils/apiError";
 import { ROUTES } from "@/utils/appRoutes";
-import { volumeCm3ToM3 } from "@/utils/servicePricingService";
+import { formatVolumeCm3 } from "@/utils/servicePricingService";
 
 const { ITEM_VALIDATION_LABELS, ITEM_VALIDATION_STYLES } = orderConsignmentService;
 const { FEE_CODES, buildDefaultQuotationLines, calculateQuotationTotal, formatMoney } =
@@ -129,11 +129,6 @@ export default function ConsignmentQuotationWizard({ preselectedCustomerId }) {
   const hasBannedItem = validation?.hasBanned === true;
   const validationWarnings =
     validation?.items?.filter((entry) => entry.restrictionType) ?? [];
-
-  const volumeM3 = useMemo(
-    () => (volumeCm3 === "" ? "" : volumeCm3ToM3(volumeCm3)),
-    [volumeCm3]
-  );
 
   const totals = useMemo(
     () =>
@@ -284,13 +279,13 @@ export default function ConsignmentQuotationWizard({ preselectedCustomerId }) {
       return buildDefaultQuotationLines({
         warehouseId,
         weightKg,
-        volumeM3,
+        volumeCm3,
         packageCount,
         storageMonths,
         enabledFees: Object.keys(enabledMap).length ? enabledMap : undefined,
       });
     });
-  }, [warehouseId, weightKg, volumeM3, packageCount, storageMonths]);
+  }, [warehouseId, weightKg, volumeCm3, packageCount, storageMonths]);
 
   function resetSuccessState() {
     setSubmitError("");
@@ -332,7 +327,7 @@ export default function ConsignmentQuotationWizard({ preselectedCustomerId }) {
                   ? buildDefaultQuotationLines({
                       warehouseId,
                       weightKg,
-                      volumeM3,
+                      volumeCm3,
                       packageCount,
                       storageMonths,
                       enabledFees: { [feeCode]: true },
@@ -429,7 +424,7 @@ export default function ConsignmentQuotationWizard({ preselectedCustomerId }) {
         warehouseId,
         warehouseCode: selectedWarehouse?.code,
         weightKg: Number(weightKg),
-        volumeM3: volumeCm3 ? volumeCm3ToM3(volumeCm3) : 0,
+        volumeM3: volumeCm3 ? Number(volumeCm3) : 0,
         packageCount: Number(packageCount),
         salesNote,
         quotation: {

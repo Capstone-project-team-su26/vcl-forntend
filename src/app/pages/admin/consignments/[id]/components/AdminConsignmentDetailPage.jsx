@@ -11,7 +11,7 @@ export default function AdminConsignmentDetailPage() {
 
   return (
     <AdminLayout activeNav="consignments">
-      <div className="max-w-7xl mx-auto w-full">
+      <div className="w-full">
         <ConsignmentDetailPanel
           id={id}
           backHref={ROUTES.admin.consignments}

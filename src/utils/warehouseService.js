@@ -12,11 +12,10 @@ import {
 } from "@/utils/apiMappers";
 import { ApiError } from "@/utils/apiError";
 
+/** Giá trị khớp API (`Origin` / `Destination`), không có endpoint danh mục riêng. */
 export const WAREHOUSE_TYPE_LABELS = {
-  DOMESTIC: "Kho nội địa",
-  INTERNATIONAL: "Kho quốc tế",
-  HUB: "Hub trung chuyển",
-  BONDED: "Kho ngoại quan",
+  Origin: "Kho xuất phát",
+  Destination: "Kho đích",
 };
 
 export const LOCATION_TYPE_LABELS = {
@@ -333,7 +332,11 @@ export async function deleteWarehouseLocation(locationId) {
 
 export function formatWarehouseType(type) {
   if (!type) return "—";
-  return WAREHOUSE_TYPE_LABELS[type] || type;
+  if (WAREHOUSE_TYPE_LABELS[type]) return WAREHOUSE_TYPE_LABELS[type];
+  const match = Object.entries(WAREHOUSE_TYPE_LABELS).find(
+    ([value]) => value.toLowerCase() === String(type).toLowerCase()
+  );
+  return match?.[1] || type;
 }
 
 export function formatLocationType(type) {

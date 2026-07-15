@@ -8,7 +8,13 @@ import * as consignmentQuotationService from "@/utils/consignmentQuotationServic
 import { getErrorMessage } from "@/utils/apiError";
 import { ROUTES } from "@/utils/appRoutes";
 import ConsignmentStatusBadge from "@/app/pages/sales/consignments/components/ConsignmentStatusBadge";
-import { formatVolumeCm3, volumeM3ToCm3, formatItemDimensions, calculateItemDimWeightKg } from "@/utils/servicePricingService";
+import {
+  formatVolumeCm3,
+  normalizeVolumeCm3FromApi,
+  formatItemDimensions,
+  calculateItemDimWeightKg,
+  VOLUMETRIC_DIVISOR_CM3,
+} from "@/utils/servicePricingService";
 
 const {
   CONSIGNMENT_TYPE_LABELS,
@@ -175,10 +181,9 @@ function formatDimDisplay(length, width, height) {
   const w = Number(width);
   const h = Number(height);
   const value = `${dimKg.toLocaleString("vi-VN", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    maximumFractionDigits: 6,
   })} kg`;
-  const formula = `(${l}×${w}×${h}) / 5.000`;
+  const formula = `(${l}×${w}×${h}) / ${VOLUMETRIC_DIVISOR_CM3.toLocaleString("vi-VN")}`;
 
   return { value, formula };
 }
@@ -666,7 +671,11 @@ export default function ConsignmentDetailPanel({
               {detail.totalVolume != null ? (
                 <DetailRow
                   label="Tổng thể tích"
-                  value={formatVolumeCm3(volumeM3ToCm3(detail.totalVolume))}
+                  value={formatVolumeCm3(
+                    normalizeVolumeCm3FromApi(detail.totalVolume, {
+                      weightKg: detail.totalWeight,
+                    })
+                  )}
                 />
               ) : null}
               {detail.packageCount != null ? (

@@ -45,9 +45,9 @@ const {
   formatConsignmentRouteLabel,
   formatVolumeCm3,
   isConfiguredServicePricing,
-  volumeCm3ToM3,
-  volumeM3ToCm3,
+  normalizeVolumeCm3FromApi,
   UNIT_TYPE_LABELS,
+  VOLUMETRIC_DIVISOR_CM3,
 } = servicePricingService;
 
 function FieldLabel({ htmlFor, children, required }) {
@@ -72,7 +72,7 @@ const QUICK_CUSTOM_FEES = [
 
 function formatKgLabel(value) {
   const numeric = Number(value) || 0;
-  return `${numeric.toLocaleString("vi-VN", { maximumFractionDigits: 2 })} kg`;
+  return `${numeric.toLocaleString("vi-VN", { maximumFractionDigits: 6 })} kg`;
 }
 
 function formatMainServiceUnitPrice(servicePricing) {
@@ -86,12 +86,12 @@ function formatMainServiceUnitPrice(servicePricing) {
     return { unit: "VND/kg", rate: `${consignmentQuotationService.formatMoney(price)}/kg` };
   }
   if (unitType === "CBM") {
-    return { unit: "VND/m³", rate: `${consignmentQuotationService.formatMoney(price)}/m³` };
+    return { unit: "VND/cm³", rate: `${consignmentQuotationService.formatMoney(price)}/cm³` };
   }
   if (unitType === "KG_OR_CBM") {
     return {
-      unit: "VND/kg · m³",
-      rate: `${consignmentQuotationService.formatMoney(pricePerKg)}/kg · ${consignmentQuotationService.formatMoney(pricePerCbm)}/m³`,
+      unit: "VND/kg · cm³",
+      rate: `${consignmentQuotationService.formatMoney(pricePerKg)}/kg · ${consignmentQuotationService.formatMoney(pricePerCbm)}/cm³`,
     };
   }
   return { unit: "—", rate: price > 0 ? consignmentQuotationService.formatMoney(price) : "—" };
@@ -320,16 +320,11 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
     [mainServiceAmount, allAdditionalFeeLines, discountPercent]
   );
 
-  const volumeM3 = useMemo(
-    () => (volumeCm3 === "" ? "" : String(volumeCm3ToM3(volumeCm3))),
-    [volumeCm3]
-  );
-
   const pricingBreakdown = useMemo(
     () =>
       buildMainServicePricingBreakdown(selectedServicePricing, {
         weightKg,
-        volumeM3,
+        volumeCm3,
         estimate:
           estimateSnapshot ??
           (detail?.quotation
@@ -341,7 +336,7 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
               }
             : null),
       }),
-    [selectedServicePricing, weightKg, volumeM3, estimateSnapshot, detail?.quotation]
+    [selectedServicePricing, weightKg, volumeCm3, estimateSnapshot, detail?.quotation]
   );
 
   const resolvedBackHref =
@@ -392,10 +387,10 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
           ? warehouseList.find((entry) => entry.id === whId) ?? null
           : null;
         const weight = consignment.totalWeight != null ? String(consignment.totalWeight) : "";
-        const volumeM3FromApi =
-          consignment.totalVolume != null ? Number(consignment.totalVolume) : null;
-        const volume =
-          volumeM3FromApi != null ? String(volumeM3ToCm3(volumeM3FromApi)) : "";
+        const volumeCm3FromApi = normalizeVolumeCm3FromApi(consignment.totalVolume, {
+          weightKg: consignment.totalWeight,
+        });
+        const volume = volumeCm3FromApi != null ? String(volumeCm3FromApi) : "";
         const packages =
           consignment.packageCount != null
             ? String(consignment.packageCount)
@@ -429,11 +424,12 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
 
         const estimateSalesNote =
           resolveInitialSalesNote(consignment) || "Báo giá tạm tính";
+        const resolvedVolumeCm3 = volumeCm3FromApi ?? (volume ? Number(volume) : 0);
 
         const preliminaryDraft = buildConsignmentQuotationDraft({
           servicePricing: pricing,
           weightKg: weight,
-          volumeM3: volumeM3FromApi ?? (volume ? volumeCm3ToM3(volume) : 0),
+          volumeCm3: resolvedVolumeCm3,
           packageCount: packages,
           declaredValue: declared,
           discountPercent: consignment.quotation?.discountPercent ?? 0,
@@ -449,7 +445,8 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
               servicePricingId: pricing.id,
               serviceType: pricing.serviceType ?? initialServiceType,
               weightKg: weight ? Number(weight) : undefined,
-              volumeM3: volumeM3FromApi ?? (volume ? volumeCm3ToM3(volume) : undefined),
+              // ponytail: swagger field còn tên volumeM3 nhưng BE nhận cm³.
+              volumeM3: volumeCm3FromApi ?? (volume ? Number(volume) : undefined),
               packageCount: packages ? Number(packages) : undefined,
               declaredValue: declared !== "" ? Number(declared) : undefined,
               salesNote: estimateSalesNote,
@@ -460,15 +457,35 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
           }
         }
 
-        const draftMainAmountResolved =
+        const localDraft = buildConsignmentQuotationDraft({
+          servicePricing: pricing,
+          weightKg: weight,
+          volumeCm3: resolvedVolumeCm3,
+          packageCount: packages,
+          declaredValue: declared,
+          discountPercent: consignment.quotation?.discountPercent ?? 0,
+          salesNote: estimateSalesNote,
+        });
+
+        const apiFreight =
           estimateResult?.estimatedFreightCharge ??
           estimateResult?.quotation?.mainServiceAmount ??
           draftMainAmount;
+        // ponytail: bỏ cước estimate nếu gấp ≫ local (BE còn tính volume cm³ như m³).
+        const apiFreightNumber = apiFreight != null ? Number(apiFreight) : null;
+        const localFreight = Number(localDraft.mainServiceAmount) || 0;
+        const apiFreightInflated =
+          localFreight > 0 &&
+          apiFreightNumber != null &&
+          apiFreightNumber > localFreight * 50;
+        const draftMainAmountResolved = apiFreightInflated
+          ? localFreight
+          : (apiFreightNumber ?? localFreight);
 
         const draft = buildConsignmentQuotationDraft({
           servicePricing: pricing,
           weightKg: weight,
-          volumeM3: volumeM3FromApi ?? (volume ? volumeCm3ToM3(volume) : 0),
+          volumeCm3: resolvedVolumeCm3,
           packageCount: packages,
           declaredValue: declared,
           discountPercent: consignment.quotation?.discountPercent ?? 0,
@@ -535,7 +552,7 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
     const draft = buildConsignmentQuotationDraft({
       servicePricing: selectedServicePricing,
       weightKg,
-      volumeM3,
+      volumeCm3,
       packageCount,
       declaredValue,
       discountPercent,
@@ -560,7 +577,7 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
   }, [
     selectedServicePricing?.id,
     weightKg,
-    volumeM3,
+    volumeCm3,
     packageCount,
     declaredValue,
     discountPercent,
@@ -701,13 +718,13 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
     setSubmitError("");
     setSuccessMessage("");
 
-    const resolvedVolumeM3 = volumeCm3 ? volumeCm3ToM3(volumeCm3) : 0;
+    const resolvedVolumeCm3 = volumeCm3 ? Number(volumeCm3) : 0;
 
     const quotation = {
       ...buildConsignmentQuotationDraft({
         servicePricing: selectedServicePricing,
         weightKg,
-        volumeM3: resolvedVolumeM3,
+        volumeCm3: resolvedVolumeCm3,
         packageCount,
         declaredValue,
         discountPercent,
@@ -729,7 +746,7 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
       servicePricingId: selectedServicePricing.id,
       serviceType,
       weightKg: Number(weightKg),
-      volumeM3: resolvedVolumeM3,
+      volumeM3: resolvedVolumeCm3,
       packageCount: Number(packageCount),
       declaredValue: declaredValue === "" ? null : Number(declaredValue),
       salesNote,
@@ -963,7 +980,7 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
                   <p className="text-muted">Cân thực → DIM → Tính phí</p>
                   <p className="font-semibold text-ink leading-snug">
                     {Number(weightKg) > 0 ? `${weightKg} kg` : "—"} thực
-                    {volumetricWeight > 0 ? (
+                    {volumetricWeight > 0 || pricingBreakdown.volumeCm3 != null ? (
                       <>
                         {" · "}
                         <span className="text-muted font-normal">
@@ -978,9 +995,10 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
                       </>
                     ) : null}
                   </p>
-                  {pricingBreakdown.volumeCm3 != null && volumetricWeight > 0 ? (
+                  {pricingBreakdown.volumeCm3 != null ? (
                     <p className="text-xs text-muted mt-1">
-                      DIM = {formatVolumeCm3(pricingBreakdown.volumeCm3)} ÷ 5.000
+                      DIM = {formatVolumeCm3(pricingBreakdown.volumeCm3)} ÷{" "}
+                      {VOLUMETRIC_DIVISOR_CM3.toLocaleString("vi-VN")}
                     </p>
                   ) : null}
                 </div>

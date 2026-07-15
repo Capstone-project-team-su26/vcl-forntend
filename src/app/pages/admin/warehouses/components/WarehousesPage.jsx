@@ -267,20 +267,20 @@ export default function WarehousesPage() {
 
   return (
     <AdminLayout activeNav="warehouses">
-      <div className="space-y-8">
+      <div className="space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl lg:text-4xl font-black tracking-tight font-['Oswald'] text-ink">
+            <h1 className="text-xl lg:text-2xl font-bold text-ink tracking-tight">
               Quản lý kho
             </h1>
-            <p className="text-muted text-sm font-medium mt-2">
-              Cấu hình kho và vị trí Zone/Shelf/Bin phục vụ nhập kho, xuất kho và vận chuyển quốc tế.
+            <p className="text-sm text-muted mt-1 leading-relaxed">
+              Cấu hình kho và vị trí Zone/Shelf/Bin cho nhập xuất và vận chuyển quốc tế.
             </p>
           </div>
           <button
             type="button"
             onClick={openCreateWarehouse}
-            className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-lg bg-insight hover:bg-secondary text-white text-sm font-bold shrink-0"
+            className="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-lg bg-insight hover:bg-secondary text-white text-sm font-bold shrink-0"
           >
             <Icon icon="lucide:plus" className="w-4 h-4" />
             Thêm kho
@@ -328,7 +328,7 @@ export default function WarehousesPage() {
 
         <div className="bg-surface-elevated rounded-xl shadow-sm overflow-hidden border border-border-muted">
           <div className="px-6 py-4 border-b border-border-muted">
-            <h3 className="text-lg font-extrabold font-['Oswald']">Danh sách kho</h3>
+            <h3 className="text-base font-bold text-ink">Danh sách kho</h3>
           </div>
 
           {isLoading ? (

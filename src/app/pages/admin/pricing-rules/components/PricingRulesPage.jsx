@@ -141,9 +141,9 @@ export default function PricingRulesPage() {
 
   function formatUnitPrice(item) {
     if (item.unitType === "KG_OR_CBM") {
-      return `${formatMoney(item.pricePerKg)} / kg · ${formatMoney(item.pricePerCbm)} / CBM`;
+      return `${formatMoney(item.pricePerKg)} / kg · ${formatMoney(item.pricePerCbm)} / cm³`;
     }
-    if (item.unitType === "CBM") return `${formatMoney(item.price)} / CBM`;
+    if (item.unitType === "CBM") return `${formatMoney(item.price)} / cm³`;
     return `${formatMoney(item.price)} / kg`;
   }
 
@@ -254,21 +254,20 @@ export default function PricingRulesPage() {
 
   return (
     <AdminLayout activeNav="pricing-rules">
-      <div className="max-w-7xl mx-auto space-y-6">
+      <div className="space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl lg:text-3xl font-bold text-ink tracking-tight">
+            <h1 className="text-xl lg:text-2xl font-bold text-ink tracking-tight">
               Giá dịch vụ chính (ký gửi)
             </h1>
-            <p className="text-sm text-muted mt-1 max-w-2xl">
-              Cấu hình cước dịch vụ chính theo tuyến và đơn vị tính. Phụ phí được quản lý riêng tại
-              mục Phí dịch vụ bổ sung.
+            <p className="text-sm text-muted mt-1 leading-relaxed">
+              Cấu hình cước theo tuyến và đơn vị tính. Phụ phí quản lý riêng ở Phí dịch vụ bổ sung.
             </p>
           </div>
           <button
             type="button"
             onClick={openCreate}
-            className="inline-flex items-center justify-center gap-2 h-11 px-5 bg-insight hover:bg-secondary text-white text-sm font-bold rounded-lg transition-colors shrink-0"
+            className="inline-flex items-center justify-center gap-2 h-10 px-4 bg-insight hover:bg-secondary text-white text-sm font-bold rounded-lg transition-colors shrink-0"
           >
             <Icon icon="lucide:plus" className="w-4 h-4" />
             Thêm giá dịch vụ chính

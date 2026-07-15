@@ -240,20 +240,20 @@ export default function RestrictedItemsPage() {
 
   return (
     <AdminLayout activeNav="restricted-items">
-      <div className="max-w-6xl mx-auto space-y-6">
+      <div className="space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl lg:text-3xl font-bold text-ink tracking-tight">
+            <h1 className="text-xl lg:text-2xl font-bold text-ink tracking-tight">
               Hàng cấm / hạn chế
             </h1>
-            <p className="text-sm text-muted mt-1 max-w-2xl">
-              Quản lý danh mục dùng để kiểm tra hàng hóa khi Customer tạo yêu cầu ký gửi.
+            <p className="text-sm text-muted mt-1 leading-relaxed">
+              Quản lý danh mục kiểm tra hàng hóa khi khách tạo yêu cầu ký gửi.
             </p>
           </div>
           <button
             type="button"
             onClick={openCreate}
-            className="inline-flex items-center justify-center gap-2 h-11 px-5 bg-insight hover:bg-secondary text-white text-sm font-bold rounded-lg transition-colors shrink-0"
+            className="inline-flex items-center justify-center gap-2 h-10 px-4 bg-insight hover:bg-secondary text-white text-sm font-bold rounded-lg transition-colors shrink-0"
           >
             <Icon icon="lucide:plus" className="w-4 h-4" />
             Thêm mặt hàng

@@ -40,14 +40,18 @@ export function resetPassword(payload) {
 export function adminRegisterEmployee(payload) {
   if (isMockMode()) return mockAdminRegisterEmployee(payload);
 
+  const body = {
+    fullName: payload.fullName,
+    email: payload.email,
+    password: payload.password,
+    phone: payload.phone,
+    role: payload.role,
+  };
+  // ponytail: Swagger RegisterRequest chưa liệt kê region; BE dùng để map Warehouse + region.
+  if (payload.region) body.region = payload.region;
+
   return apiRequest("/api/User", {
     method: "POST",
-    body: JSON.stringify({
-      fullName: payload.fullName,
-      email: payload.email,
-      password: payload.password,
-      phone: payload.phone,
-      role: payload.role,
-    }),
+    body: JSON.stringify(body),
   });
 }

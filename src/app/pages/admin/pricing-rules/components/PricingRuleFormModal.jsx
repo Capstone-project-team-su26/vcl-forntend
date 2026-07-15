@@ -1,13 +1,15 @@
 "use client";
 
 import { Icon } from "@iconify/react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import * as carrierService from "@/utils/carrierService";
 import * as servicePricingService from "@/utils/servicePricingService";
+import * as warehouseService from "@/utils/warehouseService";
 import { getErrorMessage } from "@/utils/apiError";
 import VndMoneyInput from "@/app/components/VndMoneyInput";
+import { extractGuid } from "@/utils/apiMappers";
 
-const { SERVICE_TYPE_LABELS, UNIT_TYPE_LABELS } = servicePricingService;
+const { SERVICE_TYPE_LABELS, UNIT_TYPE_LABELS, listWarehouseCountryCodes } = servicePricingService;
 
 const serviceTypeOptions = Object.entries(SERVICE_TYPE_LABELS).map(([value, label]) => ({
   value,
@@ -19,6 +21,35 @@ const unitTypeOptions = Object.entries(UNIT_TYPE_LABELS).map(([value, label]) =>
   label,
 }));
 
+function pickDefaultCountry(options, preferred) {
+  if (preferred && options.includes(preferred)) return preferred;
+  return options[0] ?? "";
+}
+
+/** API cần carrierId = UUID; item cũ có thể lưu code. */
+function resolveCarrierId(carriers, preferred) {
+  if (!carriers?.length) return "";
+  if (!preferred) return carriers[0].id;
+
+  const byId = carriers.find((entry) => entry.id === preferred);
+  if (byId) return byId.id;
+
+  const byCode = carriers.find((entry) => entry.code === preferred);
+  if (byCode) return byCode.id;
+
+  const guid = String(preferred).match(
+    /[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/
+  );
+  if (guid) {
+    const byGuid = carriers.find(
+      (entry) => String(entry.id).toLowerCase() === guid[0].toLowerCase()
+    );
+    if (byGuid) return byGuid.id;
+  }
+
+  return carriers[0].id;
+}
+
 export default function ServicePricingFormModal({ open, mode, item, onClose, onSaved }) {
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -27,7 +58,10 @@ export default function ServicePricingFormModal({ open, mode, item, onClose, onS
   const [pricePerKg, setPricePerKg] = useState("");
   const [pricePerCbm, setPricePerCbm] = useState("");
   const [carriers, setCarriers] = useState([]);
-  const [selectedCarrierCode, setSelectedCarrierCode] = useState(item?.carrierId ?? "");
+  const [selectedCarrierId, setSelectedCarrierId] = useState(item?.carrierId ?? "");
+  const [warehouses, setWarehouses] = useState([]);
+  const [originCountry, setOriginCountry] = useState(item?.originCountry ?? "");
+  const [destinationCountry, setDestinationCountry] = useState(item?.destinationCountry ?? "");
 
   useEffect(() => {
     if (open) {
@@ -41,7 +75,9 @@ export default function ServicePricingFormModal({ open, mode, item, onClose, onS
             : ""
       );
       setPricePerCbm(item?.pricePerCbm != null ? String(item.pricePerCbm) : "");
-      setSelectedCarrierCode(item?.carrierId ?? "");
+      setSelectedCarrierId(item?.carrierId ?? "");
+      setOriginCountry(item?.originCountry ?? "");
+      setDestinationCountry(item?.destinationCountry ?? "");
     }
   }, [open, item]);
 
@@ -50,25 +86,66 @@ export default function ServicePricingFormModal({ open, mode, item, onClose, onS
 
     let active = true;
 
-    async function loadCarriers() {
+    async function loadLookups() {
       try {
-        const data = await carrierService.listCarriers({ activeOnly: true });
+        const [carrierData, warehouseData] = await Promise.all([
+          carrierService.listCarriers({ activeOnly: true }),
+          warehouseService.listWarehouses({ isActive: true }),
+        ]);
         if (!active) return;
-        setCarriers(data);
-        setSelectedCarrierCode((current) => {
-          if (current && data.some((entry) => entry.code === current)) return current;
-          return data[0]?.code ?? "";
+
+        setCarriers(carrierData);
+        setSelectedCarrierId((current) =>
+          resolveCarrierId(carrierData, current || item?.carrierId)
+        );
+
+        setWarehouses(warehouseData);
+
+        const origins = listWarehouseCountryCodes(warehouseData, {
+          warehouseType: "Origin",
+          include: item?.originCountry,
         });
+        const destinations = listWarehouseCountryCodes(warehouseData, {
+          warehouseType: "Destination",
+          include: item?.destinationCountry,
+        });
+
+        setOriginCountry((current) =>
+          pickDefaultCountry(origins, current || item?.originCountry || "US")
+        );
+        setDestinationCountry((current) =>
+          pickDefaultCountry(destinations, current || item?.destinationCountry || "VN")
+        );
       } catch {
-        if (active) setCarriers([]);
+        if (active) {
+          setCarriers([]);
+          setWarehouses([]);
+        }
       }
     }
 
-    loadCarriers();
+    loadLookups();
     return () => {
       active = false;
     };
-  }, [open]);
+  }, [open, item?.carrierId, item?.originCountry, item?.destinationCountry]);
+
+  const originOptions = useMemo(
+    () =>
+      listWarehouseCountryCodes(warehouses, {
+        warehouseType: "Origin",
+        include: item?.originCountry,
+      }),
+    [warehouses, item?.originCountry]
+  );
+  const destinationOptions = useMemo(
+    () =>
+      listWarehouseCountryCodes(warehouses, {
+        warehouseType: "Destination",
+        include: item?.destinationCountry,
+      }),
+    [warehouses, item?.destinationCountry]
+  );
 
   if (!open) return null;
 
@@ -76,7 +153,8 @@ export default function ServicePricingFormModal({ open, mode, item, onClose, onS
   const showCbm = unitType === "CBM" || unitType === "KG_OR_CBM";
   const showSinglePrice = unitType === "KG" || unitType === "CBM";
   const selectedCarrier =
-    carriers.find((entry) => entry.code === selectedCarrierCode) ?? null;
+    carriers.find((entry) => entry.id === selectedCarrierId) ?? null;
+  const routeReady = originOptions.length > 0 && destinationOptions.length > 0;
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -84,11 +162,11 @@ export default function ServicePricingFormModal({ open, mode, item, onClose, onS
 
     const form = event.currentTarget;
     const payload = {
-      carrierId: selectedCarrierCode,
+      carrierId: extractGuid(selectedCarrierId) || selectedCarrierId,
       carrierName: selectedCarrier?.name ?? null,
       serviceType: form.serviceType.value,
-      originCountry: form.originCountry.value,
-      destinationCountry: form.destinationCountry.value,
+      originCountry,
+      destinationCountry,
       unitType: form.unitType.value,
       price: showSinglePrice ? price : null,
       pricePerKg: showKg ? pricePerKg : null,
@@ -121,11 +199,11 @@ export default function ServicePricingFormModal({ open, mode, item, onClose, onS
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button
         type="button"
-        className="absolute inset-0 bg-black/40"
+        className="absolute inset-0 bg-background/70 backdrop-blur-sm"
         onClick={onClose}
         aria-label="Đóng"
       />
-      <div className="relative w-full max-w-2xl bg-surface-elevated rounded-xl border border-border-muted shadow-xl max-h-[90vh] overflow-y-auto">
+      <div className="relative w-full max-w-2xl bg-surface rounded-xl border border-border shadow-xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between px-6 py-4 border-b border-border-muted sticky top-0 bg-surface-elevated">
           <h2 className="text-lg font-bold text-ink">
             {mode === "create" ? "Thêm giá dịch vụ chính" : "Chỉnh sửa giá dịch vụ chính"}
@@ -157,12 +235,12 @@ export default function ServicePricingFormModal({ open, mode, item, onClose, onS
                   id="carrierId"
                   name="carrierId"
                   required
-                  value={selectedCarrierCode}
-                  onChange={(event) => setSelectedCarrierCode(event.target.value)}
+                  value={selectedCarrierId}
+                  onChange={(event) => setSelectedCarrierId(event.target.value)}
                   className="form-select input-focus-ring"
                 >
                   {carriers.map((carrier) => (
-                    <option key={carrier.id} value={carrier.code}>
+                    <option key={carrier.id} value={carrier.id}>
                       {carrier.code} · {carrier.name}
                     </option>
                   ))}
@@ -196,27 +274,51 @@ export default function ServicePricingFormModal({ open, mode, item, onClose, onS
               <label htmlFor="originCountry" className="text-sm font-semibold text-ink">
                 Xuất phát <span className="text-danger">*</span>
               </label>
-              <input
-                id="originCountry"
-                name="originCountry"
-                required
-                defaultValue={item?.originCountry ?? "US"}
-                placeholder="VD: US"
-                className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring uppercase"
-              />
+              {originOptions.length === 0 ? (
+                <p className="text-sm text-muted">
+                  Chưa có kho loại Origin đang hoạt động. Thêm kho xuất phát trước.
+                </p>
+              ) : (
+                <select
+                  id="originCountry"
+                  name="originCountry"
+                  required
+                  value={originCountry}
+                  onChange={(event) => setOriginCountry(event.target.value)}
+                  className="form-select input-focus-ring"
+                >
+                  {originOptions.map((code) => (
+                    <option key={code} value={code}>
+                      {code}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
             <div className="space-y-2">
               <label htmlFor="destinationCountry" className="text-sm font-semibold text-ink">
                 Đích <span className="text-danger">*</span>
               </label>
-              <input
-                id="destinationCountry"
-                name="destinationCountry"
-                required
-                defaultValue={item?.destinationCountry ?? "VN"}
-                placeholder="VD: VN"
-                className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring uppercase"
-              />
+              {destinationOptions.length === 0 ? (
+                <p className="text-sm text-muted">
+                  Chưa có kho loại Destination đang hoạt động. Thêm kho đích trước.
+                </p>
+              ) : (
+                <select
+                  id="destinationCountry"
+                  name="destinationCountry"
+                  required
+                  value={destinationCountry}
+                  onChange={(event) => setDestinationCountry(event.target.value)}
+                  className="form-select input-focus-ring"
+                >
+                  {destinationOptions.map((code) => (
+                    <option key={code} value={code}>
+                      {code}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
             <div className="space-y-2">
               <label htmlFor="unitType" className="text-sm font-semibold text-ink">
@@ -277,7 +379,7 @@ export default function ServicePricingFormModal({ open, mode, item, onClose, onS
             {showCbm ? (
               <div className="space-y-2">
                 <label htmlFor="pricePerCbm" className="text-sm font-semibold text-ink">
-                  Giá/CBM {unitType === "KG_OR_CBM" ? <span className="text-danger">*</span> : null}
+                  Giá/cm³ {unitType === "KG_OR_CBM" ? <span className="text-danger">*</span> : null}
                 </label>
                 <VndMoneyInput
                   id="pricePerCbm"
@@ -325,7 +427,7 @@ export default function ServicePricingFormModal({ open, mode, item, onClose, onS
             </button>
             <button
               type="submit"
-              disabled={isSubmitting || carriers.length === 0}
+              disabled={isSubmitting || carriers.length === 0 || !routeReady}
               className="h-11 px-5 rounded-lg bg-insight text-white text-sm font-bold disabled:opacity-60"
             >
               {isSubmitting ? "Đang lưu..." : mode === "create" ? "Thêm" : "Lưu"}

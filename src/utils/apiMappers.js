@@ -348,8 +348,15 @@ function normalizeServicePricingUnitType(raw) {
     .replace(/\s+/g, "_");
   if (!upper) return null;
   if (upper === "KG" || upper === "KILOGRAM") return "KG";
-  if (upper === "CBM" || upper === "M3" || upper === "M³") return "CBM";
-  if (upper.includes("KG") && upper.includes("CBM")) return "KG_OR_CBM";
+  if (upper === "CBM" || upper === "CM3" || upper === "CM³" || upper === "M3" || upper === "M³") {
+    return "CBM";
+  }
+  if (
+    (upper.includes("KG") && upper.includes("CBM")) ||
+    (upper.includes("KG") && upper.includes("CM3"))
+  ) {
+    return "KG_OR_CBM";
+  }
   return upper;
 }
 
@@ -375,20 +382,23 @@ export function normalizeServicePricingFromApi(item) {
 }
 
 export function toApiServicePricingPayload(data) {
+  // CreateServicePricingRequest: chỉ các field swagger; carrierId phải là UUID thuần.
+  const price =
+    data.unitType === "KG_OR_CBM"
+      ? data.pricePerKg ?? data.price
+      : data.price ?? data.pricePerKg;
+
+  const carrierId = extractGuid(data.carrierId);
+
   return {
-    carrierId: data.carrierId,
-    carrierName: data.carrierName,
+    carrierId: carrierId || null,
     serviceType: data.serviceType,
     originCountry: data.originCountry,
     destinationCountry: data.destinationCountry,
-    warehouseId: data.warehouseId,
     unitType: data.unitType,
-    price: data.price,
-    pricePerKg: data.pricePerKg,
-    pricePerCbm: data.pricePerCbm,
+    price: price == null ? null : Number(price),
     currency: data.currency ?? "VND",
     effectiveDate: data.effectiveDate,
-    isActive: data.isActive !== false,
   };
 }
 
@@ -418,6 +428,15 @@ function isUuid(value) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
     String(value ?? "")
   );
+}
+
+/** Lấy UUID từ id/code dạng `CARRIER_<guid>` hoặc chuỗi có guid. */
+export function extractGuid(value) {
+  if (isUuid(value)) return String(value);
+  const match = String(value ?? "").match(
+    /[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/
+  );
+  return match ? match[0] : null;
 }
 
 /** Bỏ null/undefined — giống body Swagger (không gửi field rỗng). */
@@ -587,17 +606,56 @@ export function toApiPricingRulePayload(data) {
   };
 }
 
+/** WarehouseVN / WarehouseTQ / WarehouseStaff / … → Warehouse (region tách riêng). */
+export function normalizeEmployeeRole(role) {
+  const raw = String(role || "").trim();
+  if (!raw) return raw;
+  if (/^warehouse/i.test(raw)) return "Warehouse";
+  return raw;
+}
+
+function inferRegionFromRole(role) {
+  const raw = String(role || "");
+  if (/VN|Vietnam|Việt/i.test(raw)) return "VN";
+  if (/TQ|China|Trung/i.test(raw)) return "TQ";
+  return null;
+}
+
+function normalizeUserStatus(status) {
+  const raw = String(status || "Active")
+    .trim()
+    .toUpperCase()
+    .replace(/[\s-]+/g, "_");
+  if (raw === "LOCKED") return "LOCKED";
+  if (raw === "PENDING_VERIFICATION" || raw === "PENDINGVERIFICATION") {
+    return "PENDING_VERIFICATION";
+  }
+  if (raw === "ACTIVE") return "ACTIVE";
+  return raw || "ACTIVE";
+}
+
 export function normalizeUserFromApi(user) {
-  const status = String(user.status || "Active").toUpperCase();
   const name = user.fullName ?? user.name ?? "—";
+  const rawRole = user.role ?? null;
+  const region =
+    user.region ?? user.Region ?? inferRegionFromRole(rawRole) ?? null;
 
   return {
     id: user.id,
     name,
-    email: user.email,
-    role: user.role,
-    status: status === "LOCKED" ? "LOCKED" : "ACTIVE",
-    lastSeen: user.lastSeen ?? formatUserDate(user.createdAt),
+    email: user.email ?? null,
+    phone: user.phone ?? user.phoneNumber ?? null,
+    role: normalizeEmployeeRole(rawRole),
+    rawRole,
+    userType: user.userType ?? user.user_type ?? null,
+    region,
+    isEmailVerified: Boolean(
+      user.isEmailVerified ?? user.is_email_verified ?? false
+    ),
+    status: normalizeUserStatus(user.status),
+    lastSeen:
+      user.lastSeen ??
+      formatUserDate(user.createdAt ?? user.created_at),
     avatar: getInitials(name),
   };
 }
