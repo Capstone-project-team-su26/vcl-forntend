@@ -15,7 +15,6 @@ import { resolveConsignmentPackageCount } from "@/utils/apiMappers";
 import {
   formatVolumeCm3,
   normalizeVolumeCm3FromApi,
-  resolveConsignmentTotalVolumeCm3,
 } from "@/utils/servicePricingService";
 import { getErrorMessage } from "@/utils/apiError";
 import { ROUTES } from "@/utils/appRoutes";
@@ -57,12 +56,9 @@ function formatWeight(value) {
 }
 
 function formatVolume(item) {
-  const volumeCm3 =
-    resolveConsignmentTotalVolumeCm3({
-      totalVolume: item.totalVolume,
-      items: item.items,
-      weightKg: item.totalWeight,
-    }) ?? normalizeVolumeCm3FromApi(item.totalVolume, { weightKg: item.totalWeight });
+  const volumeCm3 = normalizeVolumeCm3FromApi(item.totalVolume, {
+    weightKg: item.totalWeight,
+  });
   if (volumeCm3 == null) return "—";
   return formatVolumeCm3(volumeCm3);
 }

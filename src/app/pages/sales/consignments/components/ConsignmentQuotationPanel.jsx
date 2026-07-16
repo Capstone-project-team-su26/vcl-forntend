@@ -49,7 +49,6 @@ const {
   isPricingConfigRule,
   isVolumetricDivisorRule,
   normalizeVolumeCm3FromApi,
-  resolveConsignmentTotalVolumeCm3,
   resolveVolumetricDivisor,
   UNIT_TYPE_LABELS,
   VOLUMETRIC_DIVISOR_CM3,
@@ -415,15 +414,9 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
           ? warehouseList.find((entry) => entry.id === whId) ?? null
           : null;
         const weight = consignment.totalWeight != null ? String(consignment.totalWeight) : "";
-        const volumeCm3FromApi =
-          resolveConsignmentTotalVolumeCm3({
-            totalVolume: consignment.totalVolume,
-            items: consignment.items,
-            weightKg: consignment.totalWeight,
-          }) ??
-          normalizeVolumeCm3FromApi(consignment.totalVolume, {
-            weightKg: consignment.totalWeight,
-          });
+        const volumeCm3FromApi = normalizeVolumeCm3FromApi(consignment.totalVolume, {
+          weightKg: consignment.totalWeight,
+        });
         const volume = volumeCm3FromApi != null ? String(volumeCm3FromApi) : "";
         const packages = String(
           resolveConsignmentPackageCount({

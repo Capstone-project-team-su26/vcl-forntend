@@ -229,26 +229,8 @@ export function formatItemDimensions(length, width, height) {
   return `${l} × ${w} × ${h} cm`;
 }
 
-/**
- * Tổng thể tích đơn (cm³) = Σ (L×W×H×SL kiện) từng dòng.
- * BE đôi khi chỉ lưu thể tích 1 kiện — ưu tiên tính từ items khi đủ kích thước.
- */
-export function resolveConsignmentTotalVolumeCm3({ totalVolume, items, weightKg } = {}) {
-  if (Array.isArray(items) && items.length > 0) {
-    let sum = 0;
-    let sawDim = false;
-    for (const entry of items) {
-      const l = Number(entry?.length) || 0;
-      const w = Number(entry?.width) || 0;
-      const h = Number(entry?.height) || 0;
-      if (!l || !w || !h) continue;
-      const qty = Math.max(Number(entry?.quantity ?? entry?.Quantity) || 1, 1);
-      sum += l * w * h * qty;
-      sawDim = true;
-    }
-    if (sawDim) return sum;
-  }
-
+/** Tổng thể tích đơn (cm³) — dùng thẳng giá trị API, KHÔNG tự nhân quantity. */
+export function resolveConsignmentTotalVolumeCm3({ totalVolume, weightKg } = {}) {
   return normalizeVolumeCm3FromApi(totalVolume, { weightKg });
 }
 

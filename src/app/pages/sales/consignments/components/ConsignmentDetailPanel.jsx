@@ -764,7 +764,6 @@ export default function ConsignmentDetailPanel({
               {(() => {
                 const volumeCm3 = resolveConsignmentTotalVolumeCm3({
                   totalVolume: detail.totalVolume,
-                  items: detail.items,
                   weightKg: detail.totalWeight,
                 });
                 return volumeCm3 != null ? (

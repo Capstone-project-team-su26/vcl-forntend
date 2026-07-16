@@ -139,19 +139,12 @@ export function isImageReferenceUrl(url) {
 }
 
 /**
- * Số kiện đơn (phí theo kiện / field khóa trên báo giá).
- * - 1 dòng: lấy `quantity` (staff tạo: số kiện → quantity trên đúng 1 SP).
- * - Nhiều dòng: lấy `items.length` — quantity từ app khách thường là SL món, cộng sẽ phình (vd. 5+1=6 trong khi 2 kiện).
+ * Số kiện đơn = số dòng sản phẩm (mỗi dòng = 1 kiện; `quantity` là số lượng món trong kiện đó,
+ * không phải số kiện). VD 1 dòng "phong" quantity=2 → 1 kiện chứa 2 món.
  * - Không tin `packageCount` bịa trên payload (BE detail không trả field này).
- * ponytail: khi quantity chắc chắn = kiện/dòng với đơn nhiều SP, đổi nhánh multi → sum(quantity ?? 1) giống BE.
  */
 export function resolveConsignmentPackageCount({ packageCount, items, quantity } = {}) {
   if (Array.isArray(items) && items.length > 0) {
-    if (items.length === 1) {
-      const q = Number(items[0]?.quantity ?? items[0]?.Quantity);
-      if (Number.isFinite(q) && q > 0) return Math.round(q);
-      return 1;
-    }
     return items.length;
   }
 
