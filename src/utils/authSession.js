@@ -1,31 +1,16 @@
 const SESSION_KEY = "swiftship_session";
 const ACCESS_TOKEN_KEY = "accessToken";
-const ROLE_COOKIE = "vcl_role";
-const AUTH_COOKIE = "vcl_auth";
-const COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
 
-function setCookie(name, value, maxAge = COOKIE_MAX_AGE) {
-  if (typeof document === "undefined") return;
-  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAge}; SameSite=Lax`;
+function isExpired(session) {
+  if (!session?.expiresAt) return false;
+  const ms = new Date(session.expiresAt).getTime();
+  return Number.isFinite(ms) && ms <= Date.now();
 }
 
-function deleteCookie(name) {
-  if (typeof document === "undefined") return;
-  document.cookie = `${name}=; path=/; max-age=0; SameSite=Lax`;
-}
-
-/** Đồng bộ cookie cho middleware (localStorage không đọc được trên server). */
-export function syncAuthCookies(session) {
-  if (typeof document === "undefined") return;
-
-  if (session?.token && session?.role) {
-    setCookie(ROLE_COOKIE, session.role);
-    setCookie(AUTH_COOKIE, "1");
-    return;
-  }
-
-  deleteCookie(ROLE_COOKIE);
-  deleteCookie(AUTH_COOKIE);
+/** Xóa cookie HttpOnly phía server (best-effort). */
+export function clearServerSession() {
+  if (typeof window === "undefined") return;
+  void fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" }).catch(() => {});
 }
 
 export function getSession() {
@@ -33,7 +18,15 @@ export function getSession() {
 
   try {
     const raw = localStorage.getItem(SESSION_KEY);
-    return raw ? JSON.parse(raw) : null;
+    if (!raw) return null;
+    const session = JSON.parse(raw);
+    if (isExpired(session)) {
+      localStorage.removeItem(SESSION_KEY);
+      localStorage.removeItem(ACCESS_TOKEN_KEY);
+      clearServerSession();
+      return null;
+    }
+    return session;
   } catch {
     return null;
   }
@@ -41,7 +34,9 @@ export function getSession() {
 
 export function getAccessToken() {
   if (typeof window === "undefined") return null;
-  return localStorage.getItem(ACCESS_TOKEN_KEY) || getSession()?.token || null;
+  const session = getSession();
+  if (!session) return null;
+  return localStorage.getItem(ACCESS_TOKEN_KEY) || session.token || null;
 }
 
 export function setSession(session) {
@@ -52,8 +47,6 @@ export function setSession(session) {
   if (session?.token) {
     localStorage.setItem(ACCESS_TOKEN_KEY, session.token);
   }
-
-  syncAuthCookies(session);
 }
 
 export function clearSession() {
@@ -61,7 +54,7 @@ export function clearSession() {
 
   localStorage.removeItem(SESSION_KEY);
   localStorage.removeItem(ACCESS_TOKEN_KEY);
-  syncAuthCookies(null);
+  clearServerSession();
 }
 
 export function isLoggedIn() {

@@ -1,19 +1,31 @@
 import { getMockStore } from "@/utils/mocks/mockStore";
 import { ROUTES } from "@/utils/appRoutes";
 
-/** Email gợi ý khi NEXT_PUBLIC_DATA_SOURCE=api — mật khẩu không commit vào repo. */
+/**
+ * Acc seed trên BE (GET /api/Test/seed-admin, seed-staff) + ops tạo qua Admin.
+ * Chỉ hiện nút khi NODE_ENV=development — mật khẩu seed/dev công khai.
+ */
 export const API_TEST_ACCOUNTS = [
   {
-    email: "sale01@vcl.com",
+    email: "sales@test.com",
+    password: "Sales123",
     role: "Sale",
     label: "Sale (API)",
     hint: "Quản lý ký gửi — /pages/sales/consignments",
   },
   {
     email: "admin@test.com",
+    password: "Admin123",
     role: "Admin",
     label: "Admin (API)",
     hint: "Seed: GET /api/Test/seed-admin",
+  },
+  {
+    email: "ops@test.com",
+    password: "Ops123",
+    role: "OperationsManager",
+    label: "Ops (API)",
+    hint: `Vận hành → ${ROUTES.operations.dashboard}`,
   },
 ];
 
@@ -65,25 +77,6 @@ export function resolveMockAccount(email) {
     };
   }
 
-  if (normalized.includes("admin")) {
-    return { email: normalized, role: "Admin", fullName: "Mock Admin", label: "Admin" };
-  }
-  if (normalized.includes("sale")) {
-    return {
-      email: normalized,
-      role: "Sale",
-      fullName: "Nguyen Van Sale",
-      label: "Sale",
-    };
-  }
-  if (normalized.includes("ops")) {
-    return {
-      email: normalized,
-      role: "OperationsManager",
-      fullName: "Le Van Ops",
-      label: "Operations",
-    };
-  }
-
+  // Không fuzzy-match "admin"/"sale" trong email — tránh leo role ngoài whitelist.
   return null;
 }

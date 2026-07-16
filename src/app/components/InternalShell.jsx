@@ -18,7 +18,7 @@ export default function InternalShell({
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen bg-background font-open-sans text-ink">
+    <div className="flex h-screen overflow-hidden bg-background font-open-sans text-ink print:h-auto print:overflow-visible">
       {isSidebarOpen ? (
         <div
           className="fixed inset-0 z-40 bg-secondary/40 lg:hidden"
@@ -28,7 +28,7 @@ export default function InternalShell({
       ) : null}
 
       <aside
-        className={`no-print fixed inset-y-0 left-0 z-50 w-64 bg-surface border-r border-border-muted flex flex-col transition-transform duration-300 lg:translate-x-0 lg:static ${
+        className={`no-print fixed inset-y-0 left-0 z-50 w-64 bg-surface border-r border-border-muted flex flex-col transition-transform duration-300 lg:translate-x-0 lg:static lg:h-full lg:shrink-0 ${
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >

@@ -54,14 +54,22 @@ function nodeRequest(url, { method, headers, body }) {
 async function proxyRequest(request, context) {
   const { path } = await context.params;
   const pathSegment = Array.isArray(path) ? path.join("/") : path;
+
+  const publicApi =
+    /^Auth\/(login|forgot-password|reset-password)$/i.test(pathSegment) ||
+    /^Test\//i.test(pathSegment);
+
+  const authorization = request.headers.get("authorization");
+  if (!publicApi && !authorization) {
+    return Response.json({ message: "Unauthorized." }, { status: 401 });
+  }
+
   const apiBase = getApiBase();
   const targetUrl = `${apiBase}/api/${pathSegment}${request.nextUrl.search}`;
 
   const headers = {};
   const contentType = request.headers.get("content-type");
   if (contentType) headers["content-type"] = contentType;
-
-  const authorization = request.headers.get("authorization");
   if (authorization) headers.authorization = authorization;
 
   const body =

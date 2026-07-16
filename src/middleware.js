@@ -7,6 +7,7 @@ import {
   isPublicPath,
 } from "@/utils/routeAccess";
 import { ROUTES, ADMIN_PATH_PREFIX } from "@/utils/appRoutes";
+import { AUTH_SESSION_COOKIE, verifyAuthCookie } from "@/utils/signedAuthCookie";
 
 /** Chuyển route staff cũ → sales (đồng bộ sau refactor). */
 function resolveLegacyStaffRedirect(request) {
@@ -48,7 +49,12 @@ function resolveLegacyAdminRedirect(request) {
   return null;
 }
 
-export function middleware(request) {
+function withNoStore(response) {
+  response.headers.set("Cache-Control", "private, no-store, max-age=0, must-revalidate");
+  return response;
+}
+
+export async function middleware(request) {
   const { pathname } = request.nextUrl;
 
   const legacyRedirect = resolveLegacyStaffRedirect(request);
@@ -70,20 +76,19 @@ export function middleware(request) {
     return NextResponse.next();
   }
 
-  const role = request.cookies.get("vcl_role")?.value;
-  const isAuthed = request.cookies.get("vcl_auth")?.value === "1";
+  const session = await verifyAuthCookie(request.cookies.get(AUTH_SESSION_COOKIE)?.value);
 
-  if (!isAuthed || !role) {
+  if (!session) {
     const loginUrl = new URL(buildLoginUrl(pathname), request.url);
-    return NextResponse.redirect(loginUrl);
+    return withNoStore(NextResponse.redirect(loginUrl));
   }
 
-  if (!canRoleAccessRoute(role, pathname)) {
-    const dest = new URL(`${getForbiddenRedirect(role)}?error=forbidden`, request.url);
-    return NextResponse.redirect(dest);
+  if (!canRoleAccessRoute(session.role, pathname)) {
+    const dest = new URL(`${getForbiddenRedirect(session.role)}?error=forbidden`, request.url);
+    return withNoStore(NextResponse.redirect(dest));
   }
 
-  return NextResponse.next();
+  return withNoStore(NextResponse.next());
 }
 
 export const config = {

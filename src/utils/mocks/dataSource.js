@@ -6,7 +6,15 @@ export const DataSource = {
   API: "api",
 };
 
+function isProductionRuntime() {
+  return process.env.NODE_ENV === "production" || process.env.VERCEL_ENV === "production";
+}
+
 function readEnvDefault() {
+  if (isProductionRuntime()) {
+    return DataSource.API;
+  }
+
   const raw = process.env.NEXT_PUBLIC_DATA_SOURCE?.toLowerCase();
   if (raw === DataSource.MOCK || raw === DataSource.API) {
     return raw;
@@ -21,6 +29,10 @@ function readEnvDefault() {
 
 /** Nguồn dữ liệu hiện tại: `mock` hoặc `api`. Dev có thể ghi đè qua localStorage. */
 export function getDataSource() {
+  if (isProductionRuntime()) {
+    return DataSource.API;
+  }
+
   if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
     const override = localStorage.getItem(STORAGE_KEY);
     if (override === DataSource.MOCK || override === DataSource.API) {
@@ -32,6 +44,7 @@ export function getDataSource() {
 }
 
 export function isMockMode() {
+  if (isProductionRuntime()) return false;
   return getDataSource() === DataSource.MOCK;
 }
 
@@ -40,7 +53,7 @@ export function isMockMode() {
  * @param {"mock" | "api" | null} mode
  */
 export function setDataSourceOverride(mode) {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined" || isProductionRuntime()) return;
 
   if (mode === null) {
     localStorage.removeItem(STORAGE_KEY);

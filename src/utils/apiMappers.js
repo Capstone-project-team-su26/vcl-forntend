@@ -35,16 +35,31 @@ function formatUserDate(iso) {
 export function normalizeConsignmentSummary(item) {
   const orderId = item.orderId ?? item.id;
 
+  const productNames = (() => {
+    if (Array.isArray(item.productNames) && item.productNames.length) {
+      return item.productNames.filter(Boolean);
+    }
+    if (Array.isArray(item.items) && item.items.length) {
+      return item.items.map((entry) => entry?.productName).filter(Boolean);
+    }
+    if (item.productName) return [item.productName];
+    return [];
+  })();
+
   return {
     id: orderId,
     consignmentCode: item.consignmentCode || null,
     customerName: item.customerName ?? item.customer?.fullName ?? "—",
     receiverName: item.receiverName ?? null,
+    receiverPhone: item.receiverPhone ?? item.phone ?? null,
+    receiverAddress: item.receiverAddress ?? item.address ?? null,
+    requiresInspection: item.requiresInspection === true,
+    productNames,
     consignmentType:
       item.orderType ?? item.consignmentType ?? item.shippingOption ?? "—",
     status: item.status,
-    totalWeight: item.totalWeight,
-    totalVolume: item.totalVolume,
+    totalWeight: item.totalWeight ?? null,
+    totalVolume: item.totalVolume ?? null,
     createdAt: item.createdAt,
     route: item.route ?? null,
     warehouseName: item.warehouseName ?? item.warehouse?.name ?? null,

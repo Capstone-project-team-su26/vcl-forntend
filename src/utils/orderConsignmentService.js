@@ -6,6 +6,7 @@ import {
   normalizeConsignmentDetail,
   normalizeConsignmentListResponse,
   normalizeConsignmentStatusUpdate,
+  normalizeConsignmentSummary,
   normalizeStaffConsignmentCreateResponse,
   normalizeValidateItemsResponse,
   isImageReferenceUrl,
@@ -43,6 +44,7 @@ export const CONSIGNMENT_STATUS_LABELS = {
   QUOTATION_SENT: "Đã gửi báo giá",
   QUOTATION_CONFIRMED: "Khách đã xác nhận báo giá",
   QUOTATION_REJECTED: "Khách từ chối báo giá",
+  WAITING_DEPOSIT: "Chờ đặt cọc",
   APPROVED: "Đã duyệt",
   REJECTED: "Từ chối",
   IN_PROGRESS: "Đang xử lý",
@@ -57,6 +59,7 @@ export const CONSIGNMENT_STATUS_STYLES = {
   QUOTATION_SENT: "bg-info-bg text-info-text border-2 border-primary",
   QUOTATION_CONFIRMED: "bg-success-bg text-success-text border-2 border-primary",
   QUOTATION_REJECTED: "bg-danger-bg text-danger border-2 border-danger-border",
+  WAITING_DEPOSIT: "bg-warning-bg text-warning-text border-2 border-primary",
   APPROVED: "bg-success-bg text-success-text border-2 border-primary",
   REJECTED: "bg-danger-bg text-danger border-2 border-danger-border",
   IN_PROGRESS: "bg-info-bg text-info-text border-2 border-primary",
@@ -71,6 +74,7 @@ export const CONSIGNMENT_STATUS_ICONS = {
   QUOTATION_SENT: "lucide:send",
   QUOTATION_CONFIRMED: "lucide:check-circle",
   QUOTATION_REJECTED: "lucide:x-circle",
+  WAITING_DEPOSIT: "lucide:wallet",
   APPROVED: "lucide:package-check",
   REJECTED: "lucide:ban",
   IN_PROGRESS: "lucide:truck",
@@ -235,7 +239,19 @@ function filterConsignments(items, { status, search, consignmentType, dateFrom, 
     const query = search.toLowerCase();
     filtered = filtered.filter((item) => {
       const code = formatConsignmentDisplayCode(item) ?? item.consignmentCode ?? item.id ?? "";
-      const haystack = [code, item.id, item.receiverName, item.customerName, item.consignmentType]
+      const productNames = Array.isArray(item.productNames)
+        ? item.productNames.join(" ")
+        : item.productName || "";
+      const haystack = [
+        code,
+        item.id,
+        item.receiverName,
+        item.customerName,
+        item.consignmentType,
+        productNames,
+        item.receiverPhone,
+        item.receiverAddress,
+      ]
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
@@ -307,7 +323,7 @@ async function listStaffConsignmentsMock({
     }),
     sortBy,
     sortDir
-  );
+  ).map(normalizeConsignmentSummary);
 
   return paginateItems(filtered, { page, pageSize });
 }
