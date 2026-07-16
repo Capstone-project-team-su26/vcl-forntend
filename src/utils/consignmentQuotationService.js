@@ -1,4 +1,5 @@
 import { listAdditionalServiceFees } from "@/utils/additionalServiceFeeService";
+import { resolveConsignmentPackageCount } from "@/utils/apiMappers";
 import { isMockMode } from "@/utils/mocks/dataSource";
 import { mockDelay } from "@/utils/mocks/mockDelay";
 import { getMockStore } from "@/utils/mocks/mockStore";
@@ -11,7 +12,9 @@ import {
   DEFAULT_CURRENCY,
   findServicePricingForWarehouse,
   formatMoney,
+  isPricingConfigRule,
   parseConsignmentRoute,
+  resolveVolumetricDivisor,
 } from "@/utils/servicePricingService";
 
 function roundMoney(value) {
@@ -229,16 +232,21 @@ export function buildDefaultAdditionalFeeLines({
   requiresInspection = false,
 }) {
   const context = { packageCount, declaredValue, mainServiceAmount };
-  return fees.map((fee) => {
-    const enabled = enabledFeeIds
-      ? enabledFeeIds[fee.id] !== false
-      : shouldDefaultEnableFee(fee, { requiresInspection, declaredValue });
-    const isRequired =
-      fee.isRequired === true || (isInspectionFee(fee) && requiresInspection);
-    const quantity =
-      quantityByFeeId && quantityByFeeId[fee.id] != null ? quantityByFeeId[fee.id] : undefined;
-    return buildFeeLine(fee, { enabled, quantity, isRequired, context });
-  });
+  // ponytail: VOLUMETRIC_DIVISOR / MIN_WEIGHT / DOMESTIC_FEE là config, không phải dòng phụ phí.
+  return fees
+    .filter((fee) => !isMainServiceFee(fee) && !isPricingConfigRule(fee))
+    .map((fee) => {
+      const enabled = enabledFeeIds
+        ? enabledFeeIds[fee.id] !== false
+        : shouldDefaultEnableFee(fee, { requiresInspection, declaredValue });
+      const isRequired =
+        fee.isRequired === true || (isInspectionFee(fee) && requiresInspection);
+      const quantity =
+        quantityByFeeId && quantityByFeeId[fee.id] != null
+          ? quantityByFeeId[fee.id]
+          : undefined;
+      return buildFeeLine(fee, { enabled, quantity, isRequired, context });
+    });
 }
 
 export function calculateQuotationTotal({
@@ -315,20 +323,27 @@ export function buildConsignmentQuotationDraft({
   mainServiceAmountOverride,
   additionalFees,
   salesNote,
+  volumetricDivisor,
+  pricingRules,
 }) {
   const weight = Number(weightKg) || 0;
   const volume =
     volumeCm3 != null && volumeCm3 !== ""
       ? Number(volumeCm3) || 0
       : Number(volumeM3) || 0;
-  const volumetricWeight = calculateVolumetricWeight(volume);
-  const chargeableWeight = calculateChargeableWeight(weight, volume);
+  const divisor =
+    volumetricDivisor != null
+      ? Number(volumetricDivisor)
+      : resolveVolumetricDivisor(pricingRules);
+  const volumetricWeight = calculateVolumetricWeight(volume, divisor);
+  const chargeableWeight = calculateChargeableWeight(weight, volume, divisor);
   const mainServiceAmount =
     mainServiceAmountOverride != null && mainServiceAmountOverride !== ""
       ? roundMoney(mainServiceAmountOverride)
       : calculateMainServiceAmount(servicePricing, {
           weightKg: weight,
           volumeCm3: volume,
+          volumetricDivisor: divisor,
         });
 
   const feeLines =
@@ -393,7 +408,14 @@ async function estimateConsignmentQuotationMock(orderId, params) {
     servicePricing,
     weightKg: params.weightKg ?? order.totalWeight,
     volumeCm3: params.volumeCm3 ?? params.volumeM3 ?? order.totalVolume,
-    packageCount: params.packageCount ?? order.packageCount,
+    packageCount:
+      params.packageCount ??
+      resolveConsignmentPackageCount({
+        packageCount: order.packageCount,
+        items: order.items,
+        quantity: order.quantity,
+      }) ??
+      1,
     declaredValue: params.declaredValue,
     discountPercent: params.discountPercent,
     mainServiceAmountOverride: params.mainServiceAmount,
@@ -483,7 +505,9 @@ export function buildAdditionalFeeLinesFromQuotation(
   if (!quotation) return [];
 
   const context = { packageCount, declaredValue, mainServiceAmount };
-  const apiFees = (quotation.additionalFees ?? []).filter((fee) => !isMainServiceFee(fee));
+  const apiFees = (quotation.additionalFees ?? []).filter(
+    (fee) => !isMainServiceFee(fee) && !isPricingConfigRule(fee)
+  );
   if (apiFees.length) {
     return apiFees.map((fee) => {
       const catalogFee = findCatalogFee(catalogFees, fee);
@@ -560,7 +584,7 @@ export function resolveQuotationAdditionalFees({
   const quotationSource = estimate?.quotation ?? estimate ?? consignment?.quotation;
   const itemizedFees = quotationSource?.additionalFees;
 
-  if (Array.isArray(itemizedFees) && itemizedFees.some((fee) => !isMainServiceFee(fee))) {
+  if (Array.isArray(itemizedFees) && itemizedFees.some((fee) => !isMainServiceFee(fee) && !isPricingConfigRule(fee))) {
     return {
       lines: buildAdditionalFeeLinesFromQuotation(quotationSource, {
         requiresInspection,
@@ -623,7 +647,7 @@ export function getQuotationDisplayLines(quotation) {
   if (!quotation) return [];
 
   const additionalFees = (quotation.additionalFees ?? []).filter(
-    (fee) => !isMainServiceFee(fee)
+    (fee) => !isMainServiceFee(fee) && !isPricingConfigRule(fee)
   );
   const enabledFees = additionalFees.filter((fee) => fee.enabled !== false);
   const additionalTotal = enabledFees.reduce(

@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 // Fetch consignments directly from the API
 import { useAuth } from "@/hooks/useAuth";
 import OperationsShell from "@/app/pages/operations/components/OperationsShell";
+import { formatProductTypeLabel } from "@/utils/productTypeService";
+import { normalizeConsignmentDetail } from "@/utils/apiMappers";
 
 export default function OperationalDashboardPage() {
   const { session, isReady } = useAuth();
@@ -105,7 +107,7 @@ export default function OperationalDashboardPage() {
       });
       if (!res.ok) throw new Error('Network response was not ok');
       const json = await res.json();
-      setDetailData(json?.data || null);
+      setDetailData(normalizeConsignmentDetail(json) ?? null);
     } catch (err) {
       console.error(err);
       alert('Không thể tải chi tiết.');
@@ -270,6 +272,12 @@ export default function OperationalDashboardPage() {
                         <p className="font-semibold">Tổng trọng lượng</p>
                         <p>{detailData.totalWeight ?? '-'} kg</p>
                       </div>
+                      {detailData.packageCount != null ? (
+                        <div>
+                          <p className="font-semibold">Số kiện</p>
+                          <p>{detailData.packageCount}</p>
+                        </div>
+                      ) : null}
                       <div>
                         <p className="font-semibold">Tuyến</p>
                         <p>{detailData.route}</p>
@@ -299,7 +307,9 @@ export default function OperationalDashboardPage() {
                           detailData.items.map((it) => (
                             <div key={it.id} className="p-3 border rounded-md">
                               <p className="font-medium">{it.productName}</p>
-                              <p className="text-muted">Loại: {it.productType || '-'}</p>
+                              <p className="text-muted">
+                                Loại: {formatProductTypeLabel(it.productType) || "—"}
+                              </p>
                               <p>Số lượng: {it.quantity}</p>
                               <p>Trọng lượng: {it.weight ?? '-'} kg</p>
                               <p>Giá khai báo: {it.declaredValue ? it.declaredValue.toLocaleString() : '-'}</p>

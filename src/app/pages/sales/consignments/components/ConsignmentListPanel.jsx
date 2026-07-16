@@ -11,6 +11,12 @@ import {
   fetchConsignmentDetailsByIds,
   mergeSummaryWithDetail,
 } from "@/utils/consignmentDetailCache";
+import { resolveConsignmentPackageCount } from "@/utils/apiMappers";
+import {
+  formatVolumeCm3,
+  normalizeVolumeCm3FromApi,
+  resolveConsignmentTotalVolumeCm3,
+} from "@/utils/servicePricingService";
 import { getErrorMessage } from "@/utils/apiError";
 import { ROUTES } from "@/utils/appRoutes";
 import { useAuth } from "@/hooks/useAuth";
@@ -50,11 +56,24 @@ function formatWeight(value) {
   return `${n} kg`;
 }
 
-function formatVolume(value) {
-  if (value == null || value === "") return "—";
-  const n = Number(value);
-  if (!Number.isFinite(n)) return "—";
-  return `${n} cm³`;
+function formatVolume(item) {
+  const volumeCm3 =
+    resolveConsignmentTotalVolumeCm3({
+      totalVolume: item.totalVolume,
+      items: item.items,
+      weightKg: item.totalWeight,
+    }) ?? normalizeVolumeCm3FromApi(item.totalVolume, { weightKg: item.totalWeight });
+  if (volumeCm3 == null) return "—";
+  return formatVolumeCm3(volumeCm3);
+}
+
+function formatPackageCount(item) {
+  const count = resolveConsignmentPackageCount({
+    packageCount: item.packageCount,
+    items: item.items,
+    quantity: item.quantity,
+  });
+  return count != null ? String(count) : "—";
 }
 
 function getRouteLabel(item) {
@@ -289,8 +308,12 @@ function ConsignmentCard({ item, onOpen, detailLoading }) {
               <strong className="text-ink">{formatWeight(item.totalWeight)}</strong>
             </p>
             <p className="flex justify-between gap-3">
+              <span>Số kiện</span>
+              <strong className="text-ink">{formatPackageCount(item)}</strong>
+            </p>
+            <p className="flex justify-between gap-3">
               <span>Thể tích</span>
-              <strong className="text-ink">{formatVolume(item.totalVolume)}</strong>
+              <strong className="text-ink">{formatVolume(item)}</strong>
             </p>
           </div>
         </div>

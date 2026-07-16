@@ -1,3 +1,5 @@
+import { volumeCm3ToM3 } from "@/utils/servicePricingService";
+
 /** Chuẩn hóa response backend VCL → shape FE đang dùng. */
 
 const RESTRICTION_FROM_API = {
@@ -136,6 +138,27 @@ export function isImageReferenceUrl(url) {
   }
 }
 
+/**
+ * Số kiện đơn (phí theo kiện / field khóa trên báo giá).
+ * - 1 dòng: lấy `quantity` (staff tạo: số kiện → quantity trên đúng 1 SP).
+ * - Nhiều dòng: lấy `items.length` — quantity từ app khách thường là SL món, cộng sẽ phình (vd. 5+1=6 trong khi 2 kiện).
+ * - Không tin `packageCount` bịa trên payload (BE detail không trả field này).
+ * ponytail: khi quantity chắc chắn = kiện/dòng với đơn nhiều SP, đổi nhánh multi → sum(quantity ?? 1) giống BE.
+ */
+export function resolveConsignmentPackageCount({ packageCount, items, quantity } = {}) {
+  if (Array.isArray(items) && items.length > 0) {
+    if (items.length === 1) {
+      const q = Number(items[0]?.quantity ?? items[0]?.Quantity);
+      if (Number.isFinite(q) && q > 0) return Math.round(q);
+      return 1;
+    }
+    return items.length;
+  }
+
+  const explicit = Number(packageCount ?? quantity);
+  return Number.isFinite(explicit) && explicit > 0 ? Math.round(explicit) : null;
+}
+
 function normalizeConsignmentItem(item) {
   if (!item) return item;
 
@@ -153,7 +176,7 @@ function normalizeConsignmentItem(item) {
     id: item.id,
     productName: item.productName,
     productType: item.productType,
-    quantity: item.quantity,
+    quantity: item.quantity ?? item.Quantity,
     weight: item.weight,
     width: item.width,
     height: item.height,
@@ -168,11 +191,12 @@ function normalizeConsignmentItem(item) {
 export function normalizeConsignmentDetail(raw) {
   const item = raw?.data ?? raw;
   const firstItem = item.items?.[0];
-  const packageCount =
-    item.packageCount ??
-    (item.items?.length
-      ? item.items.reduce((sum, entry) => sum + (Number(entry.quantity) || 1), 0)
-      : null);
+  const items = (item.items ?? []).map(normalizeConsignmentItem);
+  const packageCount = resolveConsignmentPackageCount({
+    packageCount: item.packageCount,
+    items,
+    quantity: item.quantity ?? firstItem?.quantity,
+  });
 
   return {
     id: item.orderId ?? item.id,
@@ -197,7 +221,7 @@ export function normalizeConsignmentDetail(raw) {
     notes: item.note ?? item.notes,
     trackingCode: item.consignmentCode ?? item.trackingCode,
     rejectionReason: item.rejectionReason,
-    items: (item.items ?? []).map(normalizeConsignmentItem),
+    items,
     images: Array.isArray(item.images)
       ? item.images.filter((url) => isImageReferenceUrl(url))
       : [],
@@ -558,7 +582,16 @@ export function toApiCreateQuotationRequest(payload, options = {}) {
     servicePricingId: isUuid(payload.servicePricingId) ? payload.servicePricingId : null,
     serviceType,
     weightKg: payload.weightKg != null ? Number(payload.weightKg) : null,
-    volumeM3: payload.volumeM3 != null ? Number(payload.volumeM3) : null,
+    // ponytail: FE giữ cm³ (volumeCm3 / volumeM3); BE CreateQuotationRequest.VolumeM3 là m³ thật.
+    volumeM3: (() => {
+      const volumeCm3 =
+        payload.volumeCm3 != null && payload.volumeCm3 !== ""
+          ? Number(payload.volumeCm3)
+          : payload.volumeM3 != null && payload.volumeM3 !== ""
+            ? Number(payload.volumeM3)
+            : null;
+      return volumeCm3 != null && Number.isFinite(volumeCm3) ? volumeCm3ToM3(volumeCm3) : null;
+    })(),
     packageCount:
       payload.packageCount != null ? Math.round(Number(payload.packageCount)) : null,
     declaredValue:

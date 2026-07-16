@@ -79,6 +79,8 @@ export function mergeSummaryWithDetail(summary, detail) {
     status: detail.status ?? summary.status,
     totalWeight: detail.totalWeight ?? summary.totalWeight,
     totalVolume: detail.totalVolume ?? summary.totalVolume,
+    packageCount: detail.packageCount ?? summary.packageCount,
+    items: detail.items ?? summary.items,
     route: detail.route ?? summary.route,
     destination: detail.destination ?? summary.destination,
     warehouseName: detail.warehouseName ?? summary.warehouseName,

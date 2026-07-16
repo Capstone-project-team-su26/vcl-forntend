@@ -962,6 +962,19 @@ const seed = {
   ],
   additionalServiceFees: [
     {
+      id: "ASF-DIM",
+      code: "VOLUMETRIC_DIVISOR",
+      name: "Hệ số quy đổi thể tích",
+      feeCalculationType: "FIXED",
+      fixedAmount: 5000,
+      percentageRate: null,
+      unit: "cm³/kg",
+      description: "DIM = thể tích (cm³) ÷ hệ số này. Mặc định IATA 5000.",
+      isActive: true,
+      ruleCode: "VOLUMETRIC_DIVISOR",
+      ruleType: "VOLUMETRIC_DIVISOR",
+    },
+    {
       id: "ASF-INS",
       code: "INSURANCE",
       name: "Bảo hiểm hàng hóa",

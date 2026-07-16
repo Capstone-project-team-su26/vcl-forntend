@@ -26,10 +26,57 @@ export const UNIT_TYPE_LABELS = {
   KG_OR_CBM: "Kg hoặc cm³ (lấy cao hơn)",
 };
 
-/** Hệ số DIM — khớp vcl-BE (`VolumetricWeight = TotalVolume(cm³) / 4000`). */
-export const VOLUMETRIC_DIVISOR_CM3 = 4000;
+/**
+ * Hệ số DIM mặc định (IATA) — khớp BE khi chưa có PricingRule `VOLUMETRIC_DIVISOR`.
+ * Công thức: VolumetricWeight = TotalVolume(cm³) / divisor.
+ */
+export const VOLUMETRIC_DIVISOR_CM3 = 5000;
+export const VOLUMETRIC_DIVISOR_RULE = "VOLUMETRIC_DIVISOR";
+
 /** @deprecated dùng VOLUMETRIC_DIVISOR_CM3; giữ để tương thích chỗ còn nhắc m³. */
 export const VOLUMETRIC_FACTOR_M3 = 1_000_000 / VOLUMETRIC_DIVISOR_CM3;
+
+/** Quy tắc cấu hình (không phải phụ phí tính tiền). */
+const PRICING_CONFIG_RULES = new Set([
+  VOLUMETRIC_DIVISOR_RULE,
+  "MIN_WEIGHT",
+  "DOMESTIC_FEE",
+]);
+
+function ruleKey(fee) {
+  return String(fee?.ruleType ?? fee?.code ?? fee?.ruleCode ?? "")
+    .trim()
+    .toUpperCase();
+}
+
+export function isPricingConfigRule(fee) {
+  const key = ruleKey(fee);
+  if (PRICING_CONFIG_RULES.has(key)) return true;
+  const code = String(fee?.ruleCode ?? fee?.code ?? "").toUpperCase();
+  return PRICING_CONFIG_RULES.has(code) || code.includes(VOLUMETRIC_DIVISOR_RULE);
+}
+
+export function isVolumetricDivisorRule(fee) {
+  const key = ruleKey(fee);
+  const code = String(fee?.ruleCode ?? fee?.code ?? "").toUpperCase();
+  return key === VOLUMETRIC_DIVISOR_RULE || code.includes(VOLUMETRIC_DIVISOR_RULE);
+}
+
+/** Lấy hệ số quy đổi thể tích từ danh sách PricingRule / fee catalog. */
+export function resolveVolumetricDivisor(rules = []) {
+  const rule = (Array.isArray(rules) ? rules : []).find(isVolumetricDivisorRule);
+  if (!rule) return VOLUMETRIC_DIVISOR_CM3;
+
+  const raw =
+    rule.fixedAmount ?? rule.value ?? rule.percentageRate ?? rule.conditionValue;
+  const value = Number(raw);
+  return Number.isFinite(value) && value > 0 ? value : VOLUMETRIC_DIVISOR_CM3;
+}
+
+function normalizeDivisor(divisor) {
+  const value = Number(divisor);
+  return Number.isFinite(value) && value > 0 ? value : VOLUMETRIC_DIVISOR_CM3;
+}
 
 function normalizeUnitType(raw) {
   const upper = String(raw ?? "")
@@ -165,13 +212,13 @@ function resolveVolumeCm3({ volumeCm3, volumeM3 } = {}) {
   return 0;
 }
 
-/** Cân DIM theo kích thước từng kiện (cm) — khớp BE: L×W×H÷4000 (không làm tròn). */
-export function calculateItemDimWeightKg(length, width, height) {
+/** Cân DIM theo kích thước từng kiện (cm) — L×W×H÷divisor (không làm tròn). */
+export function calculateItemDimWeightKg(length, width, height, divisor = VOLUMETRIC_DIVISOR_CM3) {
   const l = Number(length) || 0;
   const w = Number(width) || 0;
   const h = Number(height) || 0;
   if (!l || !w || !h) return null;
-  return (l * w * h) / VOLUMETRIC_DIVISOR_CM3;
+  return (l * w * h) / normalizeDivisor(divisor);
 }
 
 export function formatItemDimensions(length, width, height) {
@@ -182,37 +229,61 @@ export function formatItemDimensions(length, width, height) {
   return `${l} × ${w} × ${h} cm`;
 }
 
-export function formatItemDimFormula(length, width, height) {
+/**
+ * Tổng thể tích đơn (cm³) = Σ (L×W×H×SL kiện) từng dòng.
+ * BE đôi khi chỉ lưu thể tích 1 kiện — ưu tiên tính từ items khi đủ kích thước.
+ */
+export function resolveConsignmentTotalVolumeCm3({ totalVolume, items, weightKg } = {}) {
+  if (Array.isArray(items) && items.length > 0) {
+    let sum = 0;
+    let sawDim = false;
+    for (const entry of items) {
+      const l = Number(entry?.length) || 0;
+      const w = Number(entry?.width) || 0;
+      const h = Number(entry?.height) || 0;
+      if (!l || !w || !h) continue;
+      const qty = Math.max(Number(entry?.quantity ?? entry?.Quantity) || 1, 1);
+      sum += l * w * h * qty;
+      sawDim = true;
+    }
+    if (sawDim) return sum;
+  }
+
+  return normalizeVolumeCm3FromApi(totalVolume, { weightKg });
+}
+
+export function formatItemDimFormula(length, width, height, divisor = VOLUMETRIC_DIVISOR_CM3) {
   const l = Number(length);
   const w = Number(width);
   const h = Number(height);
-  const dimKg = calculateItemDimWeightKg(l, w, h);
+  const dim = normalizeDivisor(divisor);
+  const dimKg = calculateItemDimWeightKg(l, w, h, dim);
   if (dimKg == null) return null;
   const dimLabel = dimKg.toLocaleString("vi-VN", {
     maximumFractionDigits: 6,
   });
-  return `(${l} × ${w} × ${h}) / ${VOLUMETRIC_DIVISOR_CM3.toLocaleString("vi-VN")} = ${dimLabel} kg`;
+  return `(${l} × ${w} × ${h}) / ${dim.toLocaleString("vi-VN")} = ${dimLabel} kg`;
 }
 
-/** DIM (kg) = thể tích cm³ ÷ 4000 — không làm tròn. */
-export function calculateVolumetricWeight(volumeCm3) {
-  return (Number(volumeCm3) || 0) / VOLUMETRIC_DIVISOR_CM3;
+/** DIM (kg) = thể tích cm³ ÷ hệ số quy đổi — không làm tròn. */
+export function calculateVolumetricWeight(volumeCm3, divisor = VOLUMETRIC_DIVISOR_CM3) {
+  return (Number(volumeCm3) || 0) / normalizeDivisor(divisor);
 }
 
-export function calculateChargeableWeight(weightKg, volumeCm3) {
+export function calculateChargeableWeight(weightKg, volumeCm3, divisor = VOLUMETRIC_DIVISOR_CM3) {
   const weight = Number(weightKg) || 0;
-  const volumetric = calculateVolumetricWeight(volumeCm3);
+  const volumetric = calculateVolumetricWeight(volumeCm3, divisor);
   return Math.max(weight, volumetric);
 }
 
 export function calculateMainServiceAmount(
   servicePricing,
-  { weightKg = 0, volumeCm3, volumeM3 } = {}
+  { weightKg = 0, volumeCm3, volumeM3, volumetricDivisor } = {}
 ) {
   if (!servicePricing) return 0;
 
   const volume = resolveVolumeCm3({ volumeCm3, volumeM3 });
-  const chargeable = calculateChargeableWeight(weightKg, volume);
+  const chargeable = calculateChargeableWeight(weightKg, volume, volumetricDivisor);
   const price = Number(servicePricing.price) || 0;
   const unitType = normalizeUnitType(servicePricing.unitType);
 
@@ -233,13 +304,20 @@ export function calculateMainServiceAmount(
 
 /**
  * Diễn giải từng bước tính cước dịch vụ chính.
- * - Có bảng giá BE: hiển thị đơn giá thật, không nhắc hệ số 4.000 mặc định.
- * - Chưa có bảng giá: ước tính DIM với ÷ 4.000 (chỉ khi có thể tích > 0).
+ * - Có bảng giá BE: hiển thị đơn giá thật.
+ * - DIM dùng hệ số quy đổi thể tích (PricingRule VOLUMETRIC_DIVISOR, mặc định 5000).
  */
 export function buildMainServicePricingBreakdown(
   servicePricing,
-  { weightKg = 0, volumeCm3: volumeCm3Input, volumeM3 = 0, estimate = null } = {}
+  {
+    weightKg = 0,
+    volumeCm3: volumeCm3Input,
+    volumeM3 = 0,
+    estimate = null,
+    volumetricDivisor,
+  } = {}
 ) {
+  const divisor = normalizeDivisor(volumetricDivisor);
   const weight = Number(weightKg) || 0;
   const volumeCm3Value = resolveVolumeCm3({
     volumeCm3: volumeCm3Input,
@@ -251,12 +329,12 @@ export function buildMainServicePricingBreakdown(
   const unitType = normalizeUnitType(servicePricing?.unitType);
 
   const volumeCm3 = hasVolume ? volumeCm3Value : null;
-  const localVolumetric = hasVolume ? calculateVolumetricWeight(volumeCm3Value) : 0;
+  const localVolumetric = hasVolume ? calculateVolumetricWeight(volumeCm3Value, divisor) : 0;
   const localChargeable = hasVolume
-    ? calculateChargeableWeight(weightKg, volumeCm3Value)
+    ? calculateChargeableWeight(weightKg, volumeCm3Value, divisor)
     : weight;
 
-  // ponytail: có volume cm³ thì tự tính DIM (÷4000). Không tin estimate.volumetricWeight —
+  // ponytail: có volume cm³ thì tự tính DIM theo hệ số. Không tin estimate.volumetricWeight —
   // BE từng nhân volume như m³ (×200) → ra số kg lệch lớn so với cân thực.
   const volumetricWeight = localVolumetric > 0 ? localVolumetric : 0;
   const chargeableWeight =
@@ -278,6 +356,7 @@ export function buildMainServicePricingBreakdown(
       chargeableWeight: 0,
       volumeCm3: null,
       actualWeightKg: weight,
+      volumetricDivisor: divisor,
       hasConfiguredPricing,
     };
   }
@@ -295,8 +374,8 @@ export function buildMainServicePricingBreakdown(
     steps.push({
       key: "dim",
       title: "Cân quy đổi thể tích (DIM)",
-      formula: `(${formatCm3(volumeCm3)}) ÷ ${VOLUMETRIC_DIVISOR_CM3.toLocaleString("vi-VN")} = ${formatKg(volumetricWeight)}`,
-      note: "DIM không phải cân thực — quy đổi tổng thể tích (cm³) thành cân nặng quy định.",
+      formula: `(${formatCm3(volumeCm3)}) ÷ ${divisor.toLocaleString("vi-VN")} = ${formatKg(volumetricWeight)}`,
+      note: `Hệ số quy đổi thể tích = ${divisor.toLocaleString("vi-VN")} (PricingRule VOLUMETRIC_DIVISOR hoặc mặc định IATA).`,
     });
     steps.push({
       key: "chargeable",
@@ -323,6 +402,7 @@ export function buildMainServicePricingBreakdown(
       chargeableWeight,
       volumeCm3,
       actualWeightKg: weight,
+      volumetricDivisor: divisor,
       hasConfiguredPricing: false,
     };
   }
@@ -437,6 +517,7 @@ export function buildMainServicePricingBreakdown(
     chargeableWeight,
     volumeCm3,
     actualWeightKg: weight,
+    volumetricDivisor: divisor,
     unitTypeLabel: UNIT_TYPE_LABELS[unitType] ?? servicePricing.unitType,
     hasConfiguredPricing,
   };

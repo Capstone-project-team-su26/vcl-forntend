@@ -12,6 +12,7 @@ import { getErrorMessage } from "@/utils/apiError";
 import { isMockMode } from "@/utils/mocks/dataSource";
 import { ROUTES } from "@/utils/appRoutes";
 import VndMoneyInput from "@/app/components/VndMoneyInput";
+import { resolveConsignmentPackageCount } from "@/utils/apiMappers";
 
 const {
   CONSIGNMENT_STATUS_LABELS,
@@ -45,7 +46,11 @@ const {
   formatConsignmentRouteLabel,
   formatVolumeCm3,
   isConfiguredServicePricing,
+  isPricingConfigRule,
+  isVolumetricDivisorRule,
   normalizeVolumeCm3FromApi,
+  resolveConsignmentTotalVolumeCm3,
+  resolveVolumetricDivisor,
   UNIT_TYPE_LABELS,
   VOLUMETRIC_DIVISOR_CM3,
 } = servicePricingService;
@@ -320,11 +325,27 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
     [mainServiceAmount, allAdditionalFeeLines, discountPercent]
   );
 
+  const volumetricDivisor = useMemo(
+    () => resolveVolumetricDivisor(feeCatalog),
+    [feeCatalog]
+  );
+
+  const surchargeFeeCatalog = useMemo(
+    () => feeCatalog.filter((fee) => !isPricingConfigRule(fee)),
+    [feeCatalog]
+  );
+
+  const volumetricDivisorRule = useMemo(
+    () => feeCatalog.find(isVolumetricDivisorRule) ?? null,
+    [feeCatalog]
+  );
+
   const pricingBreakdown = useMemo(
     () =>
       buildMainServicePricingBreakdown(selectedServicePricing, {
         weightKg,
         volumeCm3,
+        volumetricDivisor,
         estimate:
           estimateSnapshot ??
           (detail?.quotation
@@ -336,7 +357,14 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
               }
             : null),
       }),
-    [selectedServicePricing, weightKg, volumeCm3, estimateSnapshot, detail?.quotation]
+    [
+      selectedServicePricing,
+      weightKg,
+      volumeCm3,
+      volumetricDivisor,
+      estimateSnapshot,
+      detail?.quotation,
+    ]
   );
 
   const resolvedBackHref =
@@ -387,16 +415,23 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
           ? warehouseList.find((entry) => entry.id === whId) ?? null
           : null;
         const weight = consignment.totalWeight != null ? String(consignment.totalWeight) : "";
-        const volumeCm3FromApi = normalizeVolumeCm3FromApi(consignment.totalVolume, {
-          weightKg: consignment.totalWeight,
-        });
+        const volumeCm3FromApi =
+          resolveConsignmentTotalVolumeCm3({
+            totalVolume: consignment.totalVolume,
+            items: consignment.items,
+            weightKg: consignment.totalWeight,
+          }) ??
+          normalizeVolumeCm3FromApi(consignment.totalVolume, {
+            weightKg: consignment.totalWeight,
+          });
         const volume = volumeCm3FromApi != null ? String(volumeCm3FromApi) : "";
-        const packages =
-          consignment.packageCount != null
-            ? String(consignment.packageCount)
-            : consignment.quantity != null
-              ? String(consignment.quantity)
-              : "1";
+        const packages = String(
+          resolveConsignmentPackageCount({
+            packageCount: consignment.packageCount,
+            items: consignment.items,
+            quantity: consignment.quantity,
+          }) ?? 1
+        );
         const firstItem = consignment.items?.[0];
         const declared =
           firstItem?.declaredValue != null ? String(firstItem.declaredValue) : "";
@@ -425,6 +460,7 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
         const estimateSalesNote =
           resolveInitialSalesNote(consignment) || "Báo giá tạm tính";
         const resolvedVolumeCm3 = volumeCm3FromApi ?? (volume ? Number(volume) : 0);
+        const divisor = resolveVolumetricDivisor(activeFees);
 
         const preliminaryDraft = buildConsignmentQuotationDraft({
           servicePricing: pricing,
@@ -435,6 +471,8 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
           discountPercent: consignment.quotation?.discountPercent ?? 0,
           mainServiceAmountOverride: draftMainAmount,
           salesNote: estimateSalesNote,
+          volumetricDivisor: divisor,
+          pricingRules: activeFees,
         });
 
         let estimateResult = null;
@@ -465,6 +503,8 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
           declaredValue: declared,
           discountPercent: consignment.quotation?.discountPercent ?? 0,
           salesNote: estimateSalesNote,
+          volumetricDivisor: divisor,
+          pricingRules: activeFees,
         });
 
         const apiFreight =
@@ -490,6 +530,8 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
           declaredValue: declared,
           discountPercent: consignment.quotation?.discountPercent ?? 0,
           mainServiceAmountOverride: draftMainAmountResolved,
+          volumetricDivisor: divisor,
+          pricingRules: activeFees,
         });
 
         const { lines: feeLines, fromApi } = resolveQuotationAdditionalFees({
@@ -545,6 +587,16 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
   }, [id]);
 
   useEffect(() => {
+    if (!detail) return;
+    const packages = resolveConsignmentPackageCount({
+      packageCount: detail.packageCount,
+      items: detail.items,
+      quantity: detail.quantity,
+    });
+    if (packages != null) setPackageCount(String(packages));
+  }, [detail?.id, detail?.packageCount, detail?.items, detail?.quantity]);
+
+  useEffect(() => {
     if (!selectedServicePricing || !weightKg || !volumeCm3 || !feeCatalog.length) {
       return;
     }
@@ -556,6 +608,8 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
       packageCount,
       declaredValue,
       discountPercent,
+      volumetricDivisor,
+      pricingRules: feeCatalog,
     });
 
     setMainServiceAmount(String(draft.mainServiceAmount));
@@ -582,6 +636,7 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
     declaredValue,
     discountPercent,
     feeCatalog,
+    volumetricDivisor,
     detail?.requiresInspection,
   ]);
 
@@ -731,6 +786,8 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
         mainServiceAmountOverride: mainServiceAmount,
         additionalFees: allAdditionalFeeLines,
         salesNote,
+        volumetricDivisor,
+        pricingRules: feeCatalog,
       }),
       customFees: customFees.map((fee) => ({
         id: fee.id,
@@ -764,11 +821,18 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
 
       const response = await orderConsignmentService.sendConsignmentQuotation(detail.id, sendParams);
 
-      const updated = response.consignment ?? {
-        ...detail,
-        status: response.status ?? "QUOTATION_SENT",
-        quotation,
-      };
+      const updated = response.consignment
+        ? {
+            ...detail,
+            ...response.consignment,
+            items: response.consignment.items?.length ? response.consignment.items : detail.items,
+            quotation: detail.quotation ?? quotation,
+          }
+        : {
+            ...detail,
+            status: response.status ?? "QUOTATION_SENT",
+            quotation,
+          };
 
       setDetail(updated);
       setSuccessMessage(
@@ -998,7 +1062,7 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
                   {pricingBreakdown.volumeCm3 != null ? (
                     <p className="text-xs text-muted mt-1">
                       DIM = {formatVolumeCm3(pricingBreakdown.volumeCm3)} ÷{" "}
-                      {VOLUMETRIC_DIVISOR_CM3.toLocaleString("vi-VN")}
+                      {volumetricDivisor.toLocaleString("vi-VN")}
                     </p>
                   ) : null}
                 </div>
@@ -1027,7 +1091,7 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
             {pricingBreakdown.show ? <PricingFormulaBreakdown breakdown={pricingBreakdown} /> : null}
           </section>
 
-          {hasConfiguredPricing || feeCatalog.length ? (
+          {hasConfiguredPricing || surchargeFeeCatalog.length || volumetricDivisor ? (
             <section className="rounded-xl border border-border-muted bg-surface-elevated overflow-hidden">
               <div className="px-6 py-4 border-b border-border-muted">
                 <h2 className="text-lg font-bold text-ink">Bảng giá tham chiếu (VND)</h2>
@@ -1057,7 +1121,7 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
                         );
                       })()
                     ) : null}
-                    {feeCatalog.map((fee) => (
+                    {surchargeFeeCatalog.map((fee) => (
                       <tr key={fee.id} className="border-b border-border-muted/60 last:border-0">
                         <td className="px-6 py-3 font-medium text-ink">{fee.name}</td>
                         <td className="px-6 py-3 text-muted">{fee.unit || "—"}</td>
@@ -1066,6 +1130,20 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
                     ))}
                   </tbody>
                 </table>
+              </div>
+              <div className="px-6 py-3 border-t border-border-muted bg-surface/40 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 text-sm">
+                <p className="font-semibold text-ink">Hệ số quy đổi thể tích</p>
+                <p className="text-muted">
+                  DIM = thể tích (cm³) ÷{" "}
+                  <span className="font-mono font-bold text-ink">
+                    {volumetricDivisor.toLocaleString("vi-VN")}
+                  </span>
+                  {volumetricDivisorRule ? (
+                    <span className="text-xs"> · từ quy tắc {volumetricDivisorRule.code || "VOLUMETRIC_DIVISOR"}</span>
+                  ) : (
+                    <span className="text-xs"> · mặc định IATA {VOLUMETRIC_DIVISOR_CM3.toLocaleString("vi-VN")}</span>
+                  )}
+                </p>
               </div>
             </section>
           ) : null}

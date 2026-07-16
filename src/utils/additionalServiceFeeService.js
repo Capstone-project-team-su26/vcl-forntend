@@ -8,7 +8,7 @@ import {
   toApiPricingRuleFromAdditionalFeePayload,
 } from "@/utils/apiMappers";
 import { ApiError } from "@/utils/apiError";
-import { formatMoney } from "@/utils/servicePricingService";
+import { formatMoney, isVolumetricDivisorRule } from "@/utils/servicePricingService";
 
 export const FEE_CALCULATION_TYPE_LABELS = {
   FIXED: "Giá cố định",
@@ -207,12 +207,19 @@ export async function deleteAdditionalServiceFee(id) {
 }
 
 export function formatFeeAmount(fee) {
+  if (isVolumetricDivisorRule(fee)) {
+    const value = Number(fee.fixedAmount ?? fee.value);
+    return Number.isFinite(value) && value > 0
+      ? `÷ ${value.toLocaleString("vi-VN")}`
+      : "—";
+  }
   if (fee.feeCalculationType === "PERCENTAGE") {
     return fee.percentageRate != null ? `${fee.percentageRate}%` : "—";
   }
   return fee.fixedAmount != null ? formatMoney(fee.fixedAmount) : "—";
 }
 
-export function formatFeeCalculationType(type) {
+export function formatFeeCalculationType(type, fee) {
+  if (fee && isVolumetricDivisorRule(fee)) return "Hệ số quy đổi thể tích";
   return FEE_CALCULATION_TYPE_LABELS[type] || type || "—";
 }

@@ -155,7 +155,7 @@ export default function AdditionalServiceFeesPage() {
         key: "feeCalculationType",
         title: "Cách tính",
         className: "text-muted",
-        render: (item) => formatFeeCalculationType(item.feeCalculationType),
+        render: (item) => formatFeeCalculationType(item.feeCalculationType, item),
       },
       {
         key: "amount",
@@ -274,6 +274,35 @@ export default function AdditionalServiceFeesPage() {
           emptyFilteredText="Không có loại phí phù hợp với bộ lọc."
           minWidth={980}
         />
+
+        {(() => {
+          const divisorRule = items.find(
+            (item) =>
+              String(item.code ?? "").toUpperCase().includes("VOLUMETRIC_DIVISOR") ||
+              String(item.ruleType ?? "").toUpperCase() === "VOLUMETRIC_DIVISOR" ||
+              String(item.ruleCode ?? "").toUpperCase().includes("VOLUMETRIC_DIVISOR")
+          );
+          const divisorValue = Number(divisorRule?.fixedAmount);
+          return (
+            <div className="rounded-xl border border-border-muted bg-surface-elevated px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <div>
+                <p className="text-sm font-bold text-ink">Hệ số quy đổi thể tích</p>
+                <p className="text-xs text-muted mt-0.5">
+                  Dùng khi tính DIM: thể tích (cm³) ÷ hệ số. Cấu hình qua PricingRule mã{" "}
+                  <span className="font-mono">VOLUMETRIC_DIVISOR</span>.
+                </p>
+              </div>
+              <p className="text-sm text-muted shrink-0">
+                Đang áp dụng:{" "}
+                <span className="font-mono font-bold text-ink">
+                  {Number.isFinite(divisorValue) && divisorValue > 0
+                    ? divisorValue.toLocaleString("vi-VN")
+                    : "5.000 (mặc định IATA)"}
+                </span>
+              </p>
+            </div>
+          );
+        })()}
       </div>
 
       <AdditionalServiceFeeFormModal
