@@ -7,6 +7,7 @@ import AdditionalServiceFeeFormModal from "@/app/pages/admin/additional-service-
 import DataTable from "@/app/components/DataTable";
 import * as feeService from "@/utils/additionalServiceFeeService";
 import { getErrorMessage } from "@/utils/apiError";
+import { isVolumetricDivisorRule } from "@/utils/servicePricingService";
 
 const {
   formatFeeAmount,
@@ -132,6 +133,11 @@ export default function AdditionalServiceFeesPage() {
       setPendingId(null);
     }
   }
+
+  const volumetricDivisorRule = useMemo(
+    () => items.find(isVolumetricDivisorRule) ?? null,
+    [items]
+  );
 
   const columns = useMemo(
     () => [
@@ -275,34 +281,35 @@ export default function AdditionalServiceFeesPage() {
           minWidth={980}
         />
 
-        {(() => {
-          const divisorRule = items.find(
-            (item) =>
-              String(item.code ?? "").toUpperCase().includes("VOLUMETRIC_DIVISOR") ||
-              String(item.ruleType ?? "").toUpperCase() === "VOLUMETRIC_DIVISOR" ||
-              String(item.ruleCode ?? "").toUpperCase().includes("VOLUMETRIC_DIVISOR")
-          );
-          const divisorValue = Number(divisorRule?.fixedAmount);
-          return (
-            <div className="rounded-xl border border-border-muted bg-surface-elevated px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-              <div>
-                <p className="text-sm font-bold text-ink">Hệ số quy đổi thể tích</p>
-                <p className="text-xs text-muted mt-0.5">
-                  Dùng khi tính DIM: thể tích (cm³) ÷ hệ số. Cấu hình qua PricingRule mã{" "}
-                  <span className="font-mono">VOLUMETRIC_DIVISOR</span>.
-                </p>
-              </div>
-              <p className="text-sm text-muted shrink-0">
-                Đang áp dụng:{" "}
-                <span className="font-mono font-bold text-ink">
-                  {Number.isFinite(divisorValue) && divisorValue > 0
-                    ? divisorValue.toLocaleString("vi-VN")
-                    : "5.000 (mặc định IATA)"}
-                </span>
-              </p>
-            </div>
-          );
-        })()}
+        <div className="rounded-xl border border-border-muted bg-surface-elevated px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <p className="text-sm font-bold text-ink">Hệ số quy đổi thể tích</p>
+            <p className="text-xs text-muted mt-0.5">
+              Dùng khi tính DIM: thể tích (cm³) ÷ hệ số. Quy tắc hệ thống mã{" "}
+              <span className="font-mono">VOLUMETRIC_DIVISOR</span>.
+            </p>
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            <p className="text-sm text-muted">
+              Đang áp dụng:{" "}
+              <span className="font-mono font-bold text-ink">
+                {Number(volumetricDivisorRule?.fixedAmount) > 0
+                  ? Number(volumetricDivisorRule.fixedAmount).toLocaleString("vi-VN")
+                  : "5.000 (mặc định IATA)"}
+              </span>
+            </p>
+            {volumetricDivisorRule ? (
+              <button
+                type="button"
+                onClick={() => openEdit(volumetricDivisorRule)}
+                className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-border-muted text-sm font-semibold text-ink hover:bg-surface"
+              >
+                <Icon icon="lucide:pencil" className="w-4 h-4" />
+                Chỉnh sửa
+              </button>
+            ) : null}
+          </div>
+        </div>
       </div>
 
       <AdditionalServiceFeeFormModal

@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import * as feeService from "@/utils/additionalServiceFeeService";
 import { getErrorMessage } from "@/utils/apiError";
 import VndMoneyInput from "@/app/components/VndMoneyInput";
+import { isVolumetricDivisorRule } from "@/utils/servicePricingService";
 
 const { FEE_CALCULATION_TYPE_LABELS } = feeService;
 
@@ -46,6 +47,8 @@ export default function AdditionalServiceFeeFormModal({
 
   if (!open) return null;
 
+  const isDivisorRule = Boolean(fee && isVolumetricDivisorRule(fee));
+
   async function handleSubmit(event) {
     event.preventDefault();
     setError("");
@@ -56,7 +59,7 @@ export default function AdditionalServiceFeeFormModal({
       name: readFormValue(form, "name").trim(),
       code: readFormValue(form, "code").trim(),
       feeCalculationType,
-      fixedAmount: feeCalculationType === "FIXED" ? readFormValue(form, "fixedAmount") : "",
+      fixedAmount: feeCalculationType === "FIXED" ? fixedAmount : "",
       percentageRate:
         feeCalculationType === "PERCENTAGE" ? readFormValue(form, "percentageRate") : "",
       unit: readFormValue(form, "unit").trim(),
@@ -128,9 +131,12 @@ export default function AdditionalServiceFeeFormModal({
               id="code"
               name="code"
               required
+              readOnly={isDivisorRule}
               defaultValue={fee?.code ?? ""}
               placeholder="VD: INSURANCE"
-              className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring font-mono"
+              className={`w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring font-mono ${
+                isDivisorRule ? "bg-surface text-muted cursor-not-allowed" : ""
+              }`}
             />
           </div>
 
@@ -157,7 +163,8 @@ export default function AdditionalServiceFeeFormModal({
           {calculationType === "FIXED" ? (
             <div className="space-y-2">
               <label htmlFor="fixedAmount" className="text-sm font-semibold text-ink">
-                Giá cố định (VND) <span className="text-danger">*</span>
+                {isDivisorRule ? "Hệ số quy đổi thể tích" : "Giá cố định (VND)"}{" "}
+                <span className="text-danger">*</span>
               </label>
               <VndMoneyInput
                 id="fixedAmount"
@@ -165,6 +172,7 @@ export default function AdditionalServiceFeeFormModal({
                 value={fixedAmount}
                 onChange={setFixedAmount}
                 required
+                placeholder={isDivisorRule ? "VD: 5.000" : undefined}
               />
             </div>
           ) : (

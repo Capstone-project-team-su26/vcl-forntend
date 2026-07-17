@@ -194,7 +194,9 @@ export async function updateAdditionalServiceFee(id, payload) {
     body: JSON.stringify(toApiPricingRuleFromAdditionalFeePayload(merged)),
   });
 
-  const fee = normalizeAdditionalServiceFeeFromApi(raw?.data ?? raw?.fee ?? { ...merged, id });
+  const fee = await getPricingRuleAsFee(id).catch(() =>
+    normalizeAdditionalServiceFeeFromApi(raw?.data ?? raw?.fee ?? { ...merged, id })
+  );
   return { message: raw?.message || "Cập nhật loại phí thành công.", fee };
 }
 
