@@ -11,7 +11,8 @@ Dùng khi cần test trên web hoặc gọi API. **Không** ghi mật khẩu / c
 
 | Mục | URL |
 |-----|-----|
-| Frontend (Vercel) | https://vcl-forntend.vercel.app/ |
+| Frontend nội bộ / Sale–Admin (Vercel) | https://vcl-forntend.vercel.app/ |
+| Web khách | https://vietnamlogictic.vercel.app/ |
 | API backend | https://api-vcl.zushin.io.vn |
 
 ## Ghi chú

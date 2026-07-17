@@ -76,12 +76,21 @@ function isPerPackageFee(fee) {
   );
 }
 
+function isDomesticFee(fee) {
+  const key = String(fee?.ruleType ?? fee?.code ?? fee?.ruleCode ?? "")
+    .trim()
+    .toUpperCase();
+  return key === "DOMESTIC_FEE" || key.includes("DOMESTIC_FEE");
+}
+
 function shouldDefaultEnableFee(
   fee,
   { requiresInspection = false, declaredValue = 0 } = {}
 ) {
   if (fee.isRequired === true) return true;
   if (isInspectionFee(fee)) return requiresInspection;
+  // BE luôn cộng DOMESTIC_FEE vào serviceFee — mặc định bật cho khớp.
+  if (isDomesticFee(fee)) return true;
 
   const ruleType = String(fee.ruleType ?? fee.code ?? "").toUpperCase();
   if (ruleType === "INSURANCE" || ruleType.includes("INSURANCE")) {
@@ -232,7 +241,7 @@ export function buildDefaultAdditionalFeeLines({
   requiresInspection = false,
 }) {
   const context = { packageCount, declaredValue, mainServiceAmount };
-  // ponytail: VOLUMETRIC_DIVISOR / MIN_WEIGHT / DOMESTIC_FEE là config, không phải dòng phụ phí.
+  // ponytail: VOLUMETRIC_DIVISOR / MIN_WEIGHT là config, không phải dòng phụ phí.
   return fees
     .filter((fee) => !isMainServiceFee(fee) && !isPricingConfigRule(fee))
     .map((fee) => {
@@ -572,6 +581,43 @@ export function buildAdditionalFeeLinesFromQuotation(
   return [];
 }
 
+/** Bổ sung phụ phí catalog còn thiếu trên dòng API (vd. DOMESTIC_FEE BE gộp vào serviceFee). */
+function mergeMissingCatalogFeeLines(apiLines, catalogFees, context) {
+  if (!catalogFees?.length) return apiLines;
+
+  const present = new Set();
+  for (const line of apiLines) {
+    if (line.feeId) present.add(String(line.feeId));
+    if (line.code) present.add(String(line.code).toUpperCase());
+  }
+
+  const missing = catalogFees.filter((fee) => {
+    if (isMainServiceFee(fee) || isPricingConfigRule(fee)) return false;
+    const id = fee.id != null ? String(fee.id) : null;
+    const code = fee.code != null ? String(fee.code).toUpperCase() : null;
+    return !((id && present.has(id)) || (code && present.has(code)));
+  });
+
+  if (!missing.length) return apiLines;
+
+  const catalogLines = buildDefaultAdditionalFeeLines({
+    fees: missing,
+    packageCount: context.packageCount,
+    declaredValue: context.declaredValue,
+    mainServiceAmount: context.mainServiceAmount,
+    requiresInspection: context.requiresInspection,
+  });
+
+  // Bỏ dòng gộp SERVICE_FEE nếu đã tách được phụ phí catalog (tránh cộng đôi).
+  const withoutAggregate = apiLines.filter(
+    (line) =>
+      line.feeId !== "service-fee" &&
+      String(line.code ?? "").toUpperCase() !== "SERVICE_FEE"
+  );
+
+  return [...withoutAggregate, ...catalogLines];
+}
+
 export function resolveQuotationAdditionalFees({
   consignment,
   estimate,
@@ -583,16 +629,23 @@ export function resolveQuotationAdditionalFees({
   const requiresInspection = consignment?.requiresInspection === true;
   const quotationSource = estimate?.quotation ?? estimate ?? consignment?.quotation;
   const itemizedFees = quotationSource?.additionalFees;
+  const feeContext = {
+    packageCount,
+    declaredValue,
+    mainServiceAmount,
+    requiresInspection,
+  };
 
   if (Array.isArray(itemizedFees) && itemizedFees.some((fee) => !isMainServiceFee(fee) && !isPricingConfigRule(fee))) {
+    const apiLines = buildAdditionalFeeLinesFromQuotation(quotationSource, {
+      requiresInspection,
+      catalogFees,
+      packageCount,
+      declaredValue,
+      mainServiceAmount,
+    });
     return {
-      lines: buildAdditionalFeeLinesFromQuotation(quotationSource, {
-        requiresInspection,
-        catalogFees,
-        packageCount,
-        declaredValue,
-        mainServiceAmount,
-      }),
+      lines: mergeMissingCatalogFeeLines(apiLines, catalogFees, feeContext),
       fromApi: true,
     };
   }
@@ -671,18 +724,18 @@ export function getQuotationDisplayLines(quotation) {
       });
     }
 
-    if (serviceFee > 0) {
-      lines.push({
-        label: "Phí dịch vụ",
-        amount: serviceFee,
-      });
-    } else if (enabledFees.length) {
+    if (enabledFees.length) {
       for (const fee of enabledFees) {
         lines.push({
           label: fee.label || fee.name || fee.code || "Phụ phí",
           amount: fee.amount,
         });
       }
+    } else if (serviceFee > 0) {
+      lines.push({
+        label: "Phí dịch vụ",
+        amount: serviceFee,
+      });
     }
 
     if (quotation.taxAndDuty != null && Number(quotation.taxAndDuty) !== 0) {

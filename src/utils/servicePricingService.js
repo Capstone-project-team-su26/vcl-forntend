@@ -36,11 +36,10 @@ export const VOLUMETRIC_DIVISOR_RULE = "VOLUMETRIC_DIVISOR";
 /** @deprecated dùng VOLUMETRIC_DIVISOR_CM3; giữ để tương thích chỗ còn nhắc m³. */
 export const VOLUMETRIC_FACTOR_M3 = 1_000_000 / VOLUMETRIC_DIVISOR_CM3;
 
-/** Quy tắc cấu hình (không phải phụ phí tính tiền). */
+/** Quy tắc cấu hình (không phải phụ phí tính tiền). DOMESTIC_FEE là phụ phí — hiện trong bảng báo giá ký gửi. */
 const PRICING_CONFIG_RULES = new Set([
   VOLUMETRIC_DIVISOR_RULE,
   "MIN_WEIGHT",
-  "DOMESTIC_FEE",
 ]);
 
 function ruleKey(fee) {
