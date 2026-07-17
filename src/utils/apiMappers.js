@@ -63,19 +63,39 @@ function resolveCustomerDisplayName(item) {
 function resolvePartyFromApi(item, role) {
   const nested = item?.[role];
   const prefix = role; // sender | receiver
+  const aliases =
+    role === "receiver"
+      ? [item?.recipient, item?.consignee]
+      : [];
   return {
     name: pickDisplayName(
       item?.[`${prefix}Name`],
+      role === "receiver" ? item?.recipientName : null,
+      role === "receiver" ? item?.consigneeName : null,
       nested?.fullName,
       nested?.name,
-      nested?.customerName
+      nested?.customerName,
+      ...aliases.flatMap((entry) => [
+        entry?.fullName,
+        entry?.name,
+        entry?.customerName,
+      ])
     ),
     phone: pickDisplayName(
       item?.[`${prefix}Phone`],
+      role === "receiver" ? item?.recipientPhone : null,
+      role === "receiver" ? item?.consigneePhone : null,
       nested?.phone,
-      nested?.phoneNumber
+      nested?.phoneNumber,
+      ...aliases.flatMap((entry) => [entry?.phone, entry?.phoneNumber])
     ),
-    address: pickDisplayName(item?.[`${prefix}Address`], nested?.address),
+    address: pickDisplayName(
+      item?.[`${prefix}Address`],
+      role === "receiver" ? item?.recipientAddress : null,
+      role === "receiver" ? item?.consigneeAddress : null,
+      nested?.address,
+      ...aliases.flatMap((entry) => [entry?.address])
+    ),
   };
 }
 
@@ -112,6 +132,9 @@ export function normalizeConsignmentSummary(item) {
     if (Array.isArray(item.productNames) && item.productNames.length) {
       return item.productNames.filter(Boolean);
     }
+    if (Array.isArray(item.itemNames) && item.itemNames.length) {
+      return item.itemNames.filter(Boolean);
+    }
     if (Array.isArray(item.items) && item.items.length) {
       return item.items.map((entry) => entry?.productName).filter(Boolean);
     }
@@ -133,6 +156,10 @@ export function normalizeConsignmentSummary(item) {
     status: normalizeConsignmentStatus(item.status),
     totalWeight: item.totalWeight ?? null,
     totalVolume: item.totalVolume ?? null,
+    totalVolumeM3:
+      item.totalVolumeM3 != null && Number.isFinite(Number(item.totalVolumeM3))
+        ? Number(item.totalVolumeM3)
+        : null,
     createdAt: item.createdAt,
     route: item.route ?? null,
     warehouseName: item.warehouseName ?? item.warehouse?.name ?? null,
@@ -313,6 +340,10 @@ export function normalizeConsignmentDetail(raw) {
     warehouseName: item.warehouseName ?? null,
     totalWeight: item.totalWeight ?? null,
     totalVolume: item.totalVolume ?? null,
+    totalVolumeM3:
+      item.totalVolumeM3 != null && Number.isFinite(Number(item.totalVolumeM3))
+        ? Number(item.totalVolumeM3)
+        : null,
     packageCount,
   };
 }
@@ -476,6 +507,19 @@ function normalizeServicePricingUnitType(raw) {
 
 export function normalizeServicePricingFromApi(item) {
   const serviceType = item.serviceType ?? item.service_type;
+  const price = item.price ?? null;
+  const pricePerKg =
+    item.pricePerKg ??
+    item.price_per_kg ??
+    item.pricePerWeight ??
+    item.price_per_weight ??
+    price;
+  const pricePerCbm =
+    item.pricePerCbm ??
+    item.price_per_cbm ??
+    item.pricePerVolume ??
+    item.price_per_volume ??
+    null;
 
   return {
     id: item.id,
@@ -486,9 +530,9 @@ export function normalizeServicePricingFromApi(item) {
     destinationCountry: item.destinationCountry ?? item.destination_country,
     warehouseId: item.warehouseId ?? item.warehouse_id ?? null,
     unitType: normalizeServicePricingUnitType(item.unitType ?? item.unit_type),
-    price: item.price ?? null,
-    pricePerKg: item.pricePerKg ?? item.price_per_kg ?? item.price ?? null,
-    pricePerCbm: item.pricePerCbm ?? item.price_per_cbm ?? null,
+    price,
+    pricePerKg,
+    pricePerCbm,
     currency: item.currency ?? "VND",
     effectiveDate: item.effectiveDate ?? item.effective_date ?? null,
     isActive: item.isActive !== false && item.status !== "INACTIVE",
@@ -496,11 +540,12 @@ export function normalizeServicePricingFromApi(item) {
 }
 
 export function toApiServicePricingPayload(data) {
-  // CreateServicePricingRequest: chỉ các field swagger; carrierId phải là UUID thuần.
   const price =
     data.unitType === "KG_OR_CBM"
       ? data.pricePerKg ?? data.price
       : data.price ?? data.pricePerKg;
+  const pricePerKg = data.pricePerKg ?? price;
+  const pricePerCbm = data.pricePerCbm ?? null;
 
   const carrierId = extractGuid(data.carrierId);
 
@@ -511,6 +556,8 @@ export function toApiServicePricingPayload(data) {
     destinationCountry: data.destinationCountry,
     unitType: data.unitType,
     price: price == null ? null : Number(price),
+    pricePerWeight: pricePerKg == null ? null : Number(pricePerKg),
+    pricePerVolume: pricePerCbm == null ? null : Number(pricePerCbm),
     currency: data.currency ?? "VND",
     effectiveDate: data.effectiveDate,
   };

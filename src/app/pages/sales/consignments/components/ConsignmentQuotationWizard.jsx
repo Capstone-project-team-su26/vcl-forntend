@@ -424,7 +424,7 @@ export default function ConsignmentQuotationWizard({ preselectedCustomerId }) {
         warehouseId,
         warehouseCode: selectedWarehouse?.code,
         weightKg: Number(weightKg),
-        volumeM3: volumeCm3 ? Number(volumeCm3) : 0,
+        volumeCm3: volumeCm3 ? Number(volumeCm3) : 0,
         packageCount: Number(packageCount),
         salesNote,
         quotation: {
@@ -689,9 +689,14 @@ export default function ConsignmentQuotationWizard({ preselectedCustomerId }) {
                     setVolumeCm3(event.target.value);
                     resetSuccessState();
                   }}
-                  placeholder="900000"
+                  placeholder="vd. 12000"
                   className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
                 />
+                {volumeCm3 && Number(volumeCm3) >= 1000 ? (
+                  <p className="text-xs text-muted">
+                    ≈ {formatVolumeCm3(Number(volumeCm3))}
+                  </p>
+                ) : null}
               </div>
               <div className="space-y-2">
                 <FieldLabel htmlFor="packageCount" required>
@@ -751,7 +756,7 @@ export default function ConsignmentQuotationWizard({ preselectedCustomerId }) {
               <div>
                 <p className="text-muted">Khối lượng</p>
                 <p className="font-semibold text-ink">
-                  {weightKg} kg · {volumeCm3} cm³ · {packageCount} kiện
+                  {weightKg} kg · {volumeCm3 ? formatVolumeCm3(Number(volumeCm3)) : "—"} · {packageCount} kiện
                 </p>
               </div>
             </div>
