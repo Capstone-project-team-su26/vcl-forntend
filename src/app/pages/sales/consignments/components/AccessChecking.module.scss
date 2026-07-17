@@ -1,0 +1,15 @@
+@use "consignment-ui" as ui;
+
+.root {
+  @include ui.loading-center;
+}
+
+.icon {
+  @include ui.icon-lg;
+  @include ui.spin;
+}
+
+.text {
+  font-size: 0.875rem;
+  font-weight: 500;
+}

@@ -1,4 +1,5 @@
 "use client";
+import styles from "./StaffCustomerDetailPage.module.scss";
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -21,7 +22,7 @@ export default function StaffCustomerDetailPage() {
 
   if (!isReady || !isSale) {
     return (
-      <div className="flex items-center justify-center py-24 text-muted">
+      <div className={styles.t04f23c}>
         Đang kiểm tra quyền truy cập...
       </div>
     );

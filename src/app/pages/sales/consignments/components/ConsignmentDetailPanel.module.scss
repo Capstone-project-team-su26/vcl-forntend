@@ -1,0 +1,281 @@
+@use "consignment-ui" as ui;
+@use "../../../../../styles/mixins" as *;
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--theme-secondary);
+  text-decoration: none;
+
+  &:hover {
+    color: var(--theme-primary);
+  }
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-block: 5rem;
+  gap: 0.5rem;
+  color: var(--theme-muted);
+}
+
+.alertDanger {
+  @include ui.alert-danger;
+}
+
+.codeHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding-bottom: 0.25rem;
+
+  @include media-lg {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+}
+
+.codeBlock {
+  min-width: 0;
+}
+
+.codeLabel {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--theme-subtle);
+}
+
+.codeRow {
+  margin-top: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.code {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--theme-ink-deep);
+  font-family: ui-monospace, monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  @include media-sm {
+    font-size: 1.5rem;
+  }
+}
+
+.statusBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.statusLabel {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--theme-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.partyGrid {
+  display: grid;
+  gap: 1rem;
+
+  @include media-sm {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.linkCard {
+  background-color: var(--theme-surface-elevated);
+  border-radius: 0.75rem;
+  border: 1px solid var(--theme-border);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+
+  @include media-sm {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.linkTitle {
+  font-size: 1.125rem;
+  font-weight: 800;
+  font-family: "Oswald", ui-sans-serif, system-ui, sans-serif;
+}
+
+.linkBody {
+  font-size: 0.875rem;
+  color: var(--theme-subtle);
+  margin-top: 0.25rem;
+}
+
+.outlineBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  padding-inline: 1.25rem;
+  border-radius: 0.5rem;
+  border: 2px solid var(--theme-primary);
+  background-color: var(--theme-surface-elevated);
+  color: var(--theme-secondary);
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: var(--theme-surface-tint);
+  }
+}
+
+.infoPanel {
+  background-color: var(--theme-surface-elevated);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  border: 1px solid var(--theme-border);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.infoTitle {
+  font-size: 1.125rem;
+  font-weight: 800;
+  font-family: "Oswald", ui-sans-serif, system-ui, sans-serif;
+  margin-bottom: 0.5rem;
+}
+
+.receivingCard {
+  background-color: var(--theme-surface-elevated);
+  border-radius: 0.75rem;
+  border: 1px solid var(--theme-secondary);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+
+  @include media-sm {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.primaryBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  padding-inline: 1.25rem;
+  border-radius: 0.5rem;
+  border: none;
+  background-color: var(--theme-secondary);
+  color: var(--theme-accent-subtle);
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover:not(:disabled) {
+    background-color: var(--theme-primary);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.actionsPanel {
+  @extend .infoPanel;
+  gap: 1.25rem;
+}
+
+.rejectHint {
+  font-size: 0.875rem;
+  color: var(--theme-subtle);
+}
+
+.rejectLabel {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--theme-ink);
+}
+
+.required {
+  color: var(--theme-secondary);
+}
+
+.textarea {
+  @include ui.textarea;
+  border-color: var(--theme-surface-muted);
+}
+
+.rejectValidation {
+  font-size: 0.875rem;
+  color: var(--theme-secondary);
+  font-weight: 600;
+}
+
+.fieldStack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.inactiveNote {
+  border-radius: 0.5rem;
+  border: 1px solid var(--theme-border-muted);
+  background-color: var(--theme-surface-muted);
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  color: var(--theme-subtle);
+}
+
+.iconSm {
+  width: 1rem;
+  height: 1rem;
+}
+
+.iconMd {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.spin {
+  @include ui.spin;
+}
+
+.statusBadgeLarge {
+  font-size: 0.875rem !important;
+}

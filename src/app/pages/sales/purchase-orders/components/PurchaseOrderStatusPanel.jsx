@@ -1,4 +1,5 @@
 "use client";
+import styles from "./PurchaseOrderStatusPanel.module.scss";
 
 import { Icon } from "@iconify/react";
 import Link from "next/link";
@@ -20,8 +21,8 @@ const {
 function StatusBadge({ status }) {
   return (
     <span
-      className={`inline-block px-3 py-1 rounded-full text-[12px] font-bold ${
-        PURCHASE_ORDER_STATUS_STYLES[status] || "bg-surface text-muted"
+      className={`${styles.teb7554}  ${
+        PURCHASE_ORDER_STATUS_STYLES[status] || "status-badge--surface"
       }`}
     >
       {PURCHASE_ORDER_STATUS_LABELS[status] || status}
@@ -147,24 +148,24 @@ export default function PurchaseOrderStatusPanel({
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 gap-3 text-muted">
-        <Icon icon="lucide:loader-2" className="w-8 h-8 animate-spin" />
-        <p className="text-sm font-medium">Đang tải đơn mua hàng...</p>
+      <div className={styles.t9ad5d8}>
+        <Icon icon="lucide:loader-2" className={styles.t27b8b3} />
+        <p className={styles.taaa307}>Đang tải đơn mua hàng...</p>
       </div>
     );
   }
 
   if (loadError && !detail) {
     return (
-      <div className="space-y-4">
+      <div className={styles.t3e7ce5}>
         <Link
           href={ROUTES.sales.purchaseRequests}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-muted hover:text-ink"
+          className={styles.t025913}
         >
-          <Icon icon="lucide:arrow-left" className="w-4 h-4" />
+          <Icon icon="lucide:arrow-left" className={styles.t0bfbea} />
           Quay lại
         </Link>
-        <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
+        <div className={styles.te12bff}>
           {loadError}
         </div>
       </div>
@@ -174,112 +175,112 @@ export default function PurchaseOrderStatusPanel({
   if (!detail) return null;
 
   return (
-    <div className="space-y-8 max-w-4xl">
+    <div className={styles.t50a089}>
       <div>
         <Link
           href={resolvedBackHref}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-muted hover:text-ink mb-4"
+          className={styles.t197bd0}
         >
-          <Icon icon="lucide:arrow-left" className="w-4 h-4" />
+          <Icon icon="lucide:arrow-left" className={styles.t0bfbea} />
           Quay lại
         </Link>
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div className={styles.tbccecd}>
           <div>
-            <h1 className="text-3xl lg:text-4xl font-black tracking-tight font-['Oswald'] text-ink">
+            <h1 className={styles.t4d16e2}>
               Cập nhật trạng thái mua hàng
             </h1>
-            <p className="text-muted text-sm font-medium mt-2">
+            <p className={styles.t466889}>
               Mã đơn mua hàng:{" "}
-              <span className="font-mono text-ink">{detail.purchaseOrderCode}</span>
+              <span className={styles.t971bb3}>{detail.purchaseOrderCode}</span>
             </p>
-            <p className="text-muted text-sm font-medium mt-1">
+            <p className={styles.tc214d2}>
               Mã yêu cầu mua hộ:{" "}
-              <span className="font-mono text-ink">{detail.requestCode || "—"}</span>
+              <span className={styles.t971bb3}>{detail.requestCode || "—"}</span>
             </p>
           </div>
           <StatusBadge status={detail.status} />
         </div>
       </div>
 
-      <section className="rounded-xl border border-border-muted bg-surface/50 px-6 py-4 text-sm text-muted">
+      <section className={styles.t9f221d}>
         Trang này chỉ ghi nhận tiến độ mua hàng với nhà cung cấp. Không xử lý vận chuyển nội địa.
       </section>
 
       {isWaitingWarehouseReceive(detail.status) ? (
-        <section className="rounded-lg border border-success/30 bg-success-bg px-4 py-3 text-sm text-success-text">
+        <section className={styles.te918f5}>
           Đơn mua hàng đã ở trạng thái chờ kho nhận. Có thể chuyển sang quy trình nhập kho.
         </section>
       ) : null}
 
       {successMessage ? (
-        <div className="rounded-lg border border-success/30 bg-success-bg px-4 py-3 text-sm text-success-text">
+        <div className={styles.te918f5}>
           {successMessage}
         </div>
       ) : null}
 
       {submitError ? (
-        <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
+        <div className={styles.te12bff}>
           {submitError}
         </div>
       ) : null}
 
-      <section className="rounded-xl border border-border-muted bg-surface-elevated p-6 space-y-2">
-        <h2 className="text-lg font-bold text-ink mb-1">Thông tin khách hàng</h2>
-        <p className="text-sm">
-          <span className="text-muted">Khách hàng:</span>{" "}
-          <span className="font-semibold text-ink">{detail.customerName}</span>
+      <section className={styles.t726b1d}>
+        <h2 className={styles.t2b0cf4}>Thông tin khách hàng</h2>
+        <p className={styles.tfc7473}>
+          <span className={styles.t9a12f0}>Khách hàng:</span>{" "}
+          <span className={styles.t1d3e56}>{detail.customerName}</span>
         </p>
         {customerPhone ? (
-          <p className="text-sm">
-            <span className="text-muted">SĐT:</span>{" "}
-            <span className="font-medium text-ink">{customerPhone}</span>
+          <p className={styles.tfc7473}>
+            <span className={styles.t9a12f0}>SĐT:</span>{" "}
+            <span className={styles.tf302d3}>{customerPhone}</span>
           </p>
         ) : null}
         {customerEmail ? (
-          <p className="text-sm">
-            <span className="text-muted">Email:</span>{" "}
-            <span className="font-medium text-ink">{customerEmail}</span>
+          <p className={styles.tfc7473}>
+            <span className={styles.t9a12f0}>Email:</span>{" "}
+            <span className={styles.tf302d3}>{customerEmail}</span>
           </p>
         ) : null}
         {detail.supplier ? (
-          <p className="text-sm">
-            <span className="text-muted">Nhà cung cấp:</span>{" "}
-            <span className="font-medium text-ink">{detail.supplier}</span>
+          <p className={styles.tfc7473}>
+            <span className={styles.t9a12f0}>Nhà cung cấp:</span>{" "}
+            <span className={styles.tf302d3}>{detail.supplier}</span>
           </p>
         ) : null}
-        <p className="text-sm text-muted">
+        <p className={styles.ta7b499}>
           Ngày tạo đơn: {formatPurchaseOrderDate(detail.createdAt)}
         </p>
       </section>
 
-      <section className="rounded-xl border border-border-muted bg-surface-elevated overflow-hidden">
-        <div className="px-6 py-4 border-b border-border-muted">
-          <h2 className="text-lg font-bold text-ink">Sản phẩm cần mua</h2>
+      <section className={styles.t8ddf6c}>
+        <div className={styles.t962254}>
+          <h2 className={styles.te817d8}>Sản phẩm cần mua</h2>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className={styles.t1384f6}>
+          <table className={styles.t8af758}>
             <thead>
-              <tr className="text-left text-xs uppercase tracking-wide text-muted border-b border-border-muted bg-surface/50">
-                <th className="px-6 py-3 font-bold">Sản phẩm</th>
-                <th className="px-6 py-3 font-bold">Link</th>
-                <th className="px-6 py-3 font-bold">SL</th>
-                <th className="px-6 py-3 font-bold">Thuộc tính</th>
+              <tr className={styles.t25eccb}>
+                <th className={styles.t4bbc2d}>Sản phẩm</th>
+                <th className={styles.t4bbc2d}>Link</th>
+                <th className={styles.t4bbc2d}>SL</th>
+                <th className={styles.t4bbc2d}>Thuộc tính</th>
               </tr>
             </thead>
             <tbody>
               {detail.items.map((product) => (
                 <tr
                   key={product.id}
-                  className="border-b border-border-muted/60 last:border-0"
+                  className={styles.t85eb24}
                 >
-                  <td className="px-6 py-4 font-semibold text-ink">{product.productName}</td>
-                  <td className="px-6 py-4 max-w-xs">
+                  <td className={styles.t10617a}>{product.productName}</td>
+                  <td className={styles.t64604c}>
                     {product.productLink ? (
                       <a
                         href={product.productLink}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-primary hover:underline break-all text-xs"
+                        className={styles.t6b5bf7}
                       >
                         Link
                       </a>
@@ -287,8 +288,8 @@ export default function PurchaseOrderStatusPanel({
                       "—"
                     )}
                   </td>
-                  <td className="px-6 py-4">{product.quantity}</td>
-                  <td className="px-6 py-4 text-muted">{product.attributes || "—"}</td>
+                  <td className={styles.t9bba71}>{product.quantity}</td>
+                  <td className={styles.tb9c0d6}>{product.attributes || "—"}</td>
                 </tr>
               ))}
             </tbody>
@@ -296,18 +297,18 @@ export default function PurchaseOrderStatusPanel({
         </div>
       </section>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <section className="rounded-xl border border-border-muted bg-surface-elevated p-6 space-y-4">
-          <h2 className="text-lg font-bold text-ink">Trạng thái mua hàng</h2>
+      <form onSubmit={handleSubmit} className={styles.tb3542e}>
+        <section className={styles.tbe759f}>
+          <h2 className={styles.te817d8}>Trạng thái mua hàng</h2>
 
-          <div className="space-y-2">
-            <p className="text-sm text-muted">Trạng thái hiện tại</p>
+          <div className={styles.t6f7e01}>
+            <p className={styles.ta7b499}>Trạng thái hiện tại</p>
             <StatusBadge status={detail.status} />
           </div>
 
           {canUpdate ? (
-            <div className="space-y-2">
-              <label htmlFor="nextStatus" className="text-sm font-semibold text-ink">
+            <div className={styles.t6f7e01}>
+              <label htmlFor="nextStatus" className={styles.tae03fc}>
                 Chuyển sang trạng thái
               </label>
               <select
@@ -320,7 +321,7 @@ export default function PurchaseOrderStatusPanel({
                   setSubmitError("");
                   setSuccessMessage("");
                 }}
-                className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring disabled:opacity-60"
+                className={`${styles.t37b5e9} input-focus-ring`}
               >
                 {allowedStatuses.map((status) => (
                   <option key={status} value={status}>
@@ -330,15 +331,15 @@ export default function PurchaseOrderStatusPanel({
               </select>
             </div>
           ) : (
-            <p className="text-sm text-muted">
+            <p className={styles.ta7b499}>
               {detail.status === "CANCELLED"
                 ? "Đơn mua hàng đã bị hủy, không thể cập nhật thêm."
                 : "Đơn mua hàng đã hoàn tất bước mua với NCC."}
             </p>
           )}
 
-          <div className="space-y-2">
-            <label htmlFor="processingNote" className="text-sm font-semibold text-ink">
+          <div className={styles.t6f7e01}>
+            <label htmlFor="processingNote" className={styles.tae03fc}>
               Ghi chú xử lý
             </label>
             <textarea
@@ -352,29 +353,29 @@ export default function PurchaseOrderStatusPanel({
                 setSuccessMessage("");
               }}
               placeholder="Ghi chú tiến độ mua hàng với nhà cung cấp..."
-              className="w-full px-4 py-3 rounded-lg border border-border-muted text-sm resize-y input-focus-ring min-h-[88px] disabled:opacity-60"
+              className={`${styles.tbf51c0} input-focus-ring`}
             />
           </div>
         </section>
 
         {canUpdate ? (
-          <section className="rounded-xl border border-primary/30 bg-primary/5 p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <p className="text-sm text-muted">
+          <section className={styles.t2cf5f2}>
+            <p className={styles.ta7b499}>
               Chỉ chọn trạng thái tiếp theo hợp lệ theo quy trình mua hàng với NCC.
             </p>
             <button
               type="submit"
               disabled={isSubmitting || !nextStatus}
-              className="inline-flex items-center justify-center gap-2 h-11 px-6 rounded-lg bg-primary text-white text-sm font-bold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+              className={styles.t57dbb8}
             >
               {isSubmitting ? (
                 <>
-                  <Icon icon="lucide:loader-2" className="w-4 h-4 animate-spin" />
+                  <Icon icon="lucide:loader-2" className={styles.tc11061} />
                   Đang cập nhật...
                 </>
               ) : (
                 <>
-                  <Icon icon="lucide:refresh-cw" className="w-4 h-4" />
+                  <Icon icon="lucide:refresh-cw" className={styles.t0bfbea} />
                   Cập nhật trạng thái
                 </>
               )}

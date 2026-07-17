@@ -1,4 +1,5 @@
 "use client";
+import styles from "./OperationalDashboardPage.module.scss";
 
 import { useEffect, useState } from "react";
 // Fetch consignments directly from the API
@@ -129,56 +130,56 @@ export default function OperationalDashboardPage() {
 
   return (
     <OperationsShell activeNav="dashboard">
-      <div className="space-y-8">
+      <div className={styles.t793f9e}>
         <section>
-          <h1 className="text-3xl lg:text-4xl font-black tracking-tight">
-            Xin chào, <span className="text-secondary">{displayName}</span>
+          <h1 className={styles.td8c90b}>
+            Xin chào, <span className={styles.t5436d5}>{displayName}</span>
           </h1>
-          <p className="text-muted text-sm font-medium mt-2">
+          <p className={styles.t466889}>
             Dashboard vận hành — {dashboard?.activeShipments ?? 0} lô hàng đang vận chuyển.
           </p>
         </section>
 
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <section className={styles.taf6ac6}>
           {isLoading ? (
-            <p className="text-sm text-muted col-span-full">Đang tải dữ liệu...</p>
+            <p className={styles.tf3f97e}>Đang tải dữ liệu...</p>
           ) : (
             stats.map((stat) => (
               <div
                 key={stat.label}
-                className="bg-white p-6 rounded-xl border border-surface-muted shadow-sm flex justify-between items-start"
+                className={styles.t4513df}
               >
                 <div>
-                  <p className="text-xs font-medium text-muted uppercase tracking-wide">{stat.label}</p>
-                  <p className="text-3xl font-bold font-['Oswald'] mt-2">{stat.value}</p>
-                  <p className="text-xs text-muted mt-2">{stat.sub}</p>
+                  <p className={styles.t08d99f}>{stat.label}</p>
+                  <p className={styles.t05612a}>{stat.value}</p>
+                  <p className={styles.t9bdd28}>{stat.sub}</p>
                 </div>
                 {stat.icon ? (
-                  <img src={stat.icon} className="w-6 h-6" alt="" />
+                  <img src={stat.icon} className={styles.t75feb7} alt="" />
                 ) : null}
               </div>
             ))
           )}
         </section>
 
-        <section className="bg-white rounded-xl border border-surface-muted overflow-hidden">
-          <div className="px-6 py-4 border-b border-surface-muted flex items-center justify-between">
-            <h2 className="text-lg font-bold font-['Oswald']">Hoạt động gần đây</h2>
-            <div className="flex items-center space-x-3">
+        <section className={styles.t6fe022}>
+          <div className={styles.td44d55}>
+            <h2 className={styles.tb7327e}>Hoạt động gần đây</h2>
+            <div className={styles.tb9fc95}>
               <button
                 onClick={handleCreateConsolidation}
                 disabled={isLoading || isSubmitting || selectedIds.length === 0}
-                className="bg-primary text-white px-4 py-2 rounded-md text-sm disabled:opacity-50"
+                className={styles.tfc8f05}
               >
                 {isSubmitting ? "Đang tạo..." : "Tạo consolidation"}
               </button>
             </div>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left min-w-[640px]">
+          <div className={styles.t1384f6}>
+            <table className={styles.t072da3}>
               <thead>
-                <tr className="border-b border-gray-50 text-sm font-bold">
-                  <th className="px-6 py-3">
+                <tr className={styles.t7accfb}>
+                  <th className={styles.taa6b74}>
                     <input
                       type="checkbox"
                       onChange={toggleSelectAll}
@@ -186,52 +187,52 @@ export default function OperationalDashboardPage() {
                       aria-label="select all"
                     />
                   </th>
-                  <th className="px-6 py-3">Mã</th>
-                  <th className="px-6 py-3">Người gửi</th>
-                  <th className="px-6 py-3">Điểm đến</th>
-                  <th className="px-6 py-3">Trạng thái</th>
-                  <th className="px-6 py-3">Trọng lượng</th>
-                  <th className="px-6 py-3 text-right">Ngày</th>
-                  <th className="px-6 py-3">Hành động</th>
+                  <th className={styles.taa6b74}>Mã</th>
+                  <th className={styles.taa6b74}>Người gửi</th>
+                  <th className={styles.taa6b74}>Điểm đến</th>
+                  <th className={styles.taa6b74}>Trạng thái</th>
+                  <th className={styles.taa6b74}>Trọng lượng</th>
+                  <th className={styles.t8c8bec}>Ngày</th>
+                  <th className={styles.taa6b74}>Hành động</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50 text-sm">
+              <tbody className={styles.t6951c1}>
                 {isLoading ? (
                   <tr>
-                    <td colSpan={8} className="px-6 py-8 text-center text-muted">
+                    <td colSpan={8} className={styles.t1a3904}>
                       Đang tải...
                     </td>
                   </tr>
                 ) : recentActivity.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-6 py-8 text-center text-muted">
+                    <td colSpan={8} className={styles.t1a3904}>
                       Chưa có hoạt động.
                     </td>
                   </tr>
                 ) : (
                   recentActivity.map((row) => (
-                    <tr key={row.orderId || row.consignmentCode} className="hover:bg-gray-50">
-                      <td className="px-6 py-3">
+                    <tr key={row.orderId || row.consignmentCode} className={styles.t6c0fe2}>
+                      <td className={styles.taa6b74}>
                         <input
                           type="checkbox"
                           checked={selectedIds.includes(row.orderId)}
                           onChange={() => toggleSelectOne(row.orderId)}
                         />
                       </td>
-                      <td className="px-6 py-3 font-bold text-secondary">{row.consignmentCode}</td>
-                      <td className="px-6 py-3">{row.customerName}</td>
-                      <td className="px-6 py-3 text-muted">{row.route}</td>
-                      <td className="px-6 py-3">
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-bold`}>
+                      <td className={styles.tc86580}>{row.consignmentCode}</td>
+                      <td className={styles.taa6b74}>{row.customerName}</td>
+                      <td className={styles.te7ed48}>{row.route}</td>
+                      <td className={styles.taa6b74}>
+                        <span className={styles.td931c9}>
                           {row.status}
                         </span>
                       </td>
-                      <td className="px-6 py-3">{row.totalWeight ?? "-"} kg</td>
-                      <td className="px-6 py-3 text-right">{row.createdAt ? new Date(row.createdAt).toLocaleString() : "-"}</td>
-                      <td className="px-6 py-3">
+                      <td className={styles.taa6b74}>{row.totalWeight ?? "-"} kg</td>
+                      <td className={styles.t8c8bec}>{row.createdAt ? new Date(row.createdAt).toLocaleString() : "-"}</td>
+                      <td className={styles.taa6b74}>
                         <button
                           onClick={() => openDetail(row.orderId)}
-                          className="text-sm px-3 py-1 bg-surface-muted rounded-md"
+                          className={styles.tfa5e2f}
                         >
                           Chi tiết
                         </button>
@@ -244,70 +245,70 @@ export default function OperationalDashboardPage() {
           </div>
         </section>
         {modalOpen ? (
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg max-w-3xl w-full mx-4 overflow-auto max-h-[90vh]">
-              <div className="px-6 py-4 border-b flex items-center justify-between">
-                <h3 className="font-bold">Chi tiết yêu cầu ký gửi</h3>
-                <button onClick={closeModal} className="text-sm px-3 py-1">Đóng</button>
+          <div className={styles.ta8894f}>
+            <div className={styles.t85c26e}>
+              <div className={styles.t0eb8bf}>
+                <h3 className={styles.t69450e}>Chi tiết yêu cầu ký gửi</h3>
+                <button onClick={closeModal} className={styles.tb77982}>Đóng</button>
               </div>
-              <div className="p-6">
+              <div className={styles.t0478c8}>
                 {isDetailLoading ? (
                   <p>Đang tải...</p>
                 ) : detailData ? (
-                  <div className="space-y-4 text-sm">
-                    <div className="grid grid-cols-2 gap-4">
+                  <div className={styles.t3e9ee8}>
+                    <div className={styles.t11d413}>
                       <div>
-                        <p className="font-semibold">Mã</p>
+                        <p className={styles.te83a70}>Mã</p>
                         <p>{detailData.consignmentCode}</p>
                       </div>
                       <div>
-                        <p className="font-semibold">Loại</p>
+                        <p className={styles.te83a70}>Loại</p>
                         <p>{detailData.consignmentType}</p>
                       </div>
                       <div>
-                        <p className="font-semibold">Trạng thái</p>
+                        <p className={styles.te83a70}>Trạng thái</p>
                         <p>{detailData.status}</p>
                       </div>
                       <div>
-                        <p className="font-semibold">Tổng trọng lượng</p>
+                        <p className={styles.te83a70}>Tổng trọng lượng</p>
                         <p>{detailData.totalWeight ?? '-'} kg</p>
                       </div>
                       {detailData.packageCount != null ? (
                         <div>
-                          <p className="font-semibold">Số kiện</p>
+                          <p className={styles.te83a70}>Số kiện</p>
                           <p>{detailData.packageCount}</p>
                         </div>
                       ) : null}
                       <div>
-                        <p className="font-semibold">Tuyến</p>
+                        <p className={styles.te83a70}>Tuyến</p>
                         <p>{detailData.route}</p>
                       </div>
                       <div>
-                        <p className="font-semibold">Ngày tạo</p>
+                        <p className={styles.te83a70}>Ngày tạo</p>
                         <p>{detailData.createdAt ? new Date(detailData.createdAt).toLocaleString() : '-'}</p>
                       </div>
                     </div>
 
                     <div>
-                      <p className="font-semibold">Người nhận</p>
+                      <p className={styles.te83a70}>Người nhận</p>
                       <p>{detailData.receiverName || '-'} - {detailData.receiverPhone || '-'}</p>
-                      <p className="text-muted">{detailData.receiverAddress || '-'}</p>
+                      <p className={styles.t9a12f0}>{detailData.receiverAddress || '-'}</p>
                     </div>
 
                     <div>
-                      <p className="font-semibold">Khách hàng</p>
+                      <p className={styles.te83a70}>Khách hàng</p>
                       <p>{detailData.customer?.fullName || '-'}</p>
-                      <p className="text-muted">{detailData.customer?.phone || ''} {detailData.customer?.email ? ` - ${detailData.customer.email}` : ''}</p>
+                      <p className={styles.t9a12f0}>{detailData.customer?.phone || ''} {detailData.customer?.email ? ` - ${detailData.customer.email}` : ''}</p>
                     </div>
 
                     <div>
-                      <p className="font-semibold">Mặt hàng</p>
-                      <div className="mt-2 space-y-2">
+                      <p className={styles.te83a70}>Mặt hàng</p>
+                      <div className={styles.t813892}>
                         {Array.isArray(detailData.items) && detailData.items.length > 0 ? (
                           detailData.items.map((it) => (
-                            <div key={it.id} className="p-3 border rounded-md">
-                              <p className="font-medium">{it.productName}</p>
-                              <p className="text-muted">
+                            <div key={it.id} className={styles.ta056dc}>
+                              <p className={styles.t2689f3}>{it.productName}</p>
+                              <p className={styles.t9a12f0}>
                                 Loại: {formatProductTypeLabel(it.productType) || "—"}
                               </p>
                               <p>Số lượng: {it.quantity}</p>
@@ -323,7 +324,7 @@ export default function OperationalDashboardPage() {
 
                     {detailData.quotation ? (
                       <div>
-                        <p className="font-semibold">Báo giá</p>
+                        <p className={styles.te83a70}>Báo giá</p>
                         <p>ID: {detailData.quotation.quotationId}</p>
                         <p>Loại: {detailData.quotation.quoteType}</p>
                         <p>Phí vận chuyển ước tính: {detailData.quotation.estimatedFreightCharge?.toLocaleString() ?? '-'}</p>

@@ -31,17 +31,17 @@ export const PURCHASE_REQUEST_STATUS_LABELS = {
 };
 
 export const PURCHASE_REQUEST_STATUS_STYLES = {
-  PENDING: "bg-warning-bg text-warning-text",
-  IN_REVIEW: "bg-info-bg text-info-text",
-  NEED_MORE_INFO: "bg-accent/15 text-accent",
-  REJECTED: "bg-danger/10 text-danger",
-  QUOTATION: "bg-primary/15 text-primary",
-  QUOTED: "bg-secondary/15 text-secondary",
-  CONFIRMED: "bg-success-bg text-success-text",
-  PURCHASE_ORDER_CREATED: "bg-primary/15 text-primary",
-  APPROVED: "bg-success-bg text-success-text",
-  COMPLETED: "bg-surface text-muted",
-  CANCELLED: "bg-surface text-muted",
+  PENDING: "status-badge--warning",
+  IN_REVIEW: "status-badge--info",
+  NEED_MORE_INFO: "status-badge--accent",
+  REJECTED: "status-badge--danger",
+  QUOTATION: "status-badge--primary",
+  QUOTED: "status-badge--primary",
+  CONFIRMED: "status-badge--success",
+  PURCHASE_ORDER_CREATED: "status-badge--primary",
+  APPROVED: "status-badge--success",
+  COMPLETED: "status-badge--surface",
+  CANCELLED: "status-badge--surface",
 };
 
 /** Trạng thái đã sang bước báo giá — ẩn nút xử lý. */

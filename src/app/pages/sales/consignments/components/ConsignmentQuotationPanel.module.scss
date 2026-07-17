@@ -1,0 +1,592 @@
+@use "consignment-ui" as ui;
+@use "../../../../../styles/mixins" as *;
+
+:global(.quotation-locked-field) {
+  @include ui.locked-field;
+}
+
+.root {
+  @include ui.page-stack;
+  width: 100%;
+  margin-inline: auto;
+  max-width: 64rem;
+
+  &.readOnly {
+    max-width: 80rem;
+  }
+}
+
+.backLink {
+  @include ui.back-link;
+  margin-bottom: 1rem;
+}
+
+.eyebrow {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--theme-primary);
+  margin-bottom: 0.5rem;
+}
+
+.title {
+  @include ui.page-title;
+}
+
+.subtitle {
+  @include ui.page-subtitle;
+}
+
+.card {
+  @include ui.section-card;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.cardHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+
+  @include media-sm {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.eyebrowMuted {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--theme-subtle);
+}
+
+.code {
+  font-size: 1.25rem;
+  font-weight: 700;
+  font-family: ui-monospace, monospace;
+  color: var(--theme-ink-deep);
+  margin-top: 0.125rem;
+}
+
+.partyGrid {
+  display: grid;
+  gap: 0.5rem;
+
+  @include media-sm {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  &.withCode {
+    margin-top: 0.75rem;
+  }
+}
+
+.partyBox {
+  border-radius: 0.5rem;
+  border: 1px solid var(--theme-primary);
+  background-color: var(--theme-surface-elevated);
+  padding: 0.625rem 0.75rem;
+}
+
+.partyLabel {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--theme-secondary);
+}
+
+.partyName {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--theme-ink);
+  margin-top: 0.125rem;
+}
+
+.dateText {
+  font-size: 0.875rem;
+  color: var(--theme-subtle);
+  margin-top: 0.5rem;
+}
+
+.alertSuccess {
+  @include ui.alert-success;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.alertWarning {
+  @include ui.alert-warning;
+}
+
+.alertDanger {
+  @include ui.alert-danger;
+}
+
+.successBtn {
+  @include ui.primary-btn;
+  align-self: flex-start;
+  min-height: 2.5rem;
+}
+
+.form {
+  @include ui.page-stack;
+}
+
+.section {
+  @include ui.section-card;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.sectionHeaderRow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+
+  @include media-sm {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+}
+
+.sectionTitle {
+  @include ui.section-title;
+}
+
+.sectionHint {
+  font-size: 0.875rem;
+  color: var(--theme-muted);
+  margin-top: 0.25rem;
+}
+
+.grid {
+  @include ui.grid-2;
+}
+
+.fieldStack {
+  @include ui.field-stack;
+}
+
+.hintXs {
+  font-size: 0.75rem;
+  color: var(--theme-muted);
+}
+
+.serviceSummary {
+  border-radius: 0.5rem;
+  border: 1px solid color-mix(in srgb, var(--theme-primary) 20%, transparent);
+  background-color: color-mix(in srgb, var(--theme-primary) 5%, transparent);
+  padding: 1rem;
+  font-size: 0.875rem;
+  display: grid;
+  gap: 0.75rem;
+
+  @include media-sm {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.summaryLabel {
+  color: var(--theme-muted);
+}
+
+.summaryValue {
+  font-weight: 600;
+  color: var(--theme-ink);
+}
+
+.summaryPrimary {
+  color: var(--theme-primary);
+}
+
+.summaryMuted {
+  color: var(--theme-muted);
+  font-weight: 400;
+}
+
+.errorText {
+  font-size: 0.875rem;
+  color: var(--theme-danger);
+}
+
+.refSection {
+  @include ui.section-card;
+  padding: 0;
+  overflow: hidden;
+}
+
+.refHeader {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--theme-border-muted);
+}
+
+.refTableWrap {
+  overflow-x: auto;
+}
+
+.refTable {
+  width: 100%;
+  min-width: 520px;
+  font-size: 0.875rem;
+}
+
+.refHead {
+  @include ui.table-head-row;
+
+  th {
+    padding: 0.75rem 1.5rem;
+    font-weight: 700;
+  }
+}
+
+.refHeadRight {
+  text-align: right;
+}
+
+.refRow {
+  border-bottom: 1px solid color-mix(in srgb, var(--theme-border-muted) 60%, transparent);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.refRowHighlight {
+  background-color: color-mix(in srgb, var(--theme-primary) 5%, transparent);
+}
+
+.refCell {
+  padding: 0.75rem 1.5rem;
+}
+
+.refCellRight {
+  text-align: right;
+  font-weight: 600;
+}
+
+.refCellPrimary {
+  font-weight: 700;
+  color: var(--theme-primary);
+}
+
+.refFooter {
+  padding: 0.75rem 1.5rem;
+  border-top: 1px solid var(--theme-border-muted);
+  background-color: color-mix(in srgb, var(--theme-surface) 40%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  font-size: 0.875rem;
+
+  @include media-sm {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.reloadBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  height: 2.25rem;
+  padding-inline: 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--theme-border-muted);
+  background: none;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--theme-ink);
+  cursor: pointer;
+  flex-shrink: 0;
+
+  &:hover {
+    background-color: var(--theme-surface);
+  }
+}
+
+.input {
+  @include ui.text-input;
+}
+
+.inputCenter {
+  width: 5rem;
+  height: 2.5rem;
+  padding-inline: 0.5rem;
+  text-align: center;
+}
+
+.inputRight {
+  width: 7rem;
+  height: 2.5rem;
+  padding-inline: 0.75rem;
+  text-align: right;
+  margin-left: auto;
+}
+
+.inputFull {
+  width: 100%;
+  height: 2.5rem;
+  padding-inline: 0.75rem;
+}
+
+.textarea {
+  @include ui.textarea;
+}
+
+.feesTableWrap {
+  overflow-x: auto;
+  border-radius: 0.5rem;
+  border: 1px solid var(--theme-border-muted);
+}
+
+.feesTable {
+  width: 100%;
+  min-width: 720px;
+  font-size: 0.875rem;
+}
+
+.feesHead {
+  @include ui.table-head-row;
+
+  th {
+    padding: 0.75rem 1rem;
+    font-weight: 700;
+  }
+}
+
+.feesHeadCenter {
+  text-align: center;
+}
+
+.feesHeadRight {
+  text-align: right;
+}
+
+.feesHeadNarrow {
+  width: 2.5rem;
+}
+
+.feesRow {
+  border-bottom: 1px solid color-mix(in srgb, var(--theme-border-muted) 60%, transparent);
+  vertical-align: top;
+}
+
+.feesRowHighlight {
+  background-color: color-mix(in srgb, var(--theme-primary) 5%, transparent);
+}
+
+.feesCell {
+  padding: 0.75rem 1rem;
+}
+
+.feesCellRight {
+  text-align: right;
+  font-family: ui-monospace, monospace;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.feesCellCenter {
+  text-align: center;
+  font-size: 0.75rem;
+}
+
+.feeTitle {
+  font-weight: 700;
+  color: var(--theme-ink);
+}
+
+.feeBadge {
+  display: inline-block;
+  margin-top: 0.25rem;
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--theme-primary);
+}
+
+.feeDesc {
+  font-size: 0.75rem;
+  color: var(--theme-muted);
+  margin-top: 0.125rem;
+}
+
+.feeCustomBadge {
+  display: inline-block;
+  margin-top: 0.25rem;
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--theme-muted);
+}
+
+.feeActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.addFeeBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  height: 2.25rem;
+  padding-inline: 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid color-mix(in srgb, var(--theme-primary) 30%, transparent);
+  background-color: color-mix(in srgb, var(--theme-primary) 5%, transparent);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--theme-primary);
+  cursor: pointer;
+
+  &:hover {
+    background-color: color-mix(in srgb, var(--theme-primary) 10%, transparent);
+  }
+}
+
+.quickFeeBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  height: 2.25rem;
+  padding-inline: 0.75rem;
+  border-radius: 9999px;
+  border: 1px solid var(--theme-border-muted);
+  background: none;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--theme-ink);
+  cursor: pointer;
+
+  &:hover {
+    background-color: var(--theme-surface);
+  }
+}
+
+.quickLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--theme-muted);
+}
+
+.tfootRow {
+  border-top: 1px solid var(--theme-border-muted);
+  background-color: color-mix(in srgb, var(--theme-surface) 50%, transparent);
+}
+
+.tfootTotal {
+  background-color: color-mix(in srgb, var(--theme-primary) 5%, transparent);
+}
+
+.tfootLabel {
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--theme-muted);
+}
+
+.tfootTotalLabel {
+  padding: 1rem;
+  font-size: 1rem;
+  font-weight: 900;
+  font-family: "Oswald", ui-sans-serif, system-ui, sans-serif;
+  color: var(--theme-ink);
+}
+
+.tfootAmount {
+  padding: 0.75rem 1rem;
+  text-align: right;
+  font-weight: 700;
+  color: var(--theme-ink);
+}
+
+.tfootDiscount {
+  color: var(--theme-danger);
+}
+
+.tfootGrand {
+  padding: 1rem;
+  text-align: right;
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: var(--theme-primary);
+  font-family: "Oswald", ui-sans-serif, system-ui, sans-serif;
+}
+
+.submitBtn {
+  @include ui.primary-btn;
+}
+
+.backBtn {
+  @include ui.secondary-btn;
+}
+
+.loading {
+  @include ui.loading-center;
+}
+
+.loadingIcon {
+  @include ui.icon-lg;
+  @include ui.spin;
+}
+
+.loadingText {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.errorBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.iconSm {
+  width: 1rem;
+  height: 1rem;
+}
+
+.iconXs {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.orderNote {
+  font-size: 0.75rem;
+  color: var(--theme-muted);
+}
+
+.orderNoteValue {
+  color: var(--theme-ink);
+}
+
+.disabledField {
+  opacity: 0.9;
+  cursor: not-allowed;
+}
+
+.formSelectDisabled {
+  opacity: 0.9;
+  cursor: not-allowed;
+  background-color: var(--theme-surface);
+}
+
+.readOnlyField {
+  opacity: 0.9;
+  cursor: not-allowed;
+  background-color: var(--theme-surface);
+}

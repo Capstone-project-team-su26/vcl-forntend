@@ -1,0 +1,298 @@
+@use "consignment-ui" as ui;
+@use "../../../../../styles/mixins" as *;
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+
+  @include media-lg {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+}
+
+.headerText {
+  min-width: 0;
+}
+
+.title {
+  @include ui.page-title;
+  text-transform: uppercase;
+}
+
+.subtitle {
+  @include ui.page-subtitle;
+}
+
+.headerActions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.75rem;
+  flex-shrink: 0;
+
+  @include media-sm {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+.createBtn {
+  @include ui.primary-btn;
+}
+
+.countCard {
+  border-radius: 0.75rem;
+  border: 1px solid var(--theme-border-muted);
+  background-color: var(--theme-surface-elevated);
+  padding: 0.625rem 1rem;
+  text-align: center;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+}
+
+.countValue {
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: var(--theme-ink);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.countLabel {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--theme-muted);
+  margin-top: 0.25rem;
+}
+
+.alertDanger {
+  @include ui.alert-danger;
+}
+
+.alertWarning {
+  @include ui.alert-warning;
+}
+
+.warningTitle {
+  font-weight: 600;
+}
+
+.warningBody {
+  color: var(--theme-muted);
+  margin-top: 0.25rem;
+}
+
+.filters {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--theme-border-muted);
+  background-color: var(--theme-surface-elevated);
+  padding: 0.75rem;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+
+  @include media-lg {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.filterFields {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  @include media-sm {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+.searchWrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1rem;
+  height: 1rem;
+  color: var(--theme-muted);
+  pointer-events: none;
+}
+
+.searchInput {
+  width: 100%;
+  height: 2.5rem;
+  padding-left: 2.5rem;
+  padding-right: 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--theme-border-muted);
+  background-color: var(--theme-surface);
+  font-size: 0.875rem;
+  color: var(--theme-ink);
+}
+
+.statusSelect {
+  height: 2.5rem;
+  min-width: 11.25rem;
+  padding-inline: 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--theme-border-muted);
+  background-color: var(--theme-surface);
+  font-size: 0.875rem;
+  color: var(--theme-ink);
+}
+
+.dateRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dateInput {
+  height: 2.5rem;
+  padding-inline: 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--theme-border-muted);
+  background-color: var(--theme-surface);
+  font-size: 0.875rem;
+  color: var(--theme-ink);
+}
+
+.dateSep {
+  font-size: 0.75rem;
+  color: var(--theme-muted);
+}
+
+.filterActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.clearBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  height: 2.5rem;
+  padding-inline: 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--theme-border-muted);
+  background: none;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--theme-muted);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--theme-ink);
+    background-color: var(--theme-surface-muted);
+  }
+}
+
+.refreshBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 2.5rem;
+  padding-inline: 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--theme-border-muted);
+  background: none;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--theme-ink);
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background-color: var(--theme-surface-muted);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.loadingBox {
+  border-radius: 0.75rem;
+  border: 1px solid var(--theme-border-muted);
+  background-color: var(--theme-surface-elevated);
+  padding-block: 4rem;
+  text-align: center;
+}
+
+.loadingInner {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--theme-muted);
+}
+
+.emptyBox {
+  border-radius: 0.75rem;
+  border: 1px solid var(--theme-border-muted);
+  background-color: var(--theme-surface-elevated);
+  padding: 4rem 1.5rem;
+  text-align: center;
+}
+
+.emptyIcon {
+  width: 2.5rem;
+  height: 2.5rem;
+  color: var(--theme-muted);
+  margin-inline: auto;
+  margin-bottom: 0.75rem;
+}
+
+.emptyTitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--theme-ink);
+}
+
+.emptyBody {
+  font-size: 0.875rem;
+  color: var(--theme-muted);
+  margin-top: 0.25rem;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.iconSm {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.iconMd {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.spin {
+  @include ui.spin;
+}

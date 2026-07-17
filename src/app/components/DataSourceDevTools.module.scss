@@ -1,0 +1,51 @@
+.root {
+  position: fixed;
+  bottom: 1rem;
+  right: 1rem;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--theme-border-muted);
+  background-color: var(--theme-surface-elevated);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+}
+
+.label {
+  color: var(--theme-muted);
+}
+
+.toggleBtn {
+  border-radius: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.mock {
+  background-color: var(--theme-warning-bg);
+  color: var(--theme-warning-text);
+}
+
+.api {
+  background-color: var(--theme-success-bg);
+  color: var(--theme-success-text);
+}
+
+.resetBtn {
+  color: var(--theme-muted);
+  text-decoration: underline;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+
+  &:hover {
+    color: var(--theme-ink);
+  }
+}

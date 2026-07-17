@@ -3,7 +3,8 @@ import DataSourceDevTools from "@/app/components/DataSourceDevTools";
 import ClientRootExtras from "@/app/components/ClientRootExtras";
 import ThemeProvider from "@/app/components/ThemeProvider";
 import { SITE_DESCRIPTION, SITE_NAME } from "@/utils/site";
-import "./globals.css";
+import "@/styles/globals.scss";
+import styles from "./layout.module.scss";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,13 +37,13 @@ export default function RootLayout({ children }) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${styles.html}`}
       suppressHydrationWarning
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
-      <body className="min-h-full flex flex-col bg-background text-ink">
+      <body className={styles.body}>
         <ThemeProvider>
           <ClientRootExtras />
           {children}

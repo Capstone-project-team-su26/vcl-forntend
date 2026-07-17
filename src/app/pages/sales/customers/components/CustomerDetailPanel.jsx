@@ -1,4 +1,5 @@
 "use client";
+import styles from "./CustomerDetailPanel.module.scss";
 
 import { Icon } from "@iconify/react";
 import Link from "next/link";
@@ -16,9 +17,9 @@ const {
 
 function DetailRow({ label, value }) {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4 py-3 border-b border-border-muted/60 last:border-0">
-      <dt className="text-sm font-bold text-muted sm:w-40 shrink-0">{label}</dt>
-      <dd className="text-sm font-medium text-ink">{value}</dd>
+    <div className={styles.tf32257}>
+      <dt className={styles.t3898ba}>{label}</dt>
+      <dd className={styles.t1ad995}>{value}</dd>
     </div>
   );
 }
@@ -64,24 +65,24 @@ export default function CustomerDetailPanel({ id, backHref = ROUTES.sales.custom
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 gap-3 text-muted">
-        <Icon icon="lucide:loader-2" className="w-8 h-8 animate-spin" />
-        <p className="text-sm font-medium">Đang tải hồ sơ khách hàng...</p>
+      <div className={styles.t9ad5d8}>
+        <Icon icon="lucide:loader-2" className={styles.t27b8b3} />
+        <p className={styles.taaa307}>Đang tải hồ sơ khách hàng...</p>
       </div>
     );
   }
 
   if (error && !customer) {
     return (
-      <div className="space-y-4">
+      <div className={styles.t3e7ce5}>
         <Link
           href={backHref}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-muted hover:text-ink"
+          className={styles.t025913}
         >
-          <Icon icon="lucide:arrow-left" className="w-4 h-4" />
+          <Icon icon="lucide:arrow-left" className={styles.t0bfbea} />
           Quay lại danh sách
         </Link>
-        <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
+        <div className={styles.te12bff}>
           {error}
         </div>
       </div>
@@ -91,54 +92,54 @@ export default function CustomerDetailPanel({ id, backHref = ROUTES.sales.custom
   if (!customer) return null;
 
   return (
-    <div className="space-y-8 max-w-3xl">
+    <div className={styles.tdb1f81}>
       <div>
         <Link
           href={backHref}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-muted hover:text-ink mb-4"
+          className={styles.t197bd0}
         >
-          <Icon icon="lucide:arrow-left" className="w-4 h-4" />
+          <Icon icon="lucide:arrow-left" className={styles.t0bfbea} />
           Quay lại danh sách
         </Link>
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div className={styles.tbccecd}>
           <div>
-            <h1 className="text-3xl lg:text-4xl font-black tracking-tight font-['Oswald'] text-ink">
+            <h1 className={styles.t4d16e2}>
               {customer.fullName}
             </h1>
-            <p className="text-muted text-sm font-medium mt-2">
+            <p className={styles.t466889}>
               Mã khách hàng:{" "}
-              <span className="font-mono text-ink">{customer.customerCode}</span>
+              <span className={styles.t971bb3}>{customer.customerCode}</span>
             </p>
           </div>
           <button
             type="button"
             onClick={() => setIsEditOpen(true)}
-            className="inline-flex items-center gap-2 h-10 px-4 rounded-lg border border-border-muted text-sm font-semibold text-ink hover:bg-surface shrink-0"
+            className={styles.t987d56}
           >
-            <Icon icon="lucide:pencil" className="w-4 h-4" />
+            <Icon icon="lucide:pencil" className={styles.t0bfbea} />
             Chỉnh sửa
           </button>
         </div>
       </div>
 
       {error ? (
-        <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
+        <div className={styles.te12bff}>
           {error}
         </div>
       ) : null}
 
       {successMessage ? (
-        <div className="rounded-lg border border-success/30 bg-success-bg px-4 py-3 text-sm text-success-text">
+        <div className={styles.te918f5}>
           {successMessage}
         </div>
       ) : null}
 
-      <section className="rounded-xl border border-border-muted bg-surface-elevated p-6">
-        <div className="flex items-center justify-between gap-3 mb-4">
-          <h2 className="text-lg font-bold text-ink">Thông tin hồ sơ</h2>
+      <section className={styles.td78253}>
+        <div className={styles.tb0e3e3}>
+          <h2 className={styles.te817d8}>Thông tin hồ sơ</h2>
           <span
-            className={`inline-block px-3 py-1 rounded-full text-[11px] font-bold ${
-              CUSTOMER_STATUS_STYLES[customer.status] || "bg-surface text-muted"
+            className={`${styles.t5f03d3}  ${
+              CUSTOMER_STATUS_STYLES[customer.status] || "status-badge--surface"
             }`}
           >
             {formatCustomerStatus(customer.status)}
@@ -155,24 +156,24 @@ export default function CustomerDetailPanel({ id, backHref = ROUTES.sales.custom
         </dl>
       </section>
 
-      <section className="rounded-xl border border-border-muted bg-surface-elevated p-6 space-y-4">
-        <h2 className="text-lg font-bold text-ink">Tạo đơn thay khách</h2>
-        <p className="text-sm text-muted">
+      <section className={styles.tbe759f}>
+        <h2 className={styles.te817d8}>Tạo đơn thay khách</h2>
+        <p className={styles.ta7b499}>
           Chọn loại yêu cầu để tiếp tục với khách hàng đã chọn.
         </p>
-        <div className="flex flex-col sm:flex-row gap-3">
+        <div className={styles.te6fe74}>
           <Link
             href={buildCreateConsignmentUrl(customer.id)}
-            className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-lg bg-primary text-white text-sm font-bold hover:bg-primary/90"
+            className={styles.t7e47b0}
           >
-            <Icon icon="lucide:package-plus" className="w-4 h-4" />
+            <Icon icon="lucide:package-plus" className={styles.t0bfbea} />
             Tạo ký gửi thay khách
           </Link>
           <Link
             href={buildCreateConsignmentUrl(customer.id, "PURCHASE_ORDER")}
-            className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-lg border border-border-muted text-sm font-semibold text-ink hover:bg-surface"
+            className={styles.t206827}
           >
-            <Icon icon="lucide:shopping-cart" className="w-4 h-4" />
+            <Icon icon="lucide:shopping-cart" className={styles.t0bfbea} />
             Mua hộ thay khách
           </Link>
         </div>

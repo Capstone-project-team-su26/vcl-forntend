@@ -1,4 +1,5 @@
 "use client";
+import styles from "./WarehousesPage.module.scss";
 
 import { Icon } from "@iconify/react";
 import { useEffect, useState } from "react";
@@ -18,29 +19,21 @@ const STATUS_FILTER_OPTIONS = [
 
 function ActiveBadge({ isActive }) {
   return (
-    <span
-      className={`inline-block px-3 py-1 rounded-full text-[11px] font-bold ${
-        isActive ? "bg-success-bg text-success-text" : "bg-surface text-muted"
-      }`}
-    >
+    <span className={isActive ? styles.badgeActive : styles.badgeInactive}>
       {isActive ? "Hoạt động" : "Vô hiệu"}
     </span>
   );
 }
 
 function LocationTypeBadge({ type }) {
-  const styles = {
-    ZONE: "bg-primary/15 text-primary",
-    SHELF: "bg-secondary/15 text-secondary",
-    BIN: "bg-accent/15 text-accent",
+  const statusTone = {
+    ZONE: styles.badgeZone,
+    SHELF: styles.badgeShelf,
+    BIN: styles.badgeBin,
   };
 
   return (
-    <span
-      className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
-        styles[type] || "bg-surface text-muted"
-      }`}
-    >
+    <span className={`${styles.badgePillSm} ${statusTone[type] || styles.badgeDefault}`}>
       {formatLocationType(type)}
     </span>
   );
@@ -267,44 +260,44 @@ export default function WarehousesPage() {
 
   return (
     <AdminLayout activeNav="warehouses">
-      <div className="space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+      <div className={styles.tb43b4c}>
+        <div className={styles.tbccecd}>
           <div>
-            <h1 className="text-xl lg:text-2xl font-bold text-ink tracking-tight">
+            <h1 className={styles.teed4df}>
               Quản lý kho
             </h1>
-            <p className="text-sm text-muted mt-1 leading-relaxed">
+            <p className={styles.ta0ff26}>
               Cấu hình kho và vị trí Zone/Shelf/Bin cho nhập xuất và vận chuyển quốc tế.
             </p>
           </div>
           <button
             type="button"
             onClick={openCreateWarehouse}
-            className="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-lg bg-insight hover:bg-secondary text-white text-sm font-bold shrink-0"
+            className={styles.t7fa39f}
           >
-            <Icon icon="lucide:plus" className="w-4 h-4" />
+            <Icon icon="lucide:plus" className={styles.t0bfbea} />
             Thêm kho
           </button>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-3">
-          <div className="relative flex-1">
+        <div className={styles.t0afe45}>
+          <div className={styles.t71d3c8}>
             <Icon
               icon="lucide:search"
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted"
+              className={styles.t338195}
             />
             <input
               type="search"
               value={searchInput}
               onChange={(event) => setSearchInput(event.target.value)}
               placeholder="Tìm theo tên kho hoặc mã kho..."
-              className="w-full h-11 pl-10 pr-4 rounded-lg border border-border-muted bg-surface-elevated text-sm text-ink input-focus-ring"
+              className={`${styles.t58c71d} input-focus-ring`}
             />
           </div>
           <select
             value={statusFilter}
             onChange={(event) => setStatusFilter(event.target.value)}
-            className="h-11 px-4 rounded-lg border border-border-muted bg-surface-elevated text-sm font-medium text-ink input-focus-ring lg:min-w-[200px]"
+            className={`${styles.t7cd1e9} input-focus-ring`}
           >
             {STATUS_FILTER_OPTIONS.map((option) => (
               <option key={option.value || "all"} value={option.value}>
@@ -315,33 +308,33 @@ export default function WarehousesPage() {
         </div>
 
         {actionError ? (
-          <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
+          <div className={styles.te12bff}>
             {actionError}
           </div>
         ) : null}
 
         {actionMessage ? (
-          <div className="rounded-lg border border-success/30 bg-success-bg px-4 py-3 text-sm text-success-text">
+          <div className={styles.te918f5}>
             {actionMessage}
           </div>
         ) : null}
 
-        <div className="bg-surface-elevated rounded-xl shadow-sm overflow-hidden border border-border-muted">
-          <div className="px-6 py-4 border-b border-border-muted">
-            <h3 className="text-base font-bold text-ink">Danh sách kho</h3>
+        <div className={styles.tbf44fc}>
+          <div className={styles.t962254}>
+            <h3 className={styles.t3c6280}>Danh sách kho</h3>
           </div>
 
           {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-16 gap-3 text-muted">
-              <Icon icon="lucide:loader-2" className="w-8 h-8 animate-spin" />
-              <p className="text-sm font-medium">Đang tải danh sách kho...</p>
+            <div className={styles.t8eade0}>
+              <Icon icon="lucide:loader-2" className={styles.t27b8b3} />
+              <p className={styles.taaa307}>Đang tải danh sách kho...</p>
             </div>
           ) : warehouses.length === 0 ? (
-            <div className="px-6 py-16 text-center text-sm text-muted">
+            <div className={styles.t9ff2c9}>
               Không có kho phù hợp với bộ lọc hiện tại.
             </div>
           ) : (
-            <div className="divide-y divide-border-muted">
+            <div className={styles.divideY}>
               {warehouses.map((warehouse) => {
                 const isExpanded = expandedId === warehouse.id;
                 const locations = locationsByWarehouse[warehouse.id] ?? [];
@@ -349,133 +342,133 @@ export default function WarehousesPage() {
 
                 return (
                   <div key={warehouse.id}>
-                    <div className="px-4 sm:px-6 py-4 flex flex-col lg:flex-row lg:items-center gap-4">
+                    <div className={styles.t740d9d}>
                       <button
                         type="button"
                         onClick={() => handleToggleExpand(warehouse.id)}
-                        className="flex items-center gap-3 text-left min-w-0 flex-1"
+                        className={styles.tc48d8c}
                       >
                         <Icon
                           icon={isExpanded ? "lucide:chevron-down" : "lucide:chevron-right"}
-                          className="w-5 h-5 text-muted shrink-0"
+                          className={styles.t4cf3c6}
                         />
-                        <div className="min-w-0">
-                          <p className="text-sm font-bold text-ink truncate">{warehouse.name}</p>
-                          <p className="text-xs text-muted mt-0.5">
+                        <div className={styles.t7e0b7c}>
+                          <p className={styles.te3f1fd}>{warehouse.name}</p>
+                          <p className={styles.t5e4cbe}>
                             {warehouse.code}
                             {warehouse.address ? ` · ${warehouse.address}` : ""}
                           </p>
                         </div>
                       </button>
 
-                      <div className="flex flex-wrap items-center gap-3 lg:justify-end">
-                        <span className="text-xs font-semibold text-muted">
+                      <div className={styles.tf2e8e8}>
+                        <span className={styles.t74e489}>
                           {formatWarehouseType(warehouse.warehouseType)}
                         </span>
                         <ActiveBadge isActive={warehouse.isActive} />
-                        <div className="flex items-center gap-1">
+                        <div className={styles.t416811}>
                           <button
                             type="button"
                             onClick={() => openEditWarehouse(warehouse)}
-                            className="p-2 text-muted hover:text-ink rounded-lg hover:bg-surface"
+                            className={styles.tcddb14}
                             title="Sửa"
                           >
-                            <Icon icon="lucide:pencil" className="w-4 h-4" />
+                            <Icon icon="lucide:pencil" className={styles.t0bfbea} />
                           </button>
                           <button
                             type="button"
                             disabled={isPending}
                             onClick={() => handleToggleWarehouseActive(warehouse)}
-                            className="p-2 text-muted hover:text-ink rounded-lg hover:bg-surface disabled:opacity-50"
+                            className={styles.t182631}
                             title={warehouse.isActive ? "Vô hiệu hóa" : "Kích hoạt"}
                           >
                             <Icon
                               icon={warehouse.isActive ? "lucide:ban" : "lucide:check-circle"}
-                              className="w-4 h-4"
+                              className={styles.t0bfbea}
                             />
                           </button>
                           <button
                             type="button"
                             disabled={isPending}
                             onClick={() => handleDeleteWarehouse(warehouse)}
-                            className="btn-delete-icon disabled:opacity-50"
+                            className={`${styles.t52c30e} btn-delete-icon`}
                             title="Xóa"
                           >
-                            <Icon icon="lucide:trash-2" className="w-4 h-4" />
+                            <Icon icon="lucide:trash-2" className={styles.t0bfbea} />
                           </button>
                         </div>
                       </div>
                     </div>
 
                     {isExpanded ? (
-                      <div className="px-4 sm:px-6 pb-5 bg-surface/50">
-                        <div className="rounded-lg border border-border-muted bg-surface-elevated overflow-hidden">
-                          <div className="flex items-center justify-between px-4 py-3 border-b border-border-muted">
-                            <h4 className="text-sm font-bold text-ink">
+                      <div className={styles.t47a764}>
+                        <div className={styles.t0007de}>
+                          <div className={styles.tc27428}>
+                            <h4 className={styles.t7a4a1b}>
                               Zone / Shelf / Bin
                             </h4>
                             <button
                               type="button"
                               onClick={() => openCreateLocation(warehouse.id)}
-                              className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline"
+                              className={styles.t7519ef}
                             >
-                              <Icon icon="lucide:plus" className="w-3.5 h-3.5" />
+                              <Icon icon="lucide:plus" className={styles.tb41c1b} />
                               Thêm vị trí
                             </button>
                           </div>
 
                           {loadingLocationsId === warehouse.id ? (
-                            <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted">
-                              <Icon icon="lucide:loader-2" className="w-4 h-4 animate-spin" />
+                            <div className={styles.t8e5093}>
+                              <Icon icon="lucide:loader-2" className={styles.tc11061} />
                               Đang tải vị trí...
                             </div>
                           ) : locations.length === 0 ? (
-                            <p className="px-4 py-8 text-sm text-muted text-center">
+                            <p className={styles.t992512}>
                               Chưa có vị trí lưu trữ trong kho này.
                             </p>
                           ) : (
-                            <div className="overflow-x-auto">
-                              <table className="w-full text-sm">
+                            <div className={styles.t1384f6}>
+                              <table className={styles.t8af758}>
                                 <thead>
-                                  <tr className="text-left text-xs uppercase tracking-wide text-muted border-b border-border-muted">
-                                    <th className="px-4 py-3 font-bold">Loại</th>
-                                    <th className="px-4 py-3 font-bold">Mã</th>
-                                    <th className="px-4 py-3 font-bold">Tên</th>
-                                    <th className="px-4 py-3 font-bold">Vị trí cha</th>
-                                    <th className="px-4 py-3 font-bold">Sức chứa</th>
-                                    <th className="px-4 py-3 font-bold">Trạng thái</th>
-                                    <th className="px-4 py-3 font-bold text-right">Thao tác</th>
+                                  <tr className={styles.t78e7c2}>
+                                    <th className={styles.ta0086c}>Loại</th>
+                                    <th className={styles.ta0086c}>Mã</th>
+                                    <th className={styles.ta0086c}>Tên</th>
+                                    <th className={styles.ta0086c}>Vị trí cha</th>
+                                    <th className={styles.ta0086c}>Sức chứa</th>
+                                    <th className={styles.ta0086c}>Trạng thái</th>
+                                    <th className={styles.t76501a}>Thao tác</th>
                                   </tr>
                                 </thead>
                                 <tbody>
                                   {locations.map((location) => (
                                     <tr
                                       key={location.id}
-                                      className="border-b border-border-muted/60 last:border-0"
+                                      className={styles.t85eb24}
                                     >
-                                      <td className="px-4 py-3">
+                                      <td className={styles.t0e9cd2}>
                                         <LocationTypeBadge type={location.locationType} />
                                       </td>
-                                      <td className="px-4 py-3 font-mono text-xs">{location.code}</td>
-                                      <td className="px-4 py-3 font-medium">{location.name}</td>
-                                      <td className="px-4 py-3 text-muted text-xs">
+                                      <td className={styles.t3feb8c}>{location.code}</td>
+                                      <td className={styles.t584f53}>{location.name}</td>
+                                      <td className={styles.te6a652}>
                                         {getParentLocationLabel(locations, location.parentId)}
                                       </td>
-                                      <td className="px-4 py-3">
+                                      <td className={styles.t0e9cd2}>
                                         {location.capacity != null ? location.capacity : "—"}
                                       </td>
-                                      <td className="px-4 py-3">
+                                      <td className={styles.t0e9cd2}>
                                         <ActiveBadge isActive={location.isActive} />
                                       </td>
-                                      <td className="px-4 py-3">
-                                        <div className="flex items-center justify-end gap-1">
+                                      <td className={styles.t0e9cd2}>
+                                        <div className={styles.t0bd0c1}>
                                           <button
                                             type="button"
                                             onClick={() => openEditLocation(warehouse.id, location)}
-                                            className="p-2 text-muted hover:text-ink rounded-lg hover:bg-surface"
+                                            className={styles.tcddb14}
                                             title="Sửa"
                                           >
-                                            <Icon icon="lucide:pencil" className="w-4 h-4" />
+                                            <Icon icon="lucide:pencil" className={styles.t0bfbea} />
                                           </button>
                                           <button
                                             type="button"
@@ -483,7 +476,7 @@ export default function WarehousesPage() {
                                             onClick={() =>
                                               handleToggleLocationActive(warehouse.id, location)
                                             }
-                                            className="p-2 text-muted hover:text-ink rounded-lg hover:bg-surface disabled:opacity-50"
+                                            className={styles.t182631}
                                             title={location.isActive ? "Vô hiệu hóa" : "Kích hoạt"}
                                           >
                                             <Icon
@@ -492,7 +485,7 @@ export default function WarehousesPage() {
                                                   ? "lucide:ban"
                                                   : "lucide:check-circle"
                                               }
-                                              className="w-4 h-4"
+                                              className={styles.t0bfbea}
                                             />
                                           </button>
                                           <button
@@ -501,10 +494,10 @@ export default function WarehousesPage() {
                                             onClick={() =>
                                               handleDeleteLocation(warehouse.id, location)
                                             }
-                                            className="btn-delete-icon disabled:opacity-50"
+                                            className={`${styles.t52c30e} btn-delete-icon`}
                                             title="Xóa"
                                           >
-                                            <Icon icon="lucide:trash-2" className="w-4 h-4" />
+                                            <Icon icon="lucide:trash-2" className={styles.t0bfbea} />
                                           </button>
                                         </div>
                                       </td>

@@ -1,6 +1,7 @@
 "use client";
 
 import { formatMoneyInput, parseMoneyInput } from "@/utils/moneyInput";
+import styles from "./VndMoneyInput.module.scss";
 
 export default function VndMoneyInput({
   id,
@@ -9,7 +10,7 @@ export default function VndMoneyInput({
   onChange,
   required,
   disabled,
-  className = "w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring",
+  className = `${styles.input} input-focus-ring`,
   placeholder = "VD: 1.500.000",
   ...rest
 }) {

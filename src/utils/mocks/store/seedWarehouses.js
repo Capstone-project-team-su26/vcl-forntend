@@ -1,0 +1,135 @@
+export const warehouses = [
+  {
+    id: "wh-hcm",
+    name: "Kho HCM Hub",
+    code: "VN-HCM",
+    address: "123 Nguyễn Văn Cừ, Quận 5, TP. Hồ Chí Minh",
+    warehouseType: "Destination",
+    isActive: true,
+  },
+  {
+    id: "wh-hn",
+    name: "Kho Hà Nội",
+    code: "VN-HN",
+    address: "45 Phạm Hùng, Nam Từ Liêm, Hà Nội",
+    warehouseType: "Destination",
+    isActive: true,
+  },
+  {
+    id: "wh-dn",
+    name: "Kho Đà Nẵng",
+    code: "VN-DN",
+    address: "12 Nguyễn Tất Thành, Hải Châu, Đà Nẵng",
+    warehouseType: "Destination",
+    isActive: true,
+  },
+  {
+    id: "wh-bkk",
+    name: "Kho Bangkok Gateway",
+    code: "TH-BKK",
+    address: "88 Sukhumvit Rd, Bangkok, Thailand",
+    warehouseType: "Origin",
+    isActive: false,
+  },
+];
+
+export const internationalWarehouses = [
+  {
+    id: "wh-us",
+    name: "Kho Mỹ",
+    flag: "🇺🇸",
+    code: "US",
+    country: "US",
+  },
+  {
+    id: "wh-cn",
+    name: "Kho Trung Quốc",
+    flag: "🇨🇳",
+    code: "CN",
+    country: "CN",
+  },
+  {
+    id: "wh-jp",
+    name: "Kho Nhật Bản",
+    flag: "🇯🇵",
+    code: "JP",
+    country: "JP",
+  },
+];
+
+export const warehouseLocations = [
+  {
+    id: "loc-hcm-z1",
+    warehouseId: "wh-hcm",
+    locationType: "ZONE",
+    code: "Z-A",
+    name: "Zone A — Hàng thường",
+    parentId: null,
+    capacity: 500,
+    isActive: true,
+  },
+  {
+    id: "loc-hcm-s1",
+    warehouseId: "wh-hcm",
+    locationType: "SHELF",
+    code: "S-A1",
+    name: "Shelf A1",
+    parentId: "loc-hcm-z1",
+    capacity: 80,
+    isActive: true,
+  },
+  {
+    id: "loc-hcm-b1",
+    warehouseId: "wh-hcm",
+    locationType: "BIN",
+    code: "B-A1-01",
+    name: "Bin 01",
+    parentId: "loc-hcm-s1",
+    capacity: 20,
+    isActive: true,
+  },
+  {
+    id: "loc-hcm-z2",
+    warehouseId: "wh-hcm",
+    locationType: "ZONE",
+    code: "Z-B",
+    name: "Zone B — Hàng dễ vỡ",
+    parentId: null,
+    capacity: 200,
+    isActive: true,
+  },
+  {
+    id: "loc-hn-z1",
+    warehouseId: "wh-hn",
+    locationType: "ZONE",
+    code: "Z-01",
+    name: "Zone 01",
+    parentId: null,
+    capacity: 300,
+    isActive: true,
+  },
+  {
+    id: "loc-hn-b1",
+    warehouseId: "wh-hn",
+    locationType: "BIN",
+    code: "B-01-01",
+    name: "Bin 01",
+    parentId: "loc-hn-z1",
+    capacity: 30,
+    isActive: true,
+  },
+];
+
+export const warehouseReceivingNotes = [
+  {
+    id: "WRN-MOCK-001",
+    receivingNoteCode: "WRN-20241026-001",
+    consignmentOrderId: "CG-2024-004",
+    warehouseId: "wh-hcm",
+    warehouseName: "Kho HCM Hub",
+    warehouseNote: "Hàng dễ vỡ — cần kiểm tra kỹ",
+    status: "ACTIVE",
+    createdAt: "2024-10-27T08:00:00Z",
+  },
+];
+

@@ -7,6 +7,7 @@ import RestrictedItemFormModal from "./RestrictedItemFormModal";
 import DataTable from "@/app/components/DataTable";
 import * as restrictedItemService from "@/utils/restrictedItemService";
 import { getErrorMessage } from "@/utils/apiError";
+import styles from "./RestrictedItemsPage.module.scss";
 
 const { RESTRICTION_TYPE_LABELS, formatRestrictedCountry } = restrictedItemService;
 
@@ -20,16 +21,15 @@ const STATUS_FILTER_OPTIONS = [
   { value: "false", label: "Vô hiệu" },
 ];
 
+const BADGE_CLASS = {
+  PROHIBITED: styles.badgeProhibited,
+  RESTRICTED: styles.badgeRestricted,
+  CONDITIONAL: styles.badgeConditional,
+};
+
 function RestrictionTypeBadge({ type }) {
-  const styles = {
-    PROHIBITED: "bg-danger/10 text-danger",
-    RESTRICTED: "bg-warning-bg text-warning-text",
-    CONDITIONAL: "bg-info-bg text-info-text",
-  };
   return (
-    <span
-      className={`inline-block px-3 py-1 rounded-full text-[11px] font-bold ${styles[type] || "bg-surface text-muted"}`}
-    >
+    <span className={BADGE_CLASS[type] || styles.badgeDefault}>
       {RESTRICTION_TYPE_LABELS[type] || type}
     </span>
   );
@@ -37,9 +37,7 @@ function RestrictionTypeBadge({ type }) {
 
 function ActiveBadge({ isActive }) {
   return (
-    <span
-      className={`inline-block px-3 py-1 rounded-full text-[11px] font-bold ${isActive ? "bg-success-bg text-success-text" : "bg-surface text-muted"}`}
-    >
+    <span className={isActive ? styles.badgeActive : styles.badgeInactive}>
       {isActive ? "Hoạt động" : "Vô hiệu"}
     </span>
   );
@@ -156,8 +154,8 @@ export default function RestrictedItemsPage() {
         searchAccessor: (item) => `${item.name || ""} ${item.id || ""}`,
         render: (item) => (
           <div>
-            <p className="text-sm font-bold text-ink">{item.name}</p>
-            <p className="text-[10px] text-faint mt-0.5">{item.id}</p>
+            <p className={styles.cellName}>{item.name}</p>
+            <p className={styles.cellId}>{item.id}</p>
           </div>
         ),
       },
@@ -168,7 +166,7 @@ export default function RestrictedItemsPage() {
         searchable: true,
         searchAccessor: (item) => formatRestrictedCountry(item.country),
         sortAccessor: (item) => formatRestrictedCountry(item.country),
-        className: "text-muted",
+        className: styles.t9a12f0,
         render: (item) => formatRestrictedCountry(item.country),
       },
       {
@@ -181,7 +179,7 @@ export default function RestrictedItemsPage() {
         key: "notes",
         title: "Ghi chú",
         searchable: true,
-        className: "text-muted max-w-xs truncate",
+        className: styles.t813519,
         render: (item) => (
           <span title={item.notes}>{item.notes || "—"}</span>
         ),
@@ -200,36 +198,36 @@ export default function RestrictedItemsPage() {
         title: "Hành động",
         align: "right",
         render: (item) => (
-          <div className="flex items-center justify-end gap-1">
+          <div className={styles.actions}>
             <button
               type="button"
               onClick={() => openEdit(item)}
               disabled={pendingId === item.id}
-              className="p-2 text-muted hover:text-insight hover:bg-surface rounded-lg disabled:opacity-50"
+              className={styles.editBtn}
               title="Sửa"
             >
-              <Icon icon="lucide:pencil" className="w-4 h-4" />
+              <Icon icon="lucide:pencil" className={styles.actionIcon} />
             </button>
             <button
               type="button"
               onClick={() => handleToggleActive(item)}
               disabled={pendingId === item.id}
-              className="p-2 text-muted hover:text-warning-text hover:bg-surface rounded-lg disabled:opacity-50"
+              className={styles.toggleBtn}
               title={item.isActive ? "Vô hiệu hóa" : "Kích hoạt"}
             >
               <Icon
                 icon={item.isActive ? "lucide:ban" : "lucide:circle-check"}
-                className="w-4 h-4"
+                className={styles.actionIcon}
               />
             </button>
             <button
               type="button"
               onClick={() => handleDelete(item)}
               disabled={pendingId === item.id}
-              className="btn-delete-icon disabled:opacity-50"
+              className={`${styles.t52c30e} btn-delete-icon`}
               title="Xóa"
             >
-              <Icon icon="lucide:trash-2" className="w-4 h-4" />
+              <Icon icon="lucide:trash-2" className={styles.actionIcon} />
             </button>
           </div>
         ),
@@ -240,33 +238,33 @@ export default function RestrictedItemsPage() {
 
   return (
     <AdminLayout activeNav="restricted-items">
-      <div className="space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+      <div className={styles.page}>
+        <div className={styles.headerRow}>
           <div>
-            <h1 className="text-xl lg:text-2xl font-bold text-ink tracking-tight">
+            <h1 className={styles.title}>
               Hàng cấm / hạn chế
             </h1>
-            <p className="text-sm text-muted mt-1 leading-relaxed">
+            <p className={styles.subtitle}>
               Quản lý danh mục kiểm tra hàng hóa khi khách tạo yêu cầu ký gửi.
             </p>
           </div>
           <button
             type="button"
             onClick={openCreate}
-            className="inline-flex items-center justify-center gap-2 h-10 px-4 bg-insight hover:bg-secondary text-white text-sm font-bold rounded-lg transition-colors shrink-0"
+            className={styles.addBtn}
           >
-            <Icon icon="lucide:plus" className="w-4 h-4" />
+            <Icon icon="lucide:plus" className={styles.addBtnIcon} />
             Thêm mặt hàng
           </button>
         </div>
 
         {actionError ? (
-          <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
+          <div className={styles.alertError}>
             {actionError}
           </div>
         ) : null}
         {actionMessage ? (
-          <div className="rounded-lg border border-success/30 bg-success-bg px-4 py-3 text-sm text-success-text">
+          <div className={styles.alertSuccess}>
             {actionMessage}
           </div>
         ) : null}

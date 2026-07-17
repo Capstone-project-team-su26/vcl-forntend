@@ -7,6 +7,7 @@ import AppLogo from "@/app/components/AppLogo";
 import ThemeToggle from "@/app/components/ThemeToggle";
 import UserNavMenu from "@/app/components/UserNavMenu";
 import { ROUTES } from "@/utils/appRoutes";
+import styles from "./AdminLayout.module.scss";
 
 const navItems = [
   { id: "dashboard", label: "Tổng quan", icon: "lucide:layout-dashboard" },
@@ -61,38 +62,32 @@ export default function AdminLayout({ activeNav, children }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen bg-surface-panel font-sans text-ink">
+    <div className={styles.root}>
       {isSidebarOpen ? (
         <div
-          className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+          className={styles.overlay}
           onClick={() => setIsSidebarOpen(false)}
           aria-hidden
         />
       ) : null}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-surface-elevated border-r border-border-muted flex flex-col transition-transform duration-300 lg:translate-x-0 lg:static ${
-          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+        className={`${styles.sidebar} ${isSidebarOpen ? styles.open : ""}`}
       >
-        <div className="h-16 flex items-center px-6 border-b border-border-muted shrink-0">
+        <div className={styles.sidebarHeader}>
           <AppLogo href={ROUTES.admin.users} />
         </div>
 
-        <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+        <nav className={styles.nav}>
           {navItems.map((item) => {
             const isActive = item.id === activeNav;
-            const className = `w-full flex items-center gap-3 pl-2.5 pr-3 py-2 rounded-lg border-l-[3px] text-sm transition-colors ${
-              isActive
-                ? "border-l-primary bg-primary/10 text-primary font-bold"
-                : "border-l-transparent text-muted font-semibold hover:bg-surface-muted hover:text-ink"
-            }`;
+            const linkClass = `${styles.navLink} ${isActive ? styles.active : ""}`;
 
             const content = (
               <>
                 <Icon
                   icon={item.icon}
-                  className={`w-5 h-5 shrink-0 ${isActive ? "text-primary" : ""}`}
+                  className={styles.navIcon}
                 />
                 <span>{item.label}</span>
               </>
@@ -103,7 +98,7 @@ export default function AdminLayout({ activeNav, children }) {
                 <Link
                   key={item.id}
                   href={item.href}
-                  className={className}
+                  className={linkClass}
                   onClick={() => setIsSidebarOpen(false)}
                 >
                   {content}
@@ -112,45 +107,45 @@ export default function AdminLayout({ activeNav, children }) {
             }
 
             return (
-              <button key={item.id} type="button" className={className}>
+              <button key={item.id} type="button" className={linkClass}>
                 {content}
               </button>
             );
           })}
         </nav>
 
-        <div className="px-3 py-4 border-t border-border-muted shrink-0">
+        <div className={styles.sidebarFooter}>
           <ThemeToggle />
         </div>
       </aside>
 
-      <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-14 bg-surface-elevated border-b border-border-muted flex items-center gap-4 px-4 lg:px-8 shrink-0">
+      <div className={styles.mainColumn}>
+        <header className={styles.header}>
           <button
             type="button"
-            className="lg:hidden p-2 text-muted"
+            className={styles.menuBtn}
             onClick={() => setIsSidebarOpen(true)}
             aria-label="Mở menu"
           >
-            <Icon icon="lucide:menu" className="w-6 h-6" />
+            <Icon icon="lucide:menu" className={styles.menuIcon} />
           </button>
 
-          <div className="flex items-center gap-3 lg:gap-5 ml-auto">
+          <div className={styles.headerActions}>
             <button
               type="button"
-              className="relative p-2 text-muted hover:text-ink"
+              className={styles.notifyBtn}
               aria-label="Thông báo"
             >
-              <Icon icon="lucide:bell" className="w-5 h-5" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-danger rounded-full" />
+              <Icon icon="lucide:bell" className={styles.notifyIcon} />
+              <span className={styles.notifyDot} />
             </button>
-            <div className="hidden sm:block h-8 w-px bg-border-muted" />
+            <div className={styles.headerDivider} />
             <UserNavMenu roleLabel="Quản trị" />
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto custom-scrollbar">
-          <div className="px-4 pt-4 pb-6 lg:px-10 lg:pt-5 lg:pb-8 w-full max-w-[1600px] mx-auto">
+        <main className={`${styles.main} custom-scrollbar`}>
+          <div className={styles.mainInner}>
             {children}
           </div>
         </main>

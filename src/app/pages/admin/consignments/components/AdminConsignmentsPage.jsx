@@ -1,4 +1,5 @@
 "use client";
+import styles from "./AdminConsignmentsPage.module.scss";
 
 import { Icon } from "@iconify/react";
 import Link from "next/link";
@@ -92,7 +93,7 @@ export default function AdminConsignmentsPage() {
         searchAccessor: (item) =>
           `${formatConsignmentDisplayCode(item) ?? ""} ${item.id ?? ""}`,
         sortAccessor: (item) => formatConsignmentDisplayCode(item) ?? item.id ?? "",
-        className: "font-bold text-secondary",
+        className: styles.t336fe7,
         render: (item) => formatConsignmentDisplayCode(item) ?? "—",
       },
       {
@@ -100,7 +101,7 @@ export default function AdminConsignmentsPage() {
         title: "Người nhận",
         sortable: true,
         searchable: true,
-        className: "font-medium",
+        className: styles.t2689f3,
         render: (item) => item.receiverName || "—",
       },
       {
@@ -108,7 +109,7 @@ export default function AdminConsignmentsPage() {
         title: "Loại ký gửi",
         sortable: true,
         filter: typeFilterOptions.length ? { options: typeFilterOptions } : undefined,
-        className: "text-muted",
+        className: styles.t9a12f0,
         render: (item) =>
           CONSIGNMENT_TYPE_LABELS[item.consignmentType] || item.consignmentType || "—",
       },
@@ -119,7 +120,7 @@ export default function AdminConsignmentsPage() {
         searchAccessor: getRoute,
         filter: routeFilterOptions.length ? { options: routeFilterOptions } : undefined,
         filterAccessor: getRoute,
-        className: "text-muted",
+        className: styles.t9a12f0,
         render: (item) => getRoute(item) || "—",
       },
       {
@@ -130,7 +131,7 @@ export default function AdminConsignmentsPage() {
         filter: warehouseFilterOptions.length
           ? { options: warehouseFilterOptions }
           : undefined,
-        className: "text-muted",
+        className: styles.t9a12f0,
         render: (item) => item.warehouseName || "—",
       },
       {
@@ -147,7 +148,7 @@ export default function AdminConsignmentsPage() {
         sortAccessor: (item) => (item.createdAt ? new Date(item.createdAt).getTime() : 0),
         filter: { type: "dateRange" },
         filterAccessor: (item) => item.createdAt,
-        className: "text-muted whitespace-nowrap",
+        className: styles.t39910d,
         render: (item) => formatConsignmentDate(item.createdAt),
       },
       {
@@ -157,11 +158,11 @@ export default function AdminConsignmentsPage() {
         render: (item) => (
           <Link
             href={ROUTES.admin.consignment(item.id)}
-            className="inline-flex items-center justify-center p-2 rounded-lg border border-secondary/30 text-secondary hover:bg-surface-muted transition-colors"
+            className={styles.t96e45c}
             title="Xem chi tiết"
             aria-label="Xem chi tiết"
           >
-            <Icon icon="lucide:eye" className="w-4 h-4" />
+            <Icon icon="lucide:eye" className={styles.t0bfbea} />
           </Link>
         ),
       },
@@ -171,18 +172,18 @@ export default function AdminConsignmentsPage() {
 
   return (
     <AdminLayout activeNav="consignments">
-      <div className="space-y-5">
+      <div className={styles.tb43b4c}>
         <div>
-          <h1 className="text-xl lg:text-2xl font-bold text-ink tracking-tight">
+          <h1 className={styles.teed4df}>
             Yêu cầu ký gửi
           </h1>
-          <p className="text-sm text-muted mt-1 leading-relaxed">
+          <p className={styles.ta0ff26}>
             Lọc theo trạng thái, khách hàng, tuyến, kho và ngày tạo.
           </p>
         </div>
 
         {error ? (
-          <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
+          <div className={styles.te12bff}>
             {error}
           </div>
         ) : null}

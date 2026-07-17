@@ -1,4 +1,5 @@
 "use client";
+import styles from "./PurchaseRequestListPanel.module.scss";
 
 import { Icon } from "@iconify/react";
 import Link from "next/link";
@@ -21,8 +22,8 @@ const STATUS_FILTER_OPTIONS = Object.entries(PURCHASE_REQUEST_STATUS_LABELS).map
 function StatusBadge({ status }) {
   return (
     <span
-      className={`inline-block px-3 py-1 rounded-full text-[11px] font-bold ${
-        PURCHASE_REQUEST_STATUS_STYLES[status] || "bg-surface text-muted"
+      className={`${styles.t5f03d3}  ${
+        PURCHASE_REQUEST_STATUS_STYLES[status] || "status-badge--surface"
       }`}
     >
       {PURCHASE_REQUEST_STATUS_LABELS[status] || status}
@@ -71,7 +72,7 @@ export default function PurchaseRequestListPanel() {
         title: "Mã YC",
         sortable: true,
         searchable: true,
-        className: "font-mono text-xs",
+        className: styles.tf05d22,
         render: (row) => row.requestCode || "—",
       },
       {
@@ -79,7 +80,7 @@ export default function PurchaseRequestListPanel() {
         title: "Khách hàng",
         sortable: true,
         searchable: true,
-        className: "font-medium",
+        className: styles.t2689f3,
         render: (row) => row.customerName,
       },
       {
@@ -87,7 +88,7 @@ export default function PurchaseRequestListPanel() {
         title: "Sản phẩm",
         searchable: true,
         searchAccessor: productText,
-        className: "text-muted",
+        className: styles.t9a12f0,
         render: (row) => productText(row) || "—",
       },
       {
@@ -95,7 +96,7 @@ export default function PurchaseRequestListPanel() {
         title: "Ngày tạo",
         sortable: true,
         sortAccessor: (row) => (row.createdAt ? new Date(row.createdAt).getTime() : 0),
-        className: "text-muted whitespace-nowrap",
+        className: styles.t39910d,
         render: (row) => formatPurchaseRequestDate(row.createdAt),
       },
       {
@@ -112,11 +113,11 @@ export default function PurchaseRequestListPanel() {
         render: (row) => (
           <Link
             href={ROUTES.sales.purchaseRequest(row.id)}
-            className="inline-flex items-center justify-center p-2 rounded-lg border border-secondary/30 text-secondary hover:bg-surface-muted transition-colors"
+            className={styles.t96e45c}
             title="Xem chi tiết"
             aria-label="Xem chi tiết"
           >
-            <Icon icon="lucide:eye" className="w-4 h-4" />
+            <Icon icon="lucide:eye" className={styles.t0bfbea} />
           </Link>
         ),
       },
@@ -125,19 +126,19 @@ export default function PurchaseRequestListPanel() {
   );
 
   return (
-    <div className="space-y-8">
+    <div className={styles.t793f9e}>
       <div>
-        <h1 className="text-3xl lg:text-4xl font-black tracking-tight font-['Oswald'] text-ink">
+        <h1 className={styles.t4d16e2}>
           Yêu cầu mua hộ
         </h1>
-        <p className="text-muted text-sm font-medium mt-2">
+        <p className={styles.t466889}>
           Kiểm tra và xử lý yêu cầu mua hộ từ khách hàng. Ưu tiên{" "}
-          <span className="text-warning-text font-bold">chờ xử lý</span>.
+          <span className={styles.t17c73d}>chờ xử lý</span>.
         </p>
       </div>
 
       {error ? (
-        <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
+        <div className={styles.te12bff}>
           {error}
         </div>
       ) : null}

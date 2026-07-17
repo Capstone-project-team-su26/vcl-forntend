@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import * as staffService from "@/utils/staffService";
 import { useAuth } from "@/hooks/useAuth";
 import { ROUTES } from "@/utils/appRoutes";
+import styles from "./SalesSection.module.scss";
 
 export default function SalesSection() {
   const { session } = useAuth();
@@ -38,36 +39,30 @@ export default function SalesSection() {
   ];
 
   return (
-    <div className="space-y-8">
+    <div className={styles.page}>
       <section>
-        <h1 className="text-3xl lg:text-4xl font-black tracking-tight text-ink font-['Oswald']">
-          Xin chào, <span className="text-secondary">{displayName}</span>
+        <h1 className={styles.heroTitle}>
+          Xin chào, <span className={styles.heroAccent}>{displayName}</span>
         </h1>
-        <p className="text-muted text-sm font-medium mt-2">
+        <p className={styles.heroSubtitle}>
           Khu vực Sales — tổng quan đơn hàng và yêu cầu ký gửi.
         </p>
       </section>
 
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <section className={styles.statsGrid}>
         {stats.map((stat) => (
-          <div
-            key={stat.label}
-            className="bg-surface-elevated p-6 rounded-xl border border-border-muted shadow-sm"
-          >
-            <p className="text-xs font-semibold text-muted uppercase tracking-wide">{stat.label}</p>
-            <p className="text-3xl font-bold text-ink font-['Oswald'] mt-2">{stat.value}</p>
-            <p className="text-xs text-muted mt-2">{stat.subtext}</p>
+          <div key={stat.label} className={styles.statCard}>
+            <p className={styles.statLabel}>{stat.label}</p>
+            <p className={styles.statValue}>{stat.value}</p>
+            <p className={styles.statSubtext}>{stat.subtext}</p>
           </div>
         ))}
       </section>
 
       <section>
-        <Link
-          href={ROUTES.sales.consignments}
-          className="block rounded-xl bg-primary p-6 text-white hover:opacity-95 transition-opacity max-w-xl"
-        >
-          <h3 className="text-lg font-bold font-['Oswald']">Quản lý ký gửi</h3>
-          <p className="text-sm text-white/80 mt-1">
+        <Link href={ROUTES.sales.consignments} className={styles.ctaLink}>
+          <h3 className={styles.ctaTitle}>Quản lý ký gửi</h3>
+          <p className={styles.ctaDesc}>
             Duyệt yêu cầu và tạo phiếu tiếp nhận kho cho đơn đã APPROVED.
           </p>
         </Link>

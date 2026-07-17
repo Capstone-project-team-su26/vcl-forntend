@@ -21,14 +21,14 @@ export const PURCHASE_ORDER_STATUS_LABELS = {
 };
 
 export const PURCHASE_ORDER_STATUS_STYLES = {
-  CREATED: "bg-surface text-muted",
-  ORDER_PLACED: "bg-info-bg text-info-text",
-  SUPPLIER_CONFIRMED: "bg-primary/15 text-primary",
-  PURCHASING: "bg-warning-bg text-warning-text",
-  PURCHASED: "bg-secondary/15 text-secondary",
-  SHIPPED_TO_WAREHOUSE: "bg-accent/15 text-accent",
-  WAITING_WAREHOUSE_RECEIVE: "bg-success-bg text-success-text",
-  CANCELLED: "bg-danger/10 text-danger",
+  CREATED: "status-badge--surface",
+  ORDER_PLACED: "status-badge--info",
+  SUPPLIER_CONFIRMED: "status-badge--primary",
+  PURCHASING: "status-badge--warning",
+  PURCHASED: "status-badge--primary",
+  SHIPPED_TO_WAREHOUSE: "status-badge--accent",
+  WAITING_WAREHOUSE_RECEIVE: "status-badge--success",
+  CANCELLED: "status-badge--danger",
 };
 
 /** Chuyển trạng thái hợp lệ — chỉ tiến độ mua hàng với NCC, không vận chuyển nội địa. */

@@ -1,4 +1,5 @@
 "use client";
+import styles from "./StaffPurchaseOrderStatusPage.module.scss";
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -22,7 +23,7 @@ export default function StaffPurchaseOrderStatusPage() {
 
   if (!isReady || !canAccess) {
     return (
-      <div className="flex items-center justify-center py-24 text-muted">
+      <div className={styles.t04f23c}>
         Đang kiểm tra quyền truy cập...
       </div>
     );

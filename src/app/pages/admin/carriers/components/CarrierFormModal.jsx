@@ -1,4 +1,5 @@
 "use client";
+import styles from "./CarrierFormModal.module.scss";
 
 import { Icon } from "@iconify/react";
 import { useEffect, useState } from "react";
@@ -83,34 +84,34 @@ export default function CarrierFormModal({ open, mode, carrier, onClose, onSaved
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className={styles.overlay}>
       <button
         type="button"
-        className="absolute inset-0 bg-background/70 backdrop-blur-sm"
+        className={styles.backdrop}
         onClick={onClose}
         aria-label="Đóng"
       />
-      <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-surface rounded-xl border border-border shadow-xl">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border-muted sticky top-0 bg-surface-elevated">
-          <h2 className="text-lg font-bold text-ink">
+      <div className={styles.panelWideScroll}>
+        <div className={styles.stickyHeader}>
+          <h2 className={styles.title}>
             {mode === "create" ? "Thêm đơn vị vận chuyển" : "Chỉnh sửa đơn vị vận chuyển"}
           </h2>
-          <button type="button" onClick={onClose} className="p-2 text-muted hover:text-ink">
-            <Icon icon="lucide:x" className="w-5 h-5" />
+          <button type="button" onClick={onClose} className={styles.closeBtn}>
+            <Icon icon="lucide:x" className={styles.closeIcon} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className={styles.form}>
           {error ? (
-            <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
+            <div className={styles.alertError}>
               {error}
             </div>
           ) : null}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label htmlFor="name" className="text-sm font-semibold text-ink">
-                Tên đơn vị <span className="text-danger">*</span>
+          <div className={styles.fieldGrid}>
+            <div className={styles.field}>
+              <label htmlFor="name" className={styles.label}>
+                Tên đơn vị <span className={styles.required}>*</span>
               </label>
               <input
                 id="name"
@@ -118,13 +119,13 @@ export default function CarrierFormModal({ open, mode, carrier, onClose, onSaved
                 required
                 defaultValue={carrier?.name ?? ""}
                 placeholder="VD: VCL Logistics"
-                className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
+                className={`${styles.textField} input-focus-ring`}
               />
             </div>
 
-            <div className="space-y-2">
-              <label htmlFor="code" className="text-sm font-semibold text-ink">
-                Mã đơn vị <span className="text-danger">*</span>
+            <div className={styles.field}>
+              <label htmlFor="code" className={styles.label}>
+                Mã đơn vị <span className={styles.required}>*</span>
               </label>
               <input
                 id="code"
@@ -132,14 +133,14 @@ export default function CarrierFormModal({ open, mode, carrier, onClose, onSaved
                 required
                 defaultValue={carrier?.code ?? ""}
                 placeholder="VD: VCL"
-                className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring font-mono"
+                className={`${styles.textFieldMono} input-focus-ring`}
               />
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="type" className="text-sm font-semibold text-ink">
-              Loại đơn vị <span className="text-danger">*</span>
+          <div className={styles.field}>
+            <label htmlFor="type" className={styles.label}>
+              Loại đơn vị <span className={styles.required}>*</span>
             </label>
             <select
               id="type"
@@ -156,28 +157,28 @@ export default function CarrierFormModal({ open, mode, carrier, onClose, onSaved
             </select>
           </div>
 
-          <div className="space-y-2">
-            <p className="text-sm font-semibold text-ink">Phương thức vận chuyển hỗ trợ</p>
+          <div className={styles.field}>
+            <p className={styles.label}>Phương thức vận chuyển hỗ trợ</p>
             {shippingMethods.length === 0 ? (
-              <p className="text-sm text-muted">
+              <p className={styles.fieldHint}>
                 Chưa có phương thức vận chuyển đang hoạt động. Cấu hình tại mục Vận chuyển trước.
               </p>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className={styles.methodGrid}>
                 {shippingMethods.map((method) => (
                   <label
                     key={method.id}
-                    className="flex items-center gap-2.5 rounded-lg border border-border-muted px-3 py-2.5 cursor-pointer hover:bg-surface"
+                    className={styles.methodOption}
                   >
                     <input
                       type="checkbox"
                       checked={selectedMethods.includes(method.code)}
                       onChange={() => toggleShippingMethod(method.code)}
-                      className="w-4 h-4 rounded border-border-muted accent-primary"
+                      className={styles.checkbox}
                     />
-                    <span className="text-sm text-ink">
-                      <span className="font-mono text-xs text-muted">{method.code}</span>
-                      <span className="mx-1.5">·</span>
+                    <span className={styles.methodLabel}>
+                      <span className={styles.methodCode}>{method.code}</span>
+                      <span className={styles.methodDot}>·</span>
                       {method.name}
                     </span>
                   </label>
@@ -186,8 +187,8 @@ export default function CarrierFormModal({ open, mode, carrier, onClose, onSaved
             )}
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="supportedRegions" className="text-sm font-semibold text-ink">
+          <div className={styles.field}>
+            <label htmlFor="supportedRegions" className={styles.label}>
               Quốc gia / khu vực hỗ trợ
             </label>
             <input
@@ -195,12 +196,12 @@ export default function CarrierFormModal({ open, mode, carrier, onClose, onSaved
               name="supportedRegions"
               defaultValue={carrier?.supportedRegions ?? ""}
               placeholder="VD: US, EU, CN, VN"
-              className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
+              className={`${styles.textField} input-focus-ring`}
             />
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="contactInfo" className="text-sm font-semibold text-ink">
+          <div className={styles.field}>
+            <label htmlFor="contactInfo" className={styles.label}>
               Thông tin liên hệ
             </label>
             <textarea
@@ -209,12 +210,12 @@ export default function CarrierFormModal({ open, mode, carrier, onClose, onSaved
               rows={2}
               defaultValue={carrier?.contactInfo ?? ""}
               placeholder="Email, hotline, người phụ trách..."
-              className="w-full px-4 py-3 rounded-lg border border-border-muted text-sm resize-y input-focus-ring"
+              className={`${styles.textArea} input-focus-ring`}
             />
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="internalNotes" className="text-sm font-semibold text-ink">
+          <div className={styles.field}>
+            <label htmlFor="internalNotes" className={styles.label}>
               Ghi chú nội bộ
             </label>
             <textarea
@@ -223,32 +224,32 @@ export default function CarrierFormModal({ open, mode, carrier, onClose, onSaved
               rows={2}
               defaultValue={carrier?.internalNotes ?? ""}
               placeholder="Ghi chú chỉ Admin/Staff nội bộ thấy"
-              className="w-full px-4 py-3 rounded-lg border border-border-muted text-sm resize-y input-focus-ring"
+              className={`${styles.textArea} input-focus-ring`}
             />
           </div>
 
-          <label className="flex items-center gap-2.5 cursor-pointer">
+          <label className={styles.checkboxRow}>
             <input
               type="checkbox"
               name="isActive"
               defaultChecked={carrier?.isActive ?? true}
-              className="w-4 h-4 rounded border-border-muted accent-primary"
+              className={styles.checkbox}
             />
-            <span className="text-sm text-ink font-medium">Đang hoạt động</span>
+            <span className={styles.checkboxLabel}>Đang hoạt động</span>
           </label>
 
-          <div className="flex justify-end gap-3 pt-2">
+          <div className={styles.actions}>
             <button
               type="button"
               onClick={onClose}
-              className="h-11 px-5 rounded-lg border border-border-muted text-sm font-semibold text-muted hover:bg-surface"
+              className={styles.cancelBtn}
             >
               Hủy
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="h-11 px-5 rounded-lg bg-insight hover:bg-secondary text-white text-sm font-bold disabled:opacity-60"
+              className={styles.submitBtn}
             >
               {isSubmitting
                 ? "Đang lưu..."

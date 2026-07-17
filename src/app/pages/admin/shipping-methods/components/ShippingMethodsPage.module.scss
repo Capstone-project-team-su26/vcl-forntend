@@ -1,0 +1,39 @@
+@import "../../components/admin-crud-page";
+
+.t52c30e {
+  &:disabled {
+    opacity: 0.5;
+  }
+}
+
+.tf05d22 {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 0.75rem;
+}
+
+.t884de6 {
+  color: var(--theme-muted);
+  display: none;
+  white-space: nowrap;
+  @media (min-width: 1024px) {
+    display: table-cell;
+  }
+}
+
+.t5f0723 {
+  color: var(--theme-muted);
+  display: none;
+  max-width: xs;
+  @media (min-width: 768px) {
+    display: table-cell;
+  }
+}
+
+.t71f62c {
+  color: var(--theme-muted);
+  display: none;
+  max-width: xs;
+  @media (min-width: 1280px) {
+    display: table-cell;
+  }
+}

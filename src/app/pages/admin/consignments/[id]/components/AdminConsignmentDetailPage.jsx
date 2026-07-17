@@ -1,4 +1,5 @@
 "use client";
+import styles from "./AdminConsignmentDetailPage.module.scss";
 
 import { useParams } from "next/navigation";
 import AdminLayout from "@/app/pages/admin/components/AdminLayout";
@@ -11,7 +12,7 @@ export default function AdminConsignmentDetailPage() {
 
   return (
     <AdminLayout activeNav="consignments">
-      <div className="w-full">
+      <div className={styles.t6da6a3}>
         <ConsignmentDetailPanel
           id={id}
           backHref={ROUTES.admin.consignments}

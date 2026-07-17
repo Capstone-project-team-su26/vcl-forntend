@@ -1,0 +1,245 @@
+@use "../../styles/mixins" as *;
+
+.root {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  background-color: var(--theme-background);
+  color: var(--theme-ink);
+
+  @media print {
+    height: auto;
+    overflow: visible;
+  }
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background-color: color-mix(in srgb, var(--theme-secondary) 40%, transparent);
+
+  @include media-lg {
+    display: none;
+  }
+}
+
+.sidebar {
+  position: fixed;
+  inset-block: 0;
+  left: 0;
+  z-index: 50;
+  width: 16rem;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--theme-surface);
+  border-right: 1px solid var(--theme-border-muted);
+  transition: transform 0.3s;
+  transform: translateX(-100%);
+
+  &.open {
+    transform: translateX(0);
+  }
+
+  @include media-lg {
+    position: static;
+    height: 100%;
+    flex-shrink: 0;
+    transform: translateX(0);
+  }
+}
+
+.sidebarHeader {
+  height: 4rem;
+  display: flex;
+  align-items: center;
+  padding-inline: 1.5rem;
+  border-bottom: 1px solid var(--theme-border-muted);
+  flex-shrink: 0;
+}
+
+.nav {
+  flex: 1;
+  padding: 1.5rem 0.75rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.navLink {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0.75rem 0.625rem 0.625rem;
+  border-radius: 0.5rem;
+  border-left: 3px solid transparent;
+  transition: all 0.2s;
+  text-decoration: none;
+  color: var(--theme-muted);
+  font-weight: 600;
+
+  &:hover {
+    background-color: var(--theme-surface-muted);
+    color: var(--theme-ink);
+  }
+
+  &.active {
+    border-left-color: var(--theme-primary);
+    background-color: var(--theme-surface-muted);
+    color: var(--theme-ink);
+    font-weight: 700;
+  }
+}
+
+.navIconWrap {
+  display: flex;
+  height: 2.25rem;
+  width: 2.25rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  border: 2px solid var(--theme-border);
+  background-color: var(--theme-surface-elevated);
+  color: var(--theme-muted);
+
+  .active & {
+    border-color: color-mix(in srgb, var(--theme-primary) 40%, transparent);
+    color: var(--theme-primary);
+  }
+}
+
+.navIconImg {
+  width: 18px;
+  height: 18px;
+  opacity: 0.8;
+
+  .active & {
+    opacity: 1;
+  }
+}
+
+.navIcon {
+  width: 18px;
+  height: 18px;
+}
+
+.navLabel {
+  font-size: 0.875rem;
+
+  .active & {
+    font-weight: 700;
+  }
+}
+
+.sidebarFooter {
+  padding: 1rem;
+  border-top: 1px solid var(--theme-border-muted);
+  flex-shrink: 0;
+}
+
+.mainColumn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.header {
+  height: 4rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-inline: 1rem;
+  flex-shrink: 0;
+  background-color: var(--theme-surface-elevated);
+  border-bottom: 1px solid var(--theme-border-muted);
+
+  @include media-lg {
+    padding-inline: 2rem;
+  }
+}
+
+.menuBtn {
+  padding: 0.5rem;
+  color: var(--theme-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--theme-ink);
+  }
+
+  @include media-lg {
+    display: none;
+  }
+}
+
+.menuIcon {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-left: auto;
+}
+
+.notifyBtn {
+  position: relative;
+  padding: 0.5rem;
+  color: var(--theme-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--theme-ink);
+  }
+}
+
+.notifyIcon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.notifyDot {
+  position: absolute;
+  top: 0.375rem;
+  right: 0.375rem;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background-color: var(--theme-danger);
+}
+
+.main {
+  flex: 1;
+  overflow-y: auto;
+  background-color: var(--theme-background);
+
+  @media print {
+    overflow: visible;
+  }
+}
+
+.mainInner {
+  padding: 1rem;
+  max-width: 1200px;
+  margin-inline: auto;
+
+  @include media-lg {
+    padding: 2rem;
+  }
+
+  @media print {
+    padding: 0;
+    max-width: none;
+  }
+}

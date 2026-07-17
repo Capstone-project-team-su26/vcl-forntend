@@ -1,4 +1,5 @@
 "use client";
+import styles from "./AdditionalServiceFeeFormModal.module.scss";
 
 import { Icon } from "@iconify/react";
 import { useEffect, useState } from "react";
@@ -91,16 +92,16 @@ export default function AdditionalServiceFeeFormModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className={styles.overlay}>
       <button
         type="button"
-        className="absolute inset-0 bg-background/70 backdrop-blur-sm"
+        className={styles.backdrop}
         onClick={onClose}
         aria-label="Đóng"
       />
-      <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto bg-surface rounded-xl border border-border shadow-xl">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border-muted sticky top-0 bg-surface-elevated">
-          <h2 className="text-lg font-bold text-ink">
+      <div className={styles.panelScroll}>
+        <div className={styles.stickyHeader}>
+          <h2 className={styles.title}>
             {isVatConfigRule
               ? mode === "create"
                 ? "Tạo quy tắc VAT"
@@ -109,21 +110,21 @@ export default function AdditionalServiceFeeFormModal({
                 ? "Thêm phí dịch vụ bổ sung"
                 : "Chỉnh sửa loại phí"}
           </h2>
-          <button type="button" onClick={onClose} className="p-2 text-muted hover:text-ink">
-            <Icon icon="lucide:x" className="w-5 h-5" />
+          <button type="button" onClick={onClose} className={styles.closeBtn}>
+            <Icon icon="lucide:x" className={styles.closeIcon} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className={styles.form}>
           {error ? (
-            <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
+            <div className={styles.alertError}>
               {error}
             </div>
           ) : null}
 
-          <div className="space-y-2">
-            <label htmlFor="name" className="text-sm font-semibold text-ink">
-              Tên loại phí <span className="text-danger">*</span>
+          <div className={styles.field}>
+            <label htmlFor="name" className={styles.label}>
+              Tên loại phí <span className={styles.required}>*</span>
             </label>
             <input
               id="name"
@@ -131,13 +132,13 @@ export default function AdditionalServiceFeeFormModal({
               required
               defaultValue={fee?.name ?? ""}
               placeholder="VD: Bảo hiểm hàng hóa"
-              className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
+              className={`${styles.textField} input-focus-ring`}
             />
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="code" className="text-sm font-semibold text-ink">
-              Mã loại phí <span className="text-danger">*</span>
+          <div className={styles.field}>
+            <label htmlFor="code" className={styles.label}>
+              Mã loại phí <span className={styles.required}>*</span>
             </label>
             <input
               id="code"
@@ -146,20 +147,20 @@ export default function AdditionalServiceFeeFormModal({
               readOnly={lockSystemCode}
               defaultValue={fee?.code ?? ""}
               placeholder="VD: INSURANCE"
-              className={`w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring font-mono ${
-                lockSystemCode ? "bg-surface text-muted cursor-not-allowed" : ""
+              className={`${styles.textFieldMono} input-focus-ring ${
+                lockSystemCode ? styles.disabledField : ""
               }`}
             />
             {isVatConfigRule ? (
-              <p className="text-xs text-muted">
-                Mã hệ thống <span className="font-mono">VAT</span> — Sales không bật/tắt như phụ phí.
+              <p className={styles.fieldHint}>
+                Mã hệ thống <span className={styles.monoHint}>VAT</span> — Sales không bật/tắt như phụ phí.
               </p>
             ) : null}
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="feeCalculationType" className="text-sm font-semibold text-ink">
-              Cách tính phí <span className="text-danger">*</span>
+          <div className={styles.field}>
+            <label htmlFor="feeCalculationType" className={styles.label}>
+              Cách tính phí <span className={styles.required}>*</span>
             </label>
             <select
               id="feeCalculationType"
@@ -168,7 +169,7 @@ export default function AdditionalServiceFeeFormModal({
               value={isVatConfigRule ? "PERCENTAGE" : calculationType}
               disabled={isVatConfigRule}
               onChange={(event) => setCalculationType(event.target.value)}
-              className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring disabled:opacity-90 disabled:cursor-not-allowed disabled:bg-surface"
+              className={`${styles.selectField} input-focus-ring`}
             >
               {calculationOptions.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -179,10 +180,10 @@ export default function AdditionalServiceFeeFormModal({
           </div>
 
           {calculationType === "FIXED" && !isVatConfigRule ? (
-            <div className="space-y-2">
-              <label htmlFor="fixedAmount" className="text-sm font-semibold text-ink">
+            <div className={styles.field}>
+              <label htmlFor="fixedAmount" className={styles.label}>
                 {isDivisorRule ? "Hệ số quy đổi thể tích" : "Giá cố định (VND)"}{" "}
-                <span className="text-danger">*</span>
+                <span className={styles.required}>*</span>
               </label>
               <VndMoneyInput
                 id="fixedAmount"
@@ -194,10 +195,10 @@ export default function AdditionalServiceFeeFormModal({
               />
             </div>
           ) : (
-            <div className="space-y-2">
-              <label htmlFor="percentageRate" className="text-sm font-semibold text-ink">
+            <div className={styles.field}>
+              <label htmlFor="percentageRate" className={styles.label}>
                 {isVatConfigRule ? "Tỷ lệ VAT (%)" : "Phần trăm phí (%)"}{" "}
-                <span className="text-danger">*</span>
+                <span className={styles.required}>*</span>
               </label>
               <input
                 id="percentageRate"
@@ -209,18 +210,18 @@ export default function AdditionalServiceFeeFormModal({
                 required
                 defaultValue={fee?.percentageRate ?? ""}
                 placeholder="VD: 8"
-                className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
+                className={`${styles.textField} input-focus-ring`}
               />
               {isVatConfigRule ? (
-                <p className="text-xs text-muted">
+                <p className={styles.fieldHint}>
                   Áp dụng trên tổng cước vận chuyển + phí dịch vụ.
                 </p>
               ) : null}
             </div>
           )}
 
-          <div className="space-y-2">
-            <label htmlFor="unit" className="text-sm font-semibold text-ink">
+          <div className={styles.field}>
+            <label htmlFor="unit" className={styles.label}>
               Đơn vị tính
             </label>
             <input
@@ -228,12 +229,12 @@ export default function AdditionalServiceFeeFormModal({
               name="unit"
               defaultValue={fee?.unit ?? ""}
               placeholder="VD: VND/kiện, % giá trị khai báo"
-              className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
+              className={`${styles.textField} input-focus-ring`}
             />
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="description" className="text-sm font-semibold text-ink">
+          <div className={styles.field}>
+            <label htmlFor="description" className={styles.label}>
               Ghi chú mô tả
             </label>
             <textarea
@@ -242,32 +243,32 @@ export default function AdditionalServiceFeeFormModal({
               rows={3}
               defaultValue={fee?.description ?? ""}
               placeholder="Mô tả cách áp dụng phí cho Staff/Sales khi báo giá"
-              className="w-full px-4 py-3 rounded-lg border border-border-muted text-sm resize-y input-focus-ring"
+              className={`${styles.textArea} input-focus-ring`}
             />
           </div>
 
-          <label className="flex items-center gap-2.5 cursor-pointer">
+          <label className={styles.checkboxRow}>
             <input
               type="checkbox"
               name="isActive"
               defaultChecked={fee?.isActive ?? true}
-              className="w-4 h-4 rounded border-border-muted accent-primary"
+              className={styles.checkbox}
             />
-            <span className="text-sm text-ink font-medium">Đang hoạt động</span>
+            <span className={styles.checkboxLabel}>Đang hoạt động</span>
           </label>
 
-          <div className="flex justify-end gap-3 pt-2">
+          <div className={styles.actions}>
             <button
               type="button"
               onClick={onClose}
-              className="h-11 px-5 rounded-lg border border-border-muted text-sm font-semibold text-muted hover:bg-surface"
+              className={styles.cancelBtn}
             >
               Hủy
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="h-11 px-5 rounded-lg bg-primary text-white text-sm font-bold hover:bg-primary/90 disabled:opacity-50"
+              className={styles.submitBtn}
             >
               {isSubmitting ? "Đang lưu..." : mode === "create" ? "Thêm mới" : "Lưu thay đổi"}
             </button>

@@ -6,13 +6,16 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import * as orderConsignmentService from "@/utils/orderConsignmentService";
 import * as consignmentQuotationService from "@/utils/consignmentQuotationService";
-import ConsignmentStatusBadge from "@/app/pages/sales/consignments/components/ConsignmentStatusBadge";
 import * as servicePricingService from "@/utils/servicePricingService";
-import { formatFeeAmount } from "@/utils/additionalServiceFeeService";
 import { getErrorMessage } from "@/utils/apiError";
 import { isMockMode } from "@/utils/mocks/dataSource";
 import { ROUTES } from "@/utils/appRoutes";
-import VndMoneyInput from "@/app/components/VndMoneyInput";
+import QuotationHeaderCard from "@/app/pages/sales/consignments/components/quotation/QuotationHeaderCard";
+import QuotationServiceSection from "@/app/pages/sales/consignments/components/quotation/QuotationServiceSection";
+import QuotationReferencePricingSection from "@/app/pages/sales/consignments/components/quotation/QuotationReferencePricingSection";
+import QuotationFeesSection from "@/app/pages/sales/consignments/components/quotation/QuotationFeesSection";
+import QuotationSalesNoteSection from "@/app/pages/sales/consignments/components/quotation/QuotationSalesNoteSection";
+import styles from "./ConsignmentQuotationPanel.module.scss";
 import {
   mergeConsignmentDetail,
   resolveConsignmentPackageCount,
@@ -59,18 +62,6 @@ const {
   VOLUMETRIC_DIVISOR_CM3,
 } = servicePricingService;
 
-function FieldLabel({ htmlFor, children, required }) {
-  return (
-    <label htmlFor={htmlFor} className="text-sm font-semibold text-ink">
-      {children}
-      {required ? <span className="text-danger"> *</span> : null}
-    </label>
-  );
-}
-
-const LOCKED_FIELD_CLASS =
-  "w-full h-11 px-4 rounded-lg border border-border-muted text-sm bg-surface text-ink cursor-not-allowed opacity-90";
-
 const QUICK_CUSTOM_FEES = [
   "Phí đóng gói lại",
   "Phí bảo hiểm hàng hóa",
@@ -104,118 +95,6 @@ function formatMainServiceUnitPrice(servicePricing) {
     };
   }
   return { unit: "—", rate: price > 0 ? consignmentQuotationService.formatMoney(price) : "—" };
-}
-
-function FormulaStepCard({ index, title, formula, note, highlight = false }) {
-  return (
-    <div
-      className={`flex gap-3 rounded-xl border p-3.5 ${
-        highlight
-          ? "border-primary/30 bg-primary/5"
-          : "border-border-muted bg-surface-elevated"
-      }`}
-    >
-      <div
-        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-extrabold ${
-          highlight
-            ? "bg-primary text-ink-deep"
-            : "bg-surface-muted text-primary border border-primary/20"
-        }`}
-      >
-        {index}
-      </div>
-      <div className="min-w-0 flex-1 space-y-2">
-        <p className="text-sm font-bold text-ink">{title}</p>
-        {formula ? (
-          <div
-            className={`rounded-lg border px-3 py-2.5 ${
-              highlight
-                ? "border-primary/25 bg-surface-muted"
-                : "border-border-muted bg-surface-muted"
-            }`}
-          >
-            <p className="font-mono text-[13px] sm:text-sm text-ink leading-relaxed break-all">
-              {formula}
-            </p>
-          </div>
-        ) : null}
-        {note ? <p className="text-xs text-muted leading-relaxed">{note}</p> : null}
-      </div>
-    </div>
-  );
-}
-
-function PricingFormulaBreakdown({ breakdown }) {
-  if (!breakdown?.show) return null;
-
-  const numberedSteps = breakdown.steps ?? [];
-  const freightStep = breakdown.freightStep;
-  const allSteps = [
-    ...numberedSteps.map((step) => ({ ...step, highlight: false })),
-    ...(freightStep?.formula
-      ? [{ ...freightStep, highlight: true }]
-      : freightStep?.note
-        ? [{ key: "freight-note", title: freightStep.title, formula: null, note: freightStep.note, highlight: false }]
-        : []),
-  ];
-
-  const showSummaryChips =
-    breakdown.volumetricWeight > 0 &&
-    breakdown.actualWeightKg != null &&
-    breakdown.chargeableWeight > 0;
-
-  return (
-    <div className="rounded-xl border border-border-muted bg-surface-muted/50 p-4 sm:p-5 space-y-4">
-      <div className="flex items-start gap-3 pb-1 border-b border-border-muted/50">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 border border-primary/15">
-          <Icon icon="lucide:calculator" className="w-4.5 h-4.5 text-primary" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-bold text-ink">Công thức tính cước dịch vụ chính</p>
-          <p className="text-xs text-muted mt-0.5">
-            {breakdown.hasConfiguredPricing
-              ? "Đơn giá từ bảng giá service-pricings trên BE."
-              : "Ước tính tạm — cần cấu hình bảng giá BE để có đơn giá chính xác."}
-          </p>
-          {showSummaryChips ? (
-            <div className="flex flex-wrap items-center gap-2 mt-2.5">
-              <span className="inline-flex items-center gap-1 rounded-full border border-border-muted bg-surface-elevated px-2.5 py-1 text-[11px] font-semibold text-ink">
-                <Icon icon="lucide:scale" className="w-3 h-3 text-muted" />
-                {formatKgLabel(breakdown.actualWeightKg)} thực
-              </span>
-              <span className="inline-flex items-center gap-1 rounded-full border border-border-muted bg-surface-elevated px-2.5 py-1 text-[11px] font-semibold text-ink">
-                <Icon icon="lucide:box" className="w-3 h-3 text-muted" />
-                DIM {formatKgLabel(breakdown.volumetricWeight)}
-              </span>
-              <Icon icon="lucide:arrow-right" className="w-3.5 h-3.5 text-muted hidden sm:block" />
-              <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-[11px] font-bold text-primary">
-                {formatKgLabel(breakdown.chargeableWeight)} tính phí
-              </span>
-            </div>
-          ) : null}
-        </div>
-      </div>
-
-      {allSteps.length > 0 ? (
-        <div className="space-y-2.5">
-          {allSteps.map((step, index) => (
-            <FormulaStepCard
-              key={step.key ?? `${step.title}-${index}`}
-              index={index + 1}
-              title={step.title}
-              formula={step.formula}
-              note={step.note}
-              highlight={step.highlight}
-            />
-          ))}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function StatusBadge({ status }) {
-  return <ConsignmentStatusBadge status={status} />;
 }
 
 export default function ConsignmentQuotationPanel({ id, backHref, readOnly = false }) {
@@ -872,21 +751,21 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 gap-3 text-muted">
-        <Icon icon="lucide:loader-2" className="w-8 h-8 animate-spin" />
-        <p className="text-sm font-medium">Đang tải yêu cầu ký gửi...</p>
+      <div className={styles.loading}>
+        <Icon icon="lucide:loader-2" className={styles.loadingIcon} />
+        <p className={styles.loadingText}>Đang tải yêu cầu ký gửi...</p>
       </div>
     );
   }
 
   if (loadError && !detail) {
     return (
-      <div className="space-y-4">
-        <Link href={resolvedBackHref} className="inline-flex items-center gap-2 text-sm font-semibold text-muted hover:text-ink">
-          <Icon icon="lucide:arrow-left" className="w-4 h-4" />
+      <div className={styles.errorBlock}>
+        <Link href={resolvedBackHref} className={styles.backLink}>
+          <Icon icon="lucide:arrow-left" className={styles.iconSm} />
           Quay lại
         </Link>
-        <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">{loadError}</div>
+        <div className={styles.alertDanger}>{loadError}</div>
       </div>
     );
   }
@@ -899,24 +778,24 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
 
   return (
     <div
-      className={`space-y-8 w-full mx-auto ${readOnly ? "max-w-7xl" : "max-w-5xl"}`}
+      className={`${styles.root} ${readOnly ? styles.readOnly : ""}`}
     >
       <div>
-        <Link href={resolvedBackHref} className="inline-flex items-center gap-2 text-sm font-semibold text-muted hover:text-ink mb-4">
-          <Icon icon="lucide:arrow-left" className="w-4 h-4" />
+        <Link href={resolvedBackHref} className={styles.backLink}>
+          <Icon icon="lucide:arrow-left" className={styles.iconSm} />
           Quay lại chi tiết yêu cầu
         </Link>
         {!readOnly ? (
-          <p className="text-xs font-bold uppercase tracking-wide text-primary mb-2">Sales / CSKH</p>
+          <p className={styles.eyebrow}>Sales / CSKH</p>
         ) : null}
-        <h1 className="text-3xl lg:text-4xl font-black tracking-tight font-['Oswald'] text-ink">
+        <h1 className={styles.title}>
           {!canSend
             ? "Chi tiết báo giá"
             : detail.status === "QUOTATION_REJECTED"
               ? "Gửi báo giá mới"
               : "Tư vấn & gửi báo giá ký gửi"}
         </h1>
-        <p className="text-muted text-sm font-medium mt-2">
+        <p className={styles.subtitle}>
           {!canSend ? (
             "Nội dung báo giá của yêu cầu này — chỉ xem, không chỉnh sửa."
           ) : (
@@ -928,42 +807,23 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
         </p>
       </div>
 
-      <div className="rounded-xl border border-border-muted bg-surface-elevated p-6 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-wide text-subtle">Mã ký gửi</p>
-            {displayCode ? (
-              <p className="text-xl font-bold font-mono text-ink-deep mt-0.5">{displayCode}</p>
-            ) : null}
-            <div className={`grid gap-2 sm:grid-cols-2 ${displayCode ? "mt-3" : ""}`}>
-              <div className="rounded-lg border border-primary bg-surface-elevated px-3 py-2.5">
-                <p className="text-xs font-bold uppercase tracking-wide text-secondary">Người gửi</p>
-                <p className="text-sm font-bold text-ink mt-0.5">
-                  {detail.senderName || detail.customerName || "—"}
-                </p>
-              </div>
-              <div className="rounded-lg border border-primary bg-surface-elevated px-3 py-2.5">
-                <p className="text-xs font-bold uppercase tracking-wide text-secondary">Người nhận</p>
-                <p className="text-sm font-bold text-ink mt-0.5">{detail.receiverName || "—"}</p>
-              </div>
-            </div>
-            <p className="text-sm text-subtle mt-2">{formatConsignmentDate(detail.createdAt)}</p>
-          </div>
-          <StatusBadge status={detail.status} />
-        </div>
-      </div>
+      <QuotationHeaderCard
+        detail={detail}
+        displayCode={displayCode}
+        formatConsignmentDate={formatConsignmentDate}
+      />
 
       {successMessage ? (
-        <div className="rounded-lg border border-success/30 bg-success-bg px-4 py-4 text-sm text-success-text space-y-3">
-          <p className="font-semibold">{successMessage}</p>
-          <Link href={ROUTES.sales.consignment(detail.id)} className="inline-flex items-center justify-center h-10 px-5 rounded-lg bg-primary text-white text-sm font-bold">
+        <div className={styles.alertSuccess}>
+          <p className={styles.summaryValue}>{successMessage}</p>
+          <Link href={ROUTES.sales.consignment(detail.id)} className={styles.successBtn}>
             Xem chi tiết yêu cầu
           </Link>
         </div>
       ) : null}
 
       {!canSend && !successMessage ? (
-        <div className="rounded-lg border border-warning/30 bg-warning-bg/40 px-4 py-3 text-sm text-ink">
+        <div className={styles.alertWarning}>
           {detail.status === "QUOTATION_SENT"
             ? "Báo giá đã gửi — đang chờ khách xác nhận hoặc từ chối."
             : detail.status === "QUOTATION_CONFIRMED"
@@ -977,452 +837,87 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
       ) : null}
 
       {!successMessage ? (
-        <form onSubmit={handleSubmit} className="space-y-8">
-          <section className="rounded-xl border border-border-muted bg-surface-elevated p-6 space-y-4">
-            <div>
-              <h2 className="text-lg font-bold text-ink">Thông số & dịch vụ chính</h2>
-              <p className="text-sm text-muted mt-1">
-                Các thông số lấy từ yêu cầu ký gửi — không chỉnh tại bước báo giá.
-              </p>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <FieldLabel htmlFor="serviceType" required>Loại dịch vụ</FieldLabel>
-                <select
-                  id="serviceType"
-                  value={
-                    availableServiceTypes.some(
-                      (type) => String(type).toUpperCase() === String(serviceType).toUpperCase()
-                    )
-                      ? serviceType
-                      : availableServiceTypes[0] ?? ""
-                  }
-                  disabled
-                  className="form-select input-focus-ring disabled:opacity-90 disabled:cursor-not-allowed disabled:bg-surface"
-                >
-                  {!availableServiceTypes.length ? (
-                    <option value="">Chưa có bảng giá phù hợp</option>
-                  ) : null}
-                  {availableServiceTypes.map((type) => (
-                    <option key={type} value={type}>
-                      {formatServiceTypeLabel(type)}
-                    </option>
-                  ))}
-                </select>
-                {!availableServiceTypes.length ? (
-                  <p className="text-xs text-muted">
-                    Bảng giá BE chưa có tuyến khớp đơn này — liên hệ Admin cấu hình service-pricings.
-                  </p>
-                ) : null}
-              </div>
-              <div className="space-y-2">
-                <FieldLabel htmlFor="weightKg" required>Khối lượng (kg)</FieldLabel>
-                <input
-                  id="weightKg"
-                  type="number"
-                  min="0.01"
-                  step="0.01"
-                  value={weightKg}
-                  readOnly
-                  className={LOCKED_FIELD_CLASS}
-                />
-              </div>
-              <div className="space-y-2">
-                <FieldLabel htmlFor="volumeCm3" required>Thể tích (cm³)</FieldLabel>
-                <input
-                  id="volumeCm3"
-                  type="number"
-                  min="1"
-                  step="1"
-                  value={volumeCm3}
-                  readOnly
-                  className={LOCKED_FIELD_CLASS}
-                />
-              </div>
-              <div className="space-y-2">
-                <FieldLabel htmlFor="packageCount" required>Số kiện</FieldLabel>
-                <input
-                  id="packageCount"
-                  type="number"
-                  min="1"
-                  value={packageCount}
-                  readOnly
-                  className={LOCKED_FIELD_CLASS}
-                />
-              </div>
-              <div className="space-y-2">
-                <FieldLabel htmlFor="declaredValue">Giá trị khai báo (VND)</FieldLabel>
-                <VndMoneyInput
-                  id="declaredValue"
-                  value={declaredValue}
-                  disabled
-                  className={LOCKED_FIELD_CLASS}
-                />
-              </div>
-            </div>
-
-            {showServiceSummary ? (
-              <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 text-sm grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <p className="text-muted">Tuyến</p>
-                  <p className="font-semibold text-ink">{displayRouteLabel}</p>
-                </div>
-                <div>
-                  <p className="text-muted">Cân thực → DIM → Tính phí</p>
-                  <p className="font-semibold text-ink leading-snug">
-                    {Number(weightKg) > 0 ? `${weightKg} kg` : "—"} thực
-                    {volumetricWeight > 0 || pricingBreakdown.volumeCm3 != null ? (
-                      <>
-                        {" · "}
-                        <span className="text-muted font-normal">
-                          DIM {volumetricWeight} kg
-                        </span>
-                      </>
-                    ) : null}
-                    {chargeableWeight > 0 ? (
-                      <>
-                        {" → "}
-                        <span className="text-primary">{chargeableWeight} kg</span> tính phí
-                      </>
-                    ) : null}
-                  </p>
-                  {pricingBreakdown.volumeCm3 != null ? (
-                    <p className="text-xs text-muted mt-1">
-                      DIM = {formatVolumeCm3(pricingBreakdown.volumeCm3)} ÷{" "}
-                      {volumetricDivisor.toLocaleString("vi-VN")}
-                    </p>
-                  ) : null}
-                </div>
-                <div>
-                  <p className="text-muted">Đơn vị tính</p>
-                  <p className="font-semibold text-ink">
-                    {selectedServicePricing?.unitType
-                      ? UNIT_TYPE_LABELS[selectedServicePricing.unitType] ??
-                        selectedServicePricing.unitType
-                      : "—"}
-                  </p>
-                </div>
-              </div>
-            ) : canSend ? (
-              <p className="text-sm text-danger">
-                Chưa có giá dịch vụ chính khớp tuyến/dịch vụ của đơn. Kiểm tra cấu hình bảng giá tại Admin.
-              </p>
-            ) : null}
-
-            {!hasConfiguredPricing && detail?.quotation && readOnly ? (
-              <p className="text-xs text-muted">
-                Đơn đã có báo giá từ hệ thống. Số tiền bên dưới lấy từ báo giá thực tế của yêu cầu.
-              </p>
-            ) : null}
-
-            {pricingBreakdown.show ? <PricingFormulaBreakdown breakdown={pricingBreakdown} /> : null}
-          </section>
+        <form onSubmit={handleSubmit} className={styles.form}>
+          <QuotationServiceSection
+            availableServiceTypes={availableServiceTypes}
+            serviceType={serviceType}
+            weightKg={weightKg}
+            volumeCm3={volumeCm3}
+            packageCount={packageCount}
+            declaredValue={declaredValue}
+            formatServiceTypeLabel={formatServiceTypeLabel}
+            showServiceSummary={showServiceSummary}
+            displayRouteLabel={displayRouteLabel}
+            volumetricWeight={volumetricWeight}
+            pricingBreakdown={pricingBreakdown}
+            chargeableWeight={chargeableWeight}
+            volumetricDivisor={volumetricDivisor}
+            formatVolumeCm3={formatVolumeCm3}
+            selectedServicePricing={selectedServicePricing}
+            UNIT_TYPE_LABELS={UNIT_TYPE_LABELS}
+            canSend={canSend}
+            hasConfiguredPricing={hasConfiguredPricing}
+            detail={detail}
+            readOnly={readOnly}
+          />
 
           {hasConfiguredPricing || surchargeFeeCatalog.length || volumetricDivisor ? (
-            <section className="rounded-xl border border-border-muted bg-surface-elevated overflow-hidden">
-              <div className="px-6 py-4 border-b border-border-muted">
-                <h2 className="text-lg font-bold text-ink">Bảng giá tham chiếu (VND)</h2>
-                <p className="text-sm text-muted mt-1">
-                  Đơn giá cấu hình trên hệ thống cho tuyến/dịch vụ này. Số tiền ở bảng lập báo giá bên dưới có thể chỉnh tay.
-                </p>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm min-w-[520px]">
-                  <thead>
-                    <tr className="text-left text-xs uppercase tracking-wide text-muted border-b border-border-muted bg-surface/50">
-                      <th className="px-6 py-3 font-bold">Khoản phí</th>
-                      <th className="px-6 py-3 font-bold">Đơn vị</th>
-                      <th className="px-6 py-3 font-bold text-right">Đơn giá</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {hasConfiguredPricing ? (
-                      (() => {
-                        const ref = formatMainServiceUnitPrice(selectedServicePricing);
-                        return (
-                          <tr className="border-b border-border-muted/60 bg-primary/5">
-                            <td className="px-6 py-3 font-bold text-ink">Dịch vụ chính (cước ký gửi)</td>
-                            <td className="px-6 py-3 text-muted">{ref.unit}</td>
-                            <td className="px-6 py-3 text-right font-bold text-primary">{ref.rate}</td>
-                          </tr>
-                        );
-                      })()
-                    ) : null}
-                    {surchargeFeeCatalog.map((fee) => (
-                      <tr key={fee.id} className="border-b border-border-muted/60 last:border-0">
-                        <td className="px-6 py-3 font-medium text-ink">{fee.name}</td>
-                        <td className="px-6 py-3 text-muted">{fee.unit || "—"}</td>
-                        <td className="px-6 py-3 text-right font-semibold text-ink">{formatFeeAmount(fee)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <div className="px-6 py-3 border-t border-border-muted bg-surface/40 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 text-sm">
-                <p className="font-semibold text-ink">Hệ số quy đổi thể tích</p>
-                <p className="text-muted">
-                  DIM = thể tích (cm³) ÷{" "}
-                  <span className="font-mono font-bold text-ink">
-                    {volumetricDivisor.toLocaleString("vi-VN")}
-                  </span>
-                  {volumetricDivisorRule ? (
-                    <span className="text-xs"> · từ quy tắc {volumetricDivisorRule.code || "VOLUMETRIC_DIVISOR"}</span>
-                  ) : (
-                    <span className="text-xs"> · mặc định IATA {VOLUMETRIC_DIVISOR_CM3.toLocaleString("vi-VN")}</span>
-                  )}
-                </p>
-              </div>
-            </section>
+            <QuotationReferencePricingSection
+              hasConfiguredPricing={hasConfiguredPricing}
+              selectedServicePricing={selectedServicePricing}
+              formatMainServiceUnitPrice={formatMainServiceUnitPrice}
+              surchargeFeeCatalog={surchargeFeeCatalog}
+              volumetricDivisor={volumetricDivisor}
+              volumetricDivisorRule={volumetricDivisorRule}
+              VOLUMETRIC_DIVISOR_CM3={VOLUMETRIC_DIVISOR_CM3}
+            />
           ) : null}
 
-          <section className="rounded-xl border border-border-muted bg-surface-elevated p-6 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-              <div>
-                <h2 className="text-lg font-bold text-ink">Lập báo giá — chỉnh sửa từng khoản phí</h2>
-                <p className="text-sm text-muted mt-1">
-                  Dịch vụ chính và phí bắt buộc bị khóa. Sales bật/tắt phụ phí và chỉnh <strong>số lượng</strong> — thành tiền tự tính theo đơn giá.
-                </p>
-              </div>
-              {canSend ? (
-                <button
-                  type="button"
-                  onClick={reloadBasePricing}
-                  className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-border-muted text-xs font-bold text-ink hover:bg-surface shrink-0"
-                >
-                  <Icon icon="lucide:rotate-ccw" className="w-3.5 h-3.5" />
-                  Tải lại biểu phí gốc
-                </button>
-              ) : null}
-            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <FieldLabel htmlFor="discountPercent">Chiết khấu (%)</FieldLabel>
-                <input id="discountPercent" type="number" min="0" max="100" step="0.1" value={discountPercent} disabled={!canSend} onChange={(e) => { setDiscountPercent(e.target.value); resetSubmitState(); }} className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring disabled:opacity-90 disabled:cursor-not-allowed disabled:bg-surface" />
-              </div>
-            </div>
+          <QuotationFeesSection
+            canSend={canSend}
+            reloadBasePricing={reloadBasePricing}
+            discountPercent={discountPercent}
+            setDiscountPercent={setDiscountPercent}
+            resetSubmitState={resetSubmitState}
+            hasConfiguredPricing={hasConfiguredPricing}
+            selectedServicePricing={selectedServicePricing}
+            formatMainServiceUnitPrice={formatMainServiceUnitPrice}
+            chargeableWeight={chargeableWeight}
+            formatKgLabel={formatKgLabel}
+            formatMoney={formatMoney}
+            mainServiceAmount={mainServiceAmount}
+            additionalFeeLines={additionalFeeLines}
+            toggleAdditionalFee={toggleAdditionalFee}
+            updateAdditionalFeeQuantity={updateAdditionalFeeQuantity}
+            customFees={customFees}
+            removeCustomFee={removeCustomFee}
+            updateCustomFee={updateCustomFee}
+            totals={totals}
+            formatVatRatePercent={formatVatRatePercent}
+            vatRate={vatRate}
+            addCustomFee={addCustomFee}
+            QUICK_CUSTOM_FEES={QUICK_CUSTOM_FEES}
+          />
 
-            <div className="overflow-x-auto rounded-lg border border-border-muted">
-              <table className="w-full text-sm min-w-[720px]">
-                <thead>
-                  <tr className="text-left text-xs uppercase tracking-wide text-muted border-b border-border-muted bg-surface/50">
-                    <th className="px-4 py-3 w-10" />
-                    <th className="px-4 py-3">Khoản phí</th>
-                    <th className="px-4 py-3 text-right">Đơn giá</th>
-                    <th className="px-4 py-3 text-center">Số lượng</th>
-                    <th className="px-4 py-3 text-right">Thành tiền (VND)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className="border-b border-border-muted/60 align-top bg-primary/5">
-                    <td className="px-4 py-3">
-                      <Icon icon="lucide:lock" className="w-3.5 h-3.5 text-muted" />
-                    </td>
-                    <td className="px-4 py-3">
-                      <p className="font-bold text-ink">Dịch vụ chính (cước ký gửi)</p>
-                      <span className="inline-block mt-1 text-[10px] font-bold uppercase tracking-wide text-primary">
-                        Bắt buộc · khóa
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono text-xs text-ink">
-                      {hasConfiguredPricing
-                        ? formatMainServiceUnitPrice(selectedServicePricing).rate
-                        : "—"}
-                    </td>
-                    <td className="px-4 py-3 text-center text-xs text-muted">
-                      {chargeableWeight > 0 ? formatKgLabel(chargeableWeight) : "—"}
-                    </td>
-                    <td className="px-4 py-3 text-right font-semibold text-ink">
-                      {formatMoney(mainServiceAmount)}
-                    </td>
-                  </tr>
-                  {additionalFeeLines.map((line) => {
-                    const isPercentage = line.feeCalculationType === "PERCENTAGE";
-                    const locked = line.isRequired || !line.quantityEditable;
-                    const disabled = line.enabled === false;
-                    return (
-                    <tr key={line.feeId} className="border-b border-border-muted/60 align-top">
-                      <td className="px-4 py-3">
-                        <input type="checkbox" checked={!disabled} disabled={line.isRequired || !canSend} onChange={() => toggleAdditionalFee(line.feeId)} />
-                      </td>
-                      <td className="px-4 py-3">
-                        <p className="font-medium text-ink">{line.label}</p>
-                        {line.isRequired ? (
-                          <span className="inline-block mt-1 text-[10px] font-bold uppercase tracking-wide text-primary">
-                            Bắt buộc · khóa
-                          </span>
-                        ) : line.description ? (
-                          <p className="text-xs text-muted mt-0.5">{line.description}</p>
-                        ) : null}
-                      </td>
-                      <td className="px-4 py-3 text-right font-mono text-xs text-ink whitespace-nowrap">
-                        {isPercentage
-                          ? `${line.unitPrice}%`
-                          : line.unitPrice != null
-                            ? `${formatMoney(line.unitPrice)}/${line.unitNoun || "đv"}`
-                            : "—"}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {disabled ? (
-                          <span className="text-muted">—</span>
-                        ) : isPercentage ? (
-                          <span className="text-xs text-muted">theo %</span>
-                        ) : canSend && !locked ? (
-                          <input
-                            type="number"
-                            min="0"
-                            step="1"
-                            value={line.quantity ?? ""}
-                            onChange={(e) => updateAdditionalFeeQuantity(line.feeId, e.target.value)}
-                            className="w-20 h-10 px-2 rounded-lg border border-border-muted text-sm text-center input-focus-ring"
-                          />
-                        ) : (
-                          <span className="text-ink">{line.quantity ?? "—"} {line.unitNoun || ""}</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-right font-semibold">
-                        {disabled ? "—" : formatMoney(line.amount)}
-                      </td>
-                    </tr>
-                    );
-                  })}
-                  {customFees.map((fee) => (
-                    <tr key={fee.id} className="border-b border-border-muted/60 align-top">
-                      <td className="px-4 py-3">
-                        {canSend ? (
-                          <button
-                            type="button"
-                            onClick={() => removeCustomFee(fee.id)}
-                            className="btn-delete-icon"
-                            aria-label="Xóa phí"
-                          >
-                            <Icon icon="lucide:trash-2" className="w-4 h-4" />
-                          </button>
-                        ) : null}
-                      </td>
-                      <td className="px-4 py-3">
-                        {canSend ? (
-                          <input
-                            value={fee.label}
-                            onChange={(e) => updateCustomFee(fee.id, "label", e.target.value)}
-                            className="w-full h-10 px-3 rounded-lg border border-border-muted text-sm input-focus-ring"
-                          />
-                        ) : (
-                          <p className="font-medium text-ink">{fee.label}</p>
-                        )}
-                        <span className="inline-block mt-1 text-[10px] font-bold uppercase tracking-wide text-muted">
-                          Tùy chỉnh
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        {canSend ? (
-                          <VndMoneyInput
-                            value={fee.unitPrice}
-                            onChange={(value) => updateCustomFee(fee.id, "unitPrice", value)}
-                            className="w-28 h-10 px-3 rounded-lg border border-border-muted text-sm text-right input-focus-ring ml-auto"
-                          />
-                        ) : (
-                          <span className="font-mono text-xs">{formatMoney(fee.unitPrice)}</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {canSend ? (
-                          <input
-                            type="number"
-                            min="0"
-                            step="1"
-                            value={fee.quantity ?? ""}
-                            onChange={(e) => updateCustomFee(fee.id, "quantity", e.target.value)}
-                            className="w-20 h-10 px-2 rounded-lg border border-border-muted text-sm text-center input-focus-ring"
-                          />
-                        ) : (
-                          <span className="text-ink">{fee.quantity}</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-right font-semibold">
-                        {formatMoney((Number(fee.unitPrice) || 0) * (Number(fee.quantity) || 0))}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr className="border-t border-border-muted bg-surface/50">
-                    <td colSpan={4} className="px-4 py-3 text-sm font-semibold text-muted">Tạm tính (cước + phí dịch vụ)</td>
-                    <td className="px-4 py-3 text-right font-bold text-ink">{formatMoney(totals.subtotal)}</td>
-                  </tr>
-                  {totals.discount > 0 ? (
-                    <tr className="bg-surface/50">
-                      <td colSpan={4} className="px-4 py-3 text-sm font-semibold text-muted">Chiết khấu ({discountPercent}%)</td>
-                      <td className="px-4 py-3 text-right font-bold text-danger">-{formatMoney(totals.discount)}</td>
-                    </tr>
-                  ) : null}
-                  {totals.importTax > 0 ? (
-                    <tr className="bg-surface/50">
-                      <td colSpan={4} className="px-4 py-3 text-sm font-semibold text-muted">Thuế nhập khẩu</td>
-                      <td className="px-4 py-3 text-right font-bold text-ink">{formatMoney(totals.importTax)}</td>
-                    </tr>
-                  ) : null}
-                  {totals.vat > 0 ? (
-                    <tr className="bg-surface/50">
-                      <td colSpan={4} className="px-4 py-3 text-sm font-semibold text-muted">
-                        VAT ({formatVatRatePercent(totals.vatRate ?? vatRate)})
-                      </td>
-                      <td className="px-4 py-3 text-right font-bold text-ink">{formatMoney(totals.vat)}</td>
-                    </tr>
-                  ) : null}
-                  <tr className="bg-primary/5">
-                    <td colSpan={4} className="px-4 py-4 text-base font-black text-ink font-['Oswald']">Tổng cộng</td>
-                    <td className="px-4 py-4 text-right text-xl font-black text-primary font-['Oswald']">{formatMoney(totals.total)}</td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
 
-            {canSend ? (
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => addCustomFee()}
-                  className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-primary/30 bg-primary/5 text-xs font-bold text-primary hover:bg-primary/10"
-                >
-                  <Icon icon="lucide:plus" className="w-3.5 h-3.5" />
-                  Thêm khoản phí trống
-                </button>
-                <span className="text-xs font-semibold text-muted">Hoặc thêm nhanh:</span>
-                {QUICK_CUSTOM_FEES.map((label) => (
-                  <button
-                    key={label}
-                    type="button"
-                    onClick={() => addCustomFee(label, 0)}
-                    className="inline-flex items-center gap-1 h-9 px-3 rounded-full border border-border-muted text-xs font-bold text-ink hover:bg-surface"
-                  >
-                    <Icon icon="lucide:plus" className="w-3.5 h-3.5" />
-                    {label}
-                  </button>
-                ))}
-              </div>
-            ) : null}
-          </section>
+          <QuotationSalesNoteSection
+            detail={detail}
+            salesNote={salesNote}
+            canSend={canSend}
+            setSalesNote={setSalesNote}
+            resetSubmitState={resetSubmitState}
+          />
 
-          <section className="rounded-xl border border-border-muted bg-surface-elevated p-6 space-y-3">
-            <FieldLabel htmlFor="salesNote" required>Ghi chú tư vấn</FieldLabel>
-            {detail?.notes && detail.notes !== salesNote ? (
-              <p className="text-xs text-muted">
-                Ghi chú từ đơn hàng: <span className="text-ink">{detail.notes}</span>
-              </p>
-            ) : null}
-            <textarea id="salesNote" rows={3} value={salesNote} readOnly={!canSend} onChange={(e) => { setSalesNote(e.target.value); resetSubmitState(); }} placeholder="Nội dung gửi kèm báo giá cho khách..." className="w-full px-4 py-3 rounded-lg border border-border-muted text-sm input-focus-ring resize-y min-h-[88px] read-only:opacity-90 read-only:cursor-not-allowed read-only:bg-surface" />
-          </section>
-
-          {canSend && submitError ? <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">{submitError}</div> : null}
+          {canSend && submitError ? <div className={styles.alertDanger}>{submitError}</div> : null}
 
           {canSend ? (
-            <button type="submit" disabled={isSubmitting} className="inline-flex items-center justify-center gap-2 h-11 px-6 rounded-lg bg-primary text-white text-sm font-bold hover:bg-primary/90 disabled:opacity-50">
-              {isSubmitting ? <><Icon icon="lucide:loader-2" className="w-4 h-4 animate-spin" /> Đang gửi...</> : <><Icon icon="lucide:send" className="w-4 h-4" /> Gửi báo giá cho khách</>}
+            <button type="submit" disabled={isSubmitting} className={styles.submitBtn}>
+              {isSubmitting ? <><Icon icon="lucide:loader-2" className={`${styles.iconSm} ${styles.loadingIcon}`} /> Đang gửi...</> : <><Icon icon="lucide:send" className={styles.iconSm} /> Gửi báo giá cho khách</>}
             </button>
           ) : (
-            <Link href={resolvedBackHref} className="inline-flex items-center justify-center gap-2 h-11 px-6 rounded-lg border border-border-muted text-sm font-bold text-ink hover:bg-surface-muted">
-              <Icon icon="lucide:arrow-left" className="w-4 h-4" /> Quay lại chi tiết yêu cầu
+            <Link href={resolvedBackHref} className={styles.backBtn}>
+              <Icon icon="lucide:arrow-left" className={styles.iconSm} /> Quay lại chi tiết yêu cầu
             </Link>
           )}
         </form>

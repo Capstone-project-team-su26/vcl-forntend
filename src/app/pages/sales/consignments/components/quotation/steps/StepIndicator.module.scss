@@ -1,0 +1,84 @@
+@use "../consignment-ui" as ui;
+@use "../../../../../../../styles/mixins" as *;
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+
+  @include media-sm {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.stepWrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.badge {
+  display: flex;
+  height: 2rem;
+  width: 2rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 900;
+  background-color: var(--theme-surface);
+  color: var(--theme-muted);
+  border: 1px solid var(--theme-border-muted);
+
+  &.active {
+    background-color: var(--theme-primary);
+    color: var(--theme-on-solid);
+    border-color: transparent;
+  }
+
+  &.done {
+    background-color: var(--theme-success-bg);
+    color: var(--theme-success-text);
+    border-color: transparent;
+  }
+}
+
+.label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--theme-muted);
+
+  &.active {
+    color: var(--theme-ink);
+  }
+}
+
+.connector {
+  display: none;
+  flex: 1;
+  height: 1px;
+  background-color: var(--theme-border-muted);
+  margin-inline: 0.75rem;
+
+  @include media-sm {
+    display: block;
+  }
+}
+
+.iconSm {
+  width: 1rem;
+  height: 1rem;
+}

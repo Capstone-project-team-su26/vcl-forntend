@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import PurchaseRequestListPanel from "@/app/pages/sales/purchase-requests/components/PurchaseRequestListPanel";
 import { useAuth } from "@/hooks/useAuth";
 import { ROUTES } from "@/utils/appRoutes";
+import styles from "./StaffPurchaseRequestsPage.module.scss";
 
 export default function StaffPurchaseRequestsPage() {
   const router = useRouter();
@@ -19,7 +20,7 @@ export default function StaffPurchaseRequestsPage() {
 
   if (!isReady || !isSale) {
     return (
-      <div className="flex items-center justify-center py-24 text-muted">
+      <div className={styles.accessGate}>
         Đang kiểm tra quyền truy cập...
       </div>
     );

@@ -9,6 +9,7 @@ import {
   Theme,
   toggleTheme,
 } from "@/utils/theme";
+import styles from "./ThemeToggle.module.scss";
 
 export default function ThemeToggle({ variant = "sidebar", className = "" }) {
   const [theme, setTheme] = useState(Theme.LIGHT);
@@ -32,9 +33,9 @@ export default function ThemeToggle({ variant = "sidebar", className = "" }) {
         onClick={toggleTheme}
         aria-label={isDark ? "Chuyển sang light mode" : "Chuyển sang dark mode"}
         title={label}
-        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-muted hover:bg-surface-muted hover:text-ink transition-colors ${className}`}
+        className={`${styles.sidebarBtn} ${className}`}
       >
-        <Icon icon={isDark ? "lucide:sun" : "lucide:moon"} className="w-5 h-5 shrink-0" />
+        <Icon icon={isDark ? "lucide:sun" : "lucide:moon"} className={styles.icon} />
         <span>{label}</span>
       </button>
     );
@@ -46,9 +47,9 @@ export default function ThemeToggle({ variant = "sidebar", className = "" }) {
       onClick={toggleTheme}
       aria-label={isDark ? "Chuyển sang light mode" : "Chuyển sang dark mode"}
       title={label}
-      className={`flex items-center justify-center w-10 h-10 rounded-lg border border-border-muted bg-surface-elevated text-ink hover:bg-surface-muted transition-colors ${className}`}
+      className={`${styles.compactBtn} ${className}`}
     >
-      <Icon icon={isDark ? "lucide:sun" : "lucide:moon"} className="w-5 h-5" />
+      <Icon icon={isDark ? "lucide:sun" : "lucide:moon"} className={styles.icon} />
     </button>
   );
 }

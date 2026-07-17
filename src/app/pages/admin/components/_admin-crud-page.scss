@@ -1,0 +1,273 @@
+@use "../../../../styles/page-patterns" as *;
+
+.page {
+  @include pageStack;
+}
+
+.headerRow {
+  @include pageHeaderRow;
+}
+
+.title {
+  @include pageTitle;
+}
+
+.subtitle {
+  @include pageSubtitle;
+}
+
+.addBtn {
+  @include primaryActionBtn;
+}
+
+.addBtnIcon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.alertError {
+  @include alertDanger;
+}
+
+.alertSuccess {
+  @include alertSuccess;
+}
+
+.cellName {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--theme-ink);
+}
+
+.cellNameSemibold {
+  font-weight: 600;
+  color: var(--theme-ink);
+}
+
+.cellId {
+  font-size: 0.625rem;
+  color: var(--theme-faint);
+  margin-top: 0.125rem;
+}
+
+.cellNote {
+  font-size: 0.75rem;
+  color: var(--theme-muted);
+  margin-top: 0.25rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.lineClamp2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.badgeActive {
+  @include badgePill;
+  background-color: var(--theme-success-bg);
+  color: var(--theme-success-text);
+}
+
+.badgeInactive {
+  @include badgePill;
+  background-color: var(--theme-surface);
+  color: var(--theme-muted);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.25rem;
+}
+
+.editBtn {
+  @include iconActionBtn;
+
+  &:hover:not(:disabled) {
+    color: var(--theme-insight);
+  }
+}
+
+.editBtnNeutral {
+  @include iconActionBtn;
+
+  &:hover:not(:disabled) {
+    color: var(--theme-ink);
+  }
+}
+
+.toggleBtn {
+  @include iconActionBtn;
+
+  &:hover:not(:disabled) {
+    color: var(--theme-warning-text);
+  }
+}
+
+.toggleBtnNeutral {
+  @include iconActionBtn;
+
+  &:hover:not(:disabled) {
+    color: var(--theme-ink);
+  }
+}
+
+.actionIcon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.badgeProhibited {
+  @include badgePill;
+  background-color: color-mix(in srgb, var(--theme-danger) 10%, transparent);
+  color: var(--theme-danger);
+}
+
+.badgeRestricted {
+  @include badgePill;
+  background-color: var(--theme-warning-bg);
+  color: var(--theme-warning-text);
+}
+
+.badgeConditional {
+  @include badgePill;
+  background-color: var(--theme-info-bg);
+  color: var(--theme-info-text);
+}
+
+.badgeDefault {
+  @include badgePill;
+  background-color: var(--theme-surface);
+  color: var(--theme-muted);
+}
+
+.badgeZone {
+  @include badgePill;
+  background-color: color-mix(in srgb, var(--theme-primary) 15%, transparent);
+  color: var(--theme-primary);
+}
+
+.badgeShelf {
+  @include badgePill;
+  background-color: color-mix(in srgb, var(--theme-secondary) 15%, transparent);
+  color: var(--theme-secondary);
+}
+
+.badgeBin {
+  @include badgePill;
+  background-color: color-mix(in srgb, var(--theme-accent) 15%, transparent);
+  color: var(--theme-accent);
+}
+
+.badgeRoleActive {
+  @include badgePill;
+  background-color: var(--theme-success-bg);
+  color: var(--theme-success-text);
+}
+
+.badgeRoleLocked {
+  @include badgePill;
+  background-color: var(--theme-danger-bg);
+  color: var(--theme-danger);
+}
+
+.badgeRolePending {
+  @include badgePill;
+  background-color: var(--theme-warning-bg);
+  color: var(--theme-warning-text);
+}
+
+.badgePillBase {
+  @include badgePill;
+}
+
+.badgePillSm {
+  display: inline-block;
+  padding: 0.125rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+}
+
+.colMono {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 0.75rem;
+}
+
+.colMuted {
+  color: var(--theme-muted);
+}
+
+.colMutedMd {
+  color: var(--theme-muted);
+  display: none;
+  max-width: 20rem;
+
+  @media (min-width: 768px) {
+    display: table-cell;
+  }
+}
+
+.colMutedLg {
+  color: var(--theme-muted);
+  display: none;
+  max-width: 20rem;
+
+  @media (min-width: 1024px) {
+    display: table-cell;
+  }
+}
+
+.colMutedXl {
+  color: var(--theme-muted);
+  display: none;
+  max-width: 20rem;
+
+  @media (min-width: 1280px) {
+    display: table-cell;
+  }
+}
+
+.colMutedLgNowrap {
+  color: var(--theme-muted);
+  display: none;
+  white-space: nowrap;
+
+  @media (min-width: 1024px) {
+    display: table-cell;
+  }
+}
+
+.colMedium {
+  font-weight: 500;
+}
+
+.disabledOpacity {
+  &:disabled {
+    opacity: 0.5;
+  }
+}
+
+.divideY {
+  & > :not([hidden]) ~ :not([hidden]) {
+    border-top: 1px solid var(--theme-border-muted);
+  }
+}
+
+.spinIcon {
+  width: 1rem;
+  height: 1rem;
+  animation: adminSpin 1s linear infinite;
+}
+
+@keyframes adminSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}

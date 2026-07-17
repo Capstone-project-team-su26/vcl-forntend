@@ -7,6 +7,7 @@ import ServicePricingFormModal from "./PricingRuleFormModal";
 import DataTable from "@/app/components/DataTable";
 import * as servicePricingService from "@/utils/servicePricingService";
 import { getErrorMessage } from "@/utils/apiError";
+import styles from "./PricingRulesPage.module.scss";
 
 const {
   SERVICE_TYPE_LABELS,
@@ -31,11 +32,7 @@ const UNIT_TYPE_FILTER_OPTIONS = Object.entries(UNIT_TYPE_LABELS).map(([value, l
 
 function ActiveBadge({ isActive }) {
   return (
-    <span
-      className={`inline-block px-3 py-1 rounded-full text-[11px] font-bold ${
-        isActive ? "bg-success-bg text-success-text" : "bg-surface text-muted"
-      }`}
-    >
+    <span className={isActive ? styles.badgeActive : styles.badgeInactive}>
       {isActive ? "Hoạt động" : "Vô hiệu"}
     </span>
   );
@@ -160,10 +157,10 @@ export default function PricingRulesPage() {
         filter: { options: SERVICE_TYPE_FILTER_OPTIONS },
         render: (item) => (
           <div>
-            <p className="text-sm font-bold text-ink">
+            <p className={styles.cellName}>
               {SERVICE_TYPE_LABELS[item.serviceType] || item.serviceType}
             </p>
-            <p className="text-[10px] text-faint mt-0.5">{item.id}</p>
+            <p className={styles.cellId}>{item.id}</p>
           </div>
         ),
       },
@@ -172,20 +169,20 @@ export default function PricingRulesPage() {
         title: "Tuyến",
         searchable: true,
         searchAccessor: (item) => formatServicePricingRoute(item),
-        className: "text-muted",
+        className: styles.t9a12f0,
         render: (item) => formatServicePricingRoute(item),
       },
       {
         key: "unitType",
         title: "Đơn vị",
         filter: { options: UNIT_TYPE_FILTER_OPTIONS },
-        className: "text-muted",
+        className: styles.t9a12f0,
         render: (item) => UNIT_TYPE_LABELS[item.unitType] || item.unitType,
       },
       {
         key: "unitPrice",
         title: "Đơn giá",
-        className: "font-medium",
+        className: styles.t2689f3,
         render: (item) => formatUnitPrice(item),
       },
       {
@@ -194,7 +191,7 @@ export default function PricingRulesPage() {
         sortable: true,
         sortAccessor: (item) =>
           item.effectiveDate ? new Date(item.effectiveDate).getTime() : 0,
-        className: "text-muted",
+        className: styles.t9a12f0,
         render: (item) =>
           item.effectiveDate
             ? new Date(item.effectiveDate).toLocaleDateString("vi-VN")
@@ -214,36 +211,36 @@ export default function PricingRulesPage() {
         title: "Hành động",
         align: "right",
         render: (item) => (
-          <div className="flex items-center justify-end gap-1">
+          <div className={styles.actions}>
             <button
               type="button"
               onClick={() => openEdit(item)}
               disabled={pendingId === item.id}
-              className="p-2 text-muted hover:text-insight hover:bg-surface rounded-lg disabled:opacity-50"
+              className={styles.editBtn}
               title="Sửa"
             >
-              <Icon icon="lucide:pencil" className="w-4 h-4" />
+              <Icon icon="lucide:pencil" className={styles.actionIcon} />
             </button>
             <button
               type="button"
               onClick={() => handleToggleActive(item)}
               disabled={pendingId === item.id}
-              className="p-2 text-muted hover:text-warning-text hover:bg-surface rounded-lg disabled:opacity-50"
+              className={styles.toggleBtn}
               title={item.isActive ? "Vô hiệu hóa" : "Kích hoạt"}
             >
               <Icon
                 icon={item.isActive ? "lucide:ban" : "lucide:circle-check"}
-                className="w-4 h-4"
+                className={styles.actionIcon}
               />
             </button>
             <button
               type="button"
               onClick={() => handleDelete(item)}
               disabled={pendingId === item.id}
-              className="btn-delete-icon disabled:opacity-50"
+              className={`${styles.t52c30e} btn-delete-icon`}
               title="Xóa"
             >
-              <Icon icon="lucide:trash-2" className="w-4 h-4" />
+              <Icon icon="lucide:trash-2" className={styles.actionIcon} />
             </button>
           </div>
         ),
@@ -254,33 +251,33 @@ export default function PricingRulesPage() {
 
   return (
     <AdminLayout activeNav="pricing-rules">
-      <div className="space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+      <div className={styles.page}>
+        <div className={styles.headerRow}>
           <div>
-            <h1 className="text-xl lg:text-2xl font-bold text-ink tracking-tight">
+            <h1 className={styles.title}>
               Giá dịch vụ chính (ký gửi)
             </h1>
-            <p className="text-sm text-muted mt-1 leading-relaxed">
+            <p className={styles.subtitle}>
               Cấu hình cước theo tuyến và đơn vị tính. Phụ phí quản lý riêng ở Phí dịch vụ bổ sung.
             </p>
           </div>
           <button
             type="button"
             onClick={openCreate}
-            className="inline-flex items-center justify-center gap-2 h-10 px-4 bg-insight hover:bg-secondary text-white text-sm font-bold rounded-lg transition-colors shrink-0"
+            className={styles.addBtn}
           >
-            <Icon icon="lucide:plus" className="w-4 h-4" />
+            <Icon icon="lucide:plus" className={styles.addBtnIcon} />
             Thêm giá dịch vụ chính
           </button>
         </div>
 
         {actionError ? (
-          <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
+          <div className={styles.alertError}>
             {actionError}
           </div>
         ) : null}
         {actionMessage ? (
-          <div className="rounded-lg border border-success/30 bg-success-bg px-4 py-3 text-sm text-success-text">
+          <div className={styles.alertSuccess}>
             {actionMessage}
           </div>
         ) : null}

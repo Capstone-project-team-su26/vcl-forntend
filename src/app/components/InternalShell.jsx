@@ -6,6 +6,7 @@ import { useState } from "react";
 import AppLogo from "@/app/components/AppLogo";
 import ThemeToggle from "@/app/components/ThemeToggle";
 import UserNavMenu from "@/app/components/UserNavMenu";
+import styles from "./InternalShell.module.scss";
 
 /** Layout nội bộ dùng chung — sidebar + header, một logo, một UserNavMenu (chỉ header). */
 export default function InternalShell({
@@ -18,25 +19,23 @@ export default function InternalShell({
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background font-open-sans text-ink print:h-auto print:overflow-visible">
+    <div className={styles.root}>
       {isSidebarOpen ? (
         <div
-          className="fixed inset-0 z-40 bg-secondary/40 lg:hidden"
+          className={`no-print ${styles.overlay}`}
           onClick={() => setIsSidebarOpen(false)}
           aria-hidden
         />
       ) : null}
 
       <aside
-        className={`no-print fixed inset-y-0 left-0 z-50 w-64 bg-surface border-r border-border-muted flex flex-col transition-transform duration-300 lg:translate-x-0 lg:static lg:h-full lg:shrink-0 ${
-          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+        className={`no-print ${styles.sidebar} ${isSidebarOpen ? styles.open : ""}`}
       >
-        <div className="h-16 flex items-center px-6 border-b border-border-muted shrink-0">
+        <div className={styles.sidebarHeader}>
           <AppLogo href={logoHref} />
         </div>
 
-        <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto">
+        <nav className={styles.nav}>
           {navItems.map((item) => {
             const isActive = item.id === activeNav;
             return (
@@ -44,64 +43,52 @@ export default function InternalShell({
                 key={item.id}
                 href={item.href}
                 onClick={() => setIsSidebarOpen(false)}
-                className={`w-full flex items-center gap-3 pl-2.5 pr-3 py-2.5 rounded-lg border-l-[3px] transition-all ${
-                  isActive
-                    ? "border-l-primary bg-surface-muted text-ink font-bold"
-                    : "border-l-transparent text-muted hover:bg-surface-muted hover:text-ink"
-                }`}
+                className={`${styles.navLink} ${isActive ? styles.active : ""}`}
               >
-                <span
-                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border-2 ${
-                    isActive
-                      ? "border-primary/40 bg-surface-elevated text-primary"
-                      : "border-border bg-surface-elevated text-muted"
-                  }`}
-                >
+                <span className={styles.navIconWrap}>
                   {item.icon?.startsWith("/") ? (
                     <img
                       src={item.icon}
                       alt=""
-                      className={`w-[18px] h-[18px] ${isActive ? "opacity-100" : "opacity-80"}`}
+                      className={styles.navIconImg}
                     />
                   ) : (
-                    <Icon icon={item.icon} className="w-[18px] h-[18px]" aria-hidden />
+                    <Icon icon={item.icon} className={styles.navIcon} aria-hidden />
                   )}
                 </span>
-                <span className={`text-sm ${isActive ? "font-bold" : "font-semibold"}`}>
-                  {item.label}
-                </span>
+                <span className={styles.navLabel}>{item.label}</span>
               </Link>
             );
           })}
         </nav>
 
-        <div className="px-4 py-4 border-t border-border-muted shrink-0">
+        <div className={styles.sidebarFooter}>
           <ThemeToggle />
         </div>
       </aside>
 
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="no-print h-16 bg-surface-elevated border-b border-border-muted flex items-center justify-between px-4 lg:px-8 shrink-0">
+      <div className={styles.mainColumn}>
+        <header className={`no-print ${styles.header}`}>
           <button
             type="button"
             onClick={() => setIsSidebarOpen(true)}
-            className="lg:hidden p-2 text-muted hover:text-ink"
+            className={styles.menuBtn}
             aria-label="Mở menu"
           >
-            <Icon icon="lucide:menu" className="w-6 h-6" />
+            <Icon icon="lucide:menu" className={styles.menuIcon} />
           </button>
 
-          <div className="flex items-center gap-4 ml-auto">
-            <button type="button" className="relative p-2 text-muted hover:text-ink" aria-label="Thông báo">
-              <Icon icon="lucide:bell" className="w-5 h-5" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-danger rounded-full" />
+          <div className={styles.headerActions}>
+            <button type="button" className={styles.notifyBtn} aria-label="Thông báo">
+              <Icon icon="lucide:bell" className={styles.notifyIcon} />
+              <span className={styles.notifyDot} />
             </button>
             <UserNavMenu roleLabel={roleLabel} />
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto custom-scrollbar bg-background print:overflow-visible">
-          <div className="p-4 lg:p-8 max-w-[1200px] mx-auto print:p-0 print:max-w-none">{children}</div>
+        <main className={`${styles.main} custom-scrollbar`}>
+          <div className={styles.mainInner}>{children}</div>
         </main>
       </div>
     </div>

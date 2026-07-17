@@ -1,4 +1,5 @@
 "use client";
+import styles from "./CarriersPage.module.scss";
 
 import { Icon } from "@iconify/react";
 import { useEffect, useMemo, useState } from "react";
@@ -22,11 +23,7 @@ const TYPE_FILTER_OPTIONS = Object.entries(CARRIER_TYPE_LABELS).map(([value, lab
 
 function ActiveBadge({ isActive }) {
   return (
-    <span
-      className={`inline-block px-3 py-1 rounded-full text-[11px] font-bold ${
-        isActive ? "bg-success-bg text-success-text" : "bg-surface text-muted"
-      }`}
-    >
+    <span className={isActive ? styles.badgeActive : styles.badgeInactive}>
       {isActive ? "Hoạt động" : "Vô hiệu"}
     </span>
   );
@@ -149,7 +146,7 @@ export default function CarriersPage() {
         title: "Mã",
         sortable: true,
         searchable: true,
-        className: "font-mono text-xs",
+        className: styles.colMono,
         render: (item) => item.code || "—",
       },
       {
@@ -160,9 +157,9 @@ export default function CarriersPage() {
         searchAccessor: (item) => `${item.name || ""} ${item.internalNotes || ""}`,
         render: (item) => (
           <div>
-            <p className="font-semibold text-ink">{item.name}</p>
+            <p className={styles.cellNameSemibold}>{item.name}</p>
             {item.internalNotes ? (
-              <p className="text-xs text-muted mt-1 line-clamp-1" title={item.internalNotes}>
+              <p className={styles.cellNote} title={item.internalNotes}>
                 Ghi chú: {item.internalNotes}
               </p>
             ) : null}
@@ -181,26 +178,26 @@ export default function CarriersPage() {
         key: "supportedShippingMethods",
         title: "Phương thức hỗ trợ",
         headerClassName: "hidden md:table-cell",
-        className: "text-muted hidden md:table-cell max-w-xs",
+        className: styles.colMutedMd,
         render: (item) => (
-          <span className="line-clamp-2">{formatShippingMethods(item.supportedShippingMethods)}</span>
+          <span className={styles.lineClamp2}>{formatShippingMethods(item.supportedShippingMethods)}</span>
         ),
       },
       {
         key: "supportedRegions",
         title: "Khu vực",
         headerClassName: "hidden lg:table-cell",
-        className: "text-muted hidden lg:table-cell max-w-xs",
+        className: styles.colMutedLg,
         render: (item) => (
-          <span className="line-clamp-2">{item.supportedRegions || "—"}</span>
+          <span className={styles.lineClamp2}>{item.supportedRegions || "—"}</span>
         ),
       },
       {
         key: "contactInfo",
         title: "Liên hệ",
         headerClassName: "hidden xl:table-cell",
-        className: "text-muted hidden xl:table-cell max-w-xs",
-        render: (item) => <span className="line-clamp-2">{item.contactInfo || "—"}</span>,
+        className: styles.colMutedXl,
+        render: (item) => <span className={styles.lineClamp2}>{item.contactInfo || "—"}</span>,
       },
       {
         key: "status",
@@ -216,35 +213,35 @@ export default function CarriersPage() {
         title: "Thao tác",
         align: "right",
         render: (item) => (
-          <div className="flex items-center justify-end gap-1">
+          <div className={styles.actions}>
             <button
               type="button"
               onClick={() => openEdit(item)}
-              className="p-2 text-muted hover:text-ink rounded-lg hover:bg-surface"
+              className={styles.editBtnNeutral}
               title="Sửa"
             >
-              <Icon icon="lucide:pencil" className="w-4 h-4" />
+              <Icon icon="lucide:pencil" className={styles.actionIcon} />
             </button>
             <button
               type="button"
               disabled={pendingId === item.id}
               onClick={() => handleToggleActive(item)}
-              className="p-2 text-muted hover:text-ink rounded-lg hover:bg-surface disabled:opacity-50"
+              className={styles.toggleBtnNeutral}
               title={item.isActive ? "Vô hiệu hóa" : "Kích hoạt"}
             >
               <Icon
                 icon={item.isActive ? "lucide:ban" : "lucide:check-circle"}
-                className="w-4 h-4"
+                className={styles.actionIcon}
               />
             </button>
             <button
               type="button"
               disabled={pendingId === item.id}
               onClick={() => handleDelete(item)}
-              className="btn-delete-icon disabled:opacity-50"
+              className={`${styles.disabledOpacity} btn-delete-icon`}
               title="Xóa"
             >
-              <Icon icon="lucide:trash-2" className="w-4 h-4" />
+              <Icon icon="lucide:trash-2" className={styles.actionIcon} />
             </button>
           </div>
         ),
@@ -255,34 +252,34 @@ export default function CarriersPage() {
 
   return (
     <AdminLayout activeNav="carriers">
-      <div className="space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+      <div className={styles.page}>
+        <div className={styles.headerRow}>
           <div>
-            <h1 className="text-xl lg:text-2xl font-bold text-ink tracking-tight">
+            <h1 className={styles.title}>
               Đơn vị vận chuyển
             </h1>
-            <p className="text-sm text-muted mt-1 leading-relaxed">
+            <p className={styles.subtitle}>
               Cấu hình hãng vận chuyển và forwarder khi tạo lô vận chuyển quốc tế.
             </p>
           </div>
           <button
             type="button"
             onClick={openCreate}
-            className="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-lg bg-insight hover:bg-secondary text-white text-sm font-bold shrink-0"
+            className={styles.addBtn}
           >
-            <Icon icon="lucide:plus" className="w-4 h-4" />
+            <Icon icon="lucide:plus" className={styles.actionIcon} />
             Thêm đơn vị
           </button>
         </div>
 
         {actionError ? (
-          <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
+          <div className={styles.alertError}>
             {actionError}
           </div>
         ) : null}
 
         {actionMessage ? (
-          <div className="rounded-lg border border-success/30 bg-success-bg px-4 py-3 text-sm text-success-text">
+          <div className={styles.alertSuccess}>
             {actionMessage}
           </div>
         ) : null}

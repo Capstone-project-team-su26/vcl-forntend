@@ -1,4 +1,5 @@
 "use client";
+import styles from "./AdditionalServiceFeesPage.module.scss";
 
 import { Icon } from "@iconify/react";
 import { useEffect, useMemo, useState } from "react";
@@ -42,11 +43,7 @@ const STATUS_FILTER_OPTIONS = [
 
 function ActiveBadge({ isActive }) {
   return (
-    <span
-      className={`inline-block px-3 py-1 rounded-full text-[11px] font-bold ${
-        isActive ? "bg-success-bg text-success-text" : "bg-surface text-muted"
-      }`}
-    >
+    <span className={isActive ? styles.badgeActive : styles.badgeInactive}>
       {isActive ? "Hoạt động" : "Vô hiệu"}
     </span>
   );
@@ -182,7 +179,7 @@ export default function AdditionalServiceFeesPage() {
         title: "Mã",
         sortable: true,
         searchable: true,
-        className: "font-mono text-xs",
+        className: styles.tf05d22,
         render: (item) => item.code || "—",
       },
       {
@@ -190,26 +187,26 @@ export default function AdditionalServiceFeesPage() {
         title: "Tên loại phí",
         sortable: true,
         searchable: true,
-        className: "font-semibold text-ink",
+        className: styles.t1d3e56,
         render: (item) => item.name,
       },
       {
         key: "feeCalculationType",
         title: "Cách tính",
-        className: "text-muted",
+        className: styles.t9a12f0,
         render: (item) => formatFeeCalculationType(item.feeCalculationType, item),
       },
       {
         key: "amount",
         title: "Mức phí",
-        className: "font-semibold text-ink",
+        className: styles.t1d3e56,
         render: (item) => formatFeeAmount(item),
       },
       {
         key: "unit",
         title: "Đơn vị",
         headerClassName: "hidden md:table-cell",
-        className: "text-muted hidden md:table-cell",
+        className: styles.tf203be,
         render: (item) => item.unit || "—",
       },
       {
@@ -217,8 +214,8 @@ export default function AdditionalServiceFeesPage() {
         title: "Mô tả",
         searchable: true,
         headerClassName: "hidden lg:table-cell",
-        className: "text-muted hidden lg:table-cell max-w-xs",
-        render: (item) => <span className="line-clamp-2">{item.description || "—"}</span>,
+        className: styles.t49ae10,
+        render: (item) => <span className={styles.lineClamp2}>{item.description || "—"}</span>,
       },
       {
         key: "status",
@@ -234,35 +231,35 @@ export default function AdditionalServiceFeesPage() {
         title: "Thao tác",
         align: "right",
         render: (item) => (
-          <div className="flex items-center justify-end gap-1">
+          <div className={styles.actions}>
             <button
               type="button"
               onClick={() => openEdit(item)}
-              className="p-2 text-muted hover:text-ink rounded-lg hover:bg-surface"
+              className={styles.editBtnNeutral}
               title="Sửa"
             >
-              <Icon icon="lucide:pencil" className="w-4 h-4" />
+              <Icon icon="lucide:pencil" className={styles.actionIcon} />
             </button>
             <button
               type="button"
               disabled={pendingId === item.id}
               onClick={() => handleToggleActive(item)}
-              className="p-2 text-muted hover:text-ink rounded-lg hover:bg-surface disabled:opacity-50"
+              className={styles.toggleBtnNeutral}
               title={item.isActive ? "Vô hiệu hóa" : "Kích hoạt"}
             >
               <Icon
                 icon={item.isActive ? "lucide:ban" : "lucide:check-circle"}
-                className="w-4 h-4"
+                className={styles.actionIcon}
               />
             </button>
             <button
               type="button"
               disabled={pendingId === item.id}
               onClick={() => handleDelete(item)}
-              className="btn-delete-icon disabled:opacity-50"
+              className={`${styles.t52c30e} btn-delete-icon`}
               title="Xóa"
             >
-              <Icon icon="lucide:trash-2" className="w-4 h-4" />
+              <Icon icon="lucide:trash-2" className={styles.actionIcon} />
             </button>
           </div>
         ),
@@ -273,34 +270,34 @@ export default function AdditionalServiceFeesPage() {
 
   return (
     <AdminLayout activeNav="additional-service-fees">
-      <div className="space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+      <div className={styles.page}>
+        <div className={styles.headerRow}>
           <div>
-            <h1 className="text-xl lg:text-2xl font-bold text-ink tracking-tight">
+            <h1 className={styles.title}>
               Phí dịch vụ bổ sung
             </h1>
-            <p className="text-sm text-muted mt-1 leading-relaxed">
+            <p className={styles.subtitle}>
               Cấu hình bảo hiểm, đóng thùng, gia cố, kiểm hàng, lưu kho… khi báo giá.
             </p>
           </div>
           <button
             type="button"
             onClick={openCreate}
-            className="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-lg bg-insight hover:bg-secondary text-white text-sm font-bold shrink-0"
+            className={styles.addBtn}
           >
-            <Icon icon="lucide:plus" className="w-4 h-4" />
+            <Icon icon="lucide:plus" className={styles.actionIcon} />
             Thêm loại phí
           </button>
         </div>
 
         {actionError ? (
-          <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
+          <div className={styles.alertError}>
             {actionError}
           </div>
         ) : null}
 
         {actionMessage ? (
-          <div className="rounded-lg border border-success/30 bg-success-bg px-4 py-3 text-sm text-success-text">
+          <div className={styles.alertSuccess}>
             {actionMessage}
           </div>
         ) : null}
@@ -317,18 +314,18 @@ export default function AdditionalServiceFeesPage() {
           minWidth={980}
         />
 
-        <div className="rounded-xl border border-border-muted bg-surface-elevated px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className={styles.t1da0fc}>
           <div>
-            <p className="text-sm font-bold text-ink">Hệ số quy đổi thể tích</p>
-            <p className="text-xs text-muted mt-0.5">
+            <p className={styles.cellName}>Hệ số quy đổi thể tích</p>
+            <p className={styles.t5e4cbe}>
               Dùng khi tính DIM: thể tích (cm³) ÷ hệ số. Quy tắc hệ thống mã{" "}
-              <span className="font-mono">VOLUMETRIC_DIVISOR</span>.
+              <span className={styles.t0e6570}>VOLUMETRIC_DIVISOR</span>.
             </p>
           </div>
-          <div className="flex items-center gap-3 shrink-0">
-            <p className="text-sm text-muted">
+          <div className={styles.te80bfc}>
+            <p className={styles.ta7b499}>
               Đang áp dụng:{" "}
-              <span className="font-mono font-bold text-ink">
+              <span className={styles.t6d6721}>
                 {Number(volumetricDivisorRule?.fixedAmount) > 0
                   ? Number(volumetricDivisorRule.fixedAmount).toLocaleString("vi-VN")
                   : "5.000 (mặc định IATA)"}
@@ -338,37 +335,37 @@ export default function AdditionalServiceFeesPage() {
               <button
                 type="button"
                 onClick={() => openEdit(volumetricDivisorRule)}
-                className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-border-muted text-sm font-semibold text-ink hover:bg-surface"
+                className={styles.t145f5c}
               >
-                <Icon icon="lucide:pencil" className="w-4 h-4" />
+                <Icon icon="lucide:pencil" className={styles.actionIcon} />
                 Chỉnh sửa
               </button>
             ) : null}
           </div>
         </div>
 
-        <div className="rounded-xl border border-border-muted bg-surface-elevated px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className={styles.t1da0fc}>
           <div>
-            <p className="text-sm font-bold text-ink">VAT báo giá ký gửi</p>
-            <p className="text-xs text-muted mt-0.5">
+            <p className={styles.cellName}>VAT báo giá ký gửi</p>
+            <p className={styles.t5e4cbe}>
               VAT = (cước + phí dịch vụ) × tỷ lệ. Quy tắc hệ thống mã{" "}
-              <span className="font-mono">VAT</span> / <span className="font-mono">IMPORT_TAX</span>{" "}
+              <span className={styles.t0e6570}>VAT</span> / <span className={styles.t0e6570}>IMPORT_TAX</span>{" "}
               (không hiện như phụ phí bật/tắt trên Sales).
             </p>
           </div>
-          <div className="flex items-center gap-3 shrink-0">
-            <p className="text-sm text-muted">
+          <div className={styles.te80bfc}>
+            <p className={styles.ta7b499}>
               Đang áp dụng:{" "}
-              <span className="font-mono font-bold text-ink">
+              <span className={styles.t6d6721}>
                 {vatRule ? vatRateLabel : `${vatRateLabel} (mặc định)`}
               </span>
             </p>
             <button
               type="button"
               onClick={openVatEditor}
-              className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-border-muted text-sm font-semibold text-ink hover:bg-surface"
+              className={styles.t145f5c}
             >
-              <Icon icon={vatRule ? "lucide:pencil" : "lucide:plus"} className="w-4 h-4" />
+              <Icon icon={vatRule ? "lucide:pencil" : "lucide:plus"} className={styles.actionIcon} />
               {vatRule ? "Chỉnh sửa" : "Tạo quy tắc"}
             </button>
           </div>

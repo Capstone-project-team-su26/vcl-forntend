@@ -1,10 +1,12 @@
 "use client";
 
+import { Icon } from "@iconify/react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import ConsignmentDetailPanel from "@/app/pages/sales/consignments/components/ConsignmentDetailPanel";
 import { useAuth } from "@/hooks/useAuth";
 import { ROUTES } from "@/utils/appRoutes";
+import styles from "./AccessChecking.module.scss";
 
 export default function StaffConsignmentDetailPage() {
   const params = useParams();
@@ -21,8 +23,9 @@ export default function StaffConsignmentDetailPage() {
 
   if (!isReady || !isSale) {
     return (
-      <div className="flex items-center justify-center py-24 text-muted">
-        Đang kiểm tra quyền truy cập...
+      <div className={styles.root}>
+        <Icon icon="lucide:loader-2" className={styles.icon} />
+        <p className={styles.text}>Đang kiểm tra quyền truy cập...</p>
       </div>
     );
   }

@@ -1,4 +1,5 @@
 "use client";
+import styles from "./CustomerFormModal.module.scss";
 
 import { Icon } from "@iconify/react";
 import { useState } from "react";
@@ -51,33 +52,33 @@ export default function CustomerFormModal({ open, mode, customer, onClose, onSav
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className={styles.ta73cc4}>
       <button
         type="button"
-        className="absolute inset-0 bg-black/40"
+        className={styles.td54a21}
         onClick={onClose}
         aria-label="Đóng"
       />
-      <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto bg-surface-elevated rounded-xl border border-border-muted shadow-xl">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border-muted sticky top-0 bg-surface-elevated">
-          <h2 className="text-lg font-bold text-ink">
+      <div className={styles.tfadd7d}>
+        <div className={styles.t098018}>
+          <h2 className={styles.te817d8}>
             {mode === "create" ? "Thêm khách hàng" : "Chỉnh sửa khách hàng"}
           </h2>
-          <button type="button" onClick={onClose} className="p-2 text-muted hover:text-ink">
-            <Icon icon="lucide:x" className="w-5 h-5" />
+          <button type="button" onClick={onClose} className={styles.t6265d4}>
+            <Icon icon="lucide:x" className={styles.ta8600f} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className={styles.tcccb28}>
           {error ? (
-            <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
+            <div className={styles.te12bff}>
               {error}
             </div>
           ) : null}
 
-          <div className="space-y-2">
-            <label htmlFor="fullName" className="text-sm font-semibold text-ink">
-              Họ tên <span className="text-danger">*</span>
+          <div className={styles.t6f7e01}>
+            <label htmlFor="fullName" className={styles.tae03fc}>
+              Họ tên <span className={styles.tf3fb31}>*</span>
             </label>
             <input
               id="fullName"
@@ -85,14 +86,14 @@ export default function CustomerFormModal({ open, mode, customer, onClose, onSav
               required
               defaultValue={customer?.fullName ?? ""}
               placeholder="VD: Nguyen Van A"
-              className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
+              className={`${styles.t752d10} input-focus-ring`}
             />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label htmlFor="phone" className="text-sm font-semibold text-ink">
-                Số điện thoại <span className="text-danger">*</span>
+          <div className={styles.t4c017d}>
+            <div className={styles.t6f7e01}>
+              <label htmlFor="phone" className={styles.tae03fc}>
+                Số điện thoại <span className={styles.tf3fb31}>*</span>
               </label>
               <input
                 id="phone"
@@ -100,11 +101,11 @@ export default function CustomerFormModal({ open, mode, customer, onClose, onSav
                 required
                 defaultValue={customer?.phone ?? ""}
                 placeholder="VD: +84 901 234 567"
-                className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
+                className={`${styles.t752d10} input-focus-ring`}
               />
             </div>
-            <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-semibold text-ink">
+            <div className={styles.t6f7e01}>
+              <label htmlFor="email" className={styles.tae03fc}>
                 Email
               </label>
               <input
@@ -113,13 +114,13 @@ export default function CustomerFormModal({ open, mode, customer, onClose, onSav
                 type="email"
                 defaultValue={customer?.email ?? ""}
                 placeholder="email@example.com"
-                className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
+                className={`${styles.t752d10} input-focus-ring`}
               />
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="address" className="text-sm font-semibold text-ink">
+          <div className={styles.t6f7e01}>
+            <label htmlFor="address" className={styles.tae03fc}>
               Địa chỉ
             </label>
             <textarea
@@ -128,44 +129,44 @@ export default function CustomerFormModal({ open, mode, customer, onClose, onSav
               rows={2}
               defaultValue={customer?.address ?? ""}
               placeholder="Địa chỉ liên hệ của khách"
-              className="w-full px-4 py-3 rounded-lg border border-border-muted text-sm resize-y input-focus-ring"
+              className={`${styles.tf65383} input-focus-ring`}
             />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label htmlFor="companyName" className="text-sm font-semibold text-ink">
+          <div className={styles.t4c017d}>
+            <div className={styles.t6f7e01}>
+              <label htmlFor="companyName" className={styles.tae03fc}>
                 Công ty
               </label>
               <input
                 id="companyName"
                 name="companyName"
                 defaultValue={customer?.companyName ?? ""}
-                className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
+                className={`${styles.t752d10} input-focus-ring`}
               />
             </div>
-            <div className="space-y-2">
-              <label htmlFor="taxId" className="text-sm font-semibold text-ink">
+            <div className={styles.t6f7e01}>
+              <label htmlFor="taxId" className={styles.tae03fc}>
                 MST
               </label>
               <input
                 id="taxId"
                 name="taxId"
                 defaultValue={customer?.taxId ?? ""}
-                className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
+                className={`${styles.t752d10} input-focus-ring`}
               />
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="status" className="text-sm font-semibold text-ink">
+          <div className={styles.t6f7e01}>
+            <label htmlFor="status" className={styles.tae03fc}>
               Trạng thái hồ sơ
             </label>
             <select
               id="status"
               name="status"
               defaultValue={customer?.status ?? "ACTIVE"}
-              className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
+              className={`${styles.t752d10} input-focus-ring`}
             >
               {statusOptions.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -175,18 +176,18 @@ export default function CustomerFormModal({ open, mode, customer, onClose, onSav
             </select>
           </div>
 
-          <div className="flex justify-end gap-3 pt-2">
+          <div className={styles.tfb9b0c}>
             <button
               type="button"
               onClick={onClose}
-              className="h-11 px-5 rounded-lg border border-border-muted text-sm font-semibold text-muted hover:bg-surface"
+              className={styles.t622a81}
             >
               Hủy
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="h-11 px-5 rounded-lg bg-primary hover:bg-primary/90 text-white text-sm font-bold disabled:opacity-60"
+              className={styles.t006f0b}
             >
               {isSubmitting ? "Đang lưu..." : mode === "create" ? "Tạo hồ sơ" : "Lưu thay đổi"}
             </button>

@@ -8,6 +8,7 @@ import {
   canRoleAccessRoute,
   getForbiddenRedirect,
 } from "@/utils/routeAccess";
+import styles from "./AuthGuard.module.scss";
 
 /**
  * Chặn route phía client (bổ sung cho middleware + cookie).
@@ -45,7 +46,7 @@ export default function AuthGuard({ allowedRoles, children }) {
 
   if (!isReady || !isAuthed || !notExpired || !roleAllowed || !pathAllowed) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-surface text-muted text-sm">
+      <div className={styles.root}>
         Đang kiểm tra quyền truy cập...
       </div>
     );

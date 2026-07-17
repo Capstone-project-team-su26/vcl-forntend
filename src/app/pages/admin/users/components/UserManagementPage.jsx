@@ -1,4 +1,5 @@
 "use client";
+import styles from "./UserManagementPage.module.scss";
 
 import { Icon } from "@iconify/react";
 import { useEffect, useMemo, useState } from "react";
@@ -41,12 +42,12 @@ const ROLE_LABEL = {
 
 function RoleBadge({ role, region }) {
   return (
-    <span className="inline-flex items-center gap-1.5">
-      <span className="inline-block px-2.5 py-0.5 rounded-md text-[11px] font-bold tracking-wide bg-info-bg text-info-text">
+    <span className={styles.t530417}>
+      <span className={styles.t76168a}>
         {ROLE_LABEL[role] || role}
       </span>
       {region ? (
-        <span className="inline-block px-2 py-0.5 rounded-md text-[10px] font-semibold tracking-wide bg-surface text-muted">
+        <span className={styles.t5d15d9}>
           {region}
         </span>
       ) : null}
@@ -55,17 +56,13 @@ function RoleBadge({ role, region }) {
 }
 
 function StatusBadge({ status }) {
-  const styles = {
-    ACTIVE: "bg-success-bg text-success-text",
-    LOCKED: "bg-danger/10 text-danger",
-    PENDING_VERIFICATION: "bg-warning-bg text-warning-text",
+  const statusTone = {
+    ACTIVE: styles.badgeRoleActive,
+    LOCKED: styles.badgeRoleLocked,
+    PENDING_VERIFICATION: styles.badgeRolePending,
   };
   return (
-    <span
-      className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
-        styles[status] || "bg-surface text-muted"
-      }`}
-    >
+    <span className={`${styles.badgePillSm} ${statusTone[status] || styles.badgeDefault}`}>
       {STATUS_LABEL[status] || status}
     </span>
   );
@@ -76,10 +73,10 @@ function LockConfirmModal({ user, pending, onConfirm, onClose }) {
   const isLocking = user.status === "ACTIVE";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className={styles.ta73cc4}>
       <button
         type="button"
-        className="absolute inset-0 bg-background/70 backdrop-blur-sm"
+        className={styles.tf04169}
         aria-label="Đóng"
         onClick={pending ? undefined : onClose}
       />
@@ -87,38 +84,38 @@ function LockConfirmModal({ user, pending, onConfirm, onClose }) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="lock-confirm-title"
-        className="relative w-full max-w-md rounded-xl border border-border bg-surface shadow-xl p-5"
+        className={styles.t2d11b1}
       >
-        <div className="flex items-start gap-3">
+        <div className={styles.t6d820b}>
           <span
-            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
-              isLocking ? "bg-danger/10 text-danger" : "bg-success-bg text-success-text"
+            className={`${styles.lockIconWrap} ${
+              isLocking ? styles.lockIconDanger : styles.lockIconSuccess
             }`}
           >
-            <Icon icon={isLocking ? "lucide:lock" : "lucide:lock-open"} className="w-5 h-5" />
+            <Icon icon={isLocking ? "lucide:lock" : "lucide:lock-open"} className={styles.ta8600f} />
           </span>
-          <div className="min-w-0">
-            <h2 id="lock-confirm-title" className="text-base font-bold text-ink">
+          <div className={styles.t7e0b7c}>
+            <h2 id="lock-confirm-title" className={styles.t3c6280}>
               {isLocking ? "Khóa tài khoản?" : "Mở khóa tài khoản?"}
             </h2>
-            <p className="text-sm text-muted mt-1 leading-relaxed">
+            <p className={styles.subtitle}>
               {isLocking
                 ? "Người dùng sẽ không đăng nhập được cho đến khi được mở khóa."
                 : "Người dùng sẽ có thể đăng nhập lại bình thường."}
             </p>
-            <div className="mt-3 rounded-lg border border-border-muted bg-surface px-3 py-2.5">
-              <p className="text-sm font-semibold text-ink leading-snug">{user.name}</p>
-              <p className="text-sm text-muted leading-snug mt-0.5">{user.email}</p>
+            <div className={styles.tc4c2f1}>
+              <p className={styles.ta79ef9}>{user.name}</p>
+              <p className={styles.tfa9029}>{user.email}</p>
             </div>
           </div>
         </div>
 
-        <div className="mt-5 flex justify-end gap-2">
+        <div className={styles.t7bc699}>
           <button
             type="button"
             disabled={pending}
             onClick={onClose}
-            className="h-9 px-4 rounded-lg border border-border-muted text-sm font-semibold text-muted hover:text-ink hover:bg-surface-muted disabled:opacity-50"
+            className={styles.tf4b34a}
           >
             Hủy
           </button>
@@ -126,14 +123,14 @@ function LockConfirmModal({ user, pending, onConfirm, onClose }) {
             type="button"
             disabled={pending}
             onClick={onConfirm}
-            className={`inline-flex items-center gap-1.5 h-9 px-4 rounded-lg text-sm font-bold text-white disabled:opacity-50 ${
-              isLocking ? "bg-danger hover:opacity-90" : "bg-insight hover:bg-secondary"
+            className={`${styles.lockConfirmBtn} ${
+              isLocking ? styles.lockConfirmDanger : styles.lockConfirmInsight
             }`}
           >
             {pending ? (
-              <Icon icon="lucide:loader-2" className="w-4 h-4 animate-spin" />
+              <Icon icon="lucide:loader-2" className={styles.tc11061} />
             ) : (
-              <Icon icon={isLocking ? "lucide:lock" : "lucide:lock-open"} className="w-4 h-4" />
+              <Icon icon={isLocking ? "lucide:lock" : "lucide:lock-open"} className={styles.actionIcon} />
             )}
             {pending ? "Đang xử lý..." : isLocking ? "Khóa tài khoản" : "Mở khóa"}
           </button>
@@ -246,14 +243,14 @@ export default function UserManagementPage() {
         searchAccessor: (user) =>
           `${user.name || ""} ${user.email || ""} ${user.phone || ""} ${user.id || ""}`,
         render: (user) => (
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center text-[11px] font-bold text-insight shrink-0">
+          <div className={styles.tf86553}>
+            <div className={styles.tea948e}>
               {user.avatar}
             </div>
-            <div className="min-w-0 leading-snug">
-              <p className="text-sm font-semibold text-ink truncate">{user.name}</p>
-              <p className="text-[13px] text-muted truncate">{user.email}</p>
-              <p className="text-[11px] text-muted/80 mt-0.5 font-mono truncate">
+            <div className={styles.t37b310}>
+              <p className={styles.tc3190b}>{user.name}</p>
+              <p className={styles.t76bb9b}>{user.email}</p>
+              <p className={styles.te67c74}>
                 {user.phone || user.id || "—"}
               </p>
             </div>
@@ -266,7 +263,7 @@ export default function UserManagementPage() {
         sortable: true,
         filter: { options: USER_TYPE_FILTER_OPTIONS },
         render: (user) => (
-          <span className="text-xs font-semibold text-muted">
+          <span className={styles.t74e489}>
             {USER_TYPE_LABEL[user.userType] || user.userType || "—"}
           </span>
         ),
@@ -288,7 +285,7 @@ export default function UserManagementPage() {
       {
         key: "lastSeen",
         title: "Ngày tạo",
-        className: "text-muted",
+        className: styles.t9a12f0,
         sortable: true,
         render: (user) => user.lastSeen,
       },
@@ -299,7 +296,7 @@ export default function UserManagementPage() {
         render: (user) => {
           const canToggleLock = user.status === "ACTIVE" || user.status === "LOCKED";
           if (!canToggleLock) {
-            return <span className="text-xs text-muted/60">—</span>;
+            return <span className={styles.ta8ef7e}>—</span>;
           }
           const isLock = user.status === "ACTIVE";
           return (
@@ -310,7 +307,7 @@ export default function UserManagementPage() {
                 event.stopPropagation();
                 setConfirmUser(user);
               }}
-              className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-border-muted text-muted hover:text-ink hover:bg-surface-muted hover:border-border transition-colors disabled:opacity-50 group"
+              className={styles.ta761ef}
               title={isLock ? "Khóa tài khoản" : "Mở khóa tài khoản"}
               aria-label={isLock ? "Khóa tài khoản" : "Mở khóa tài khoản"}
             >
@@ -322,9 +319,9 @@ export default function UserManagementPage() {
                       ? "lucide:lock"
                       : "lucide:lock-open"
                 }
-                className={`w-4 h-4 ${pendingUserId === user.id ? "animate-spin" : ""} ${
-                  isLock ? "group-hover:text-danger" : "group-hover:text-success-text"
-                }`}
+                className={`${styles.actionIcon} ${
+                  pendingUserId === user.id ? styles.spinIcon : ""
+                } ${isLock ? styles.lockHoverDanger : styles.lockHoverSuccess}`}
               />
             </button>
           );
@@ -336,53 +333,53 @@ export default function UserManagementPage() {
 
   return (
     <AdminLayout activeNav="users">
-      <div className="space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+      <div className={styles.page}>
+        <div className={styles.headerRow}>
           <div>
-            <h1 className="text-xl lg:text-2xl font-bold text-ink tracking-tight">
+            <h1 className={styles.title}>
               Quản lý người dùng
             </h1>
-            <p className="text-sm text-muted mt-1 leading-relaxed">
+            <p className={styles.subtitle}>
               Tạo, khóa hoặc mở khóa tài khoản người dùng.
             </p>
             {!isLoadingUsers && !loadFailed ? (
-              <p className="text-sm text-muted mt-2">
-                <span className="font-semibold text-ink">{stats.total}</span> người dùng
-                <span className="mx-1.5 text-border">·</span>
-                <span className="font-semibold text-success-text">{stats.active}</span> đang hoạt
+              <p className={styles.td54f5b}>
+                <span className={styles.cellNameSemibold}>{stats.total}</span> người dùng
+                <span className={styles.tf28710}>·</span>
+                <span className={styles.t0ce2a6}>{stats.active}</span> đang hoạt
                 động
-                <span className="mx-1.5 text-border">·</span>
-                <span className="font-semibold text-danger">{stats.locked}</span> đã khóa
+                <span className={styles.tf28710}>·</span>
+                <span className={styles.t72efc0}>{stats.locked}</span> đã khóa
               </p>
             ) : null}
           </div>
           <button
             type="button"
             onClick={() => setIsCreateOpen(true)}
-            className="inline-flex items-center justify-center gap-2 h-10 px-4 bg-insight hover:bg-secondary text-white text-sm font-bold rounded-lg transition-colors shrink-0"
+            className={styles.addBtn}
           >
-            <Icon icon="lucide:user-plus" className="w-4 h-4" />
+            <Icon icon="lucide:user-plus" className={styles.actionIcon} />
             Thêm người dùng
           </button>
         </div>
 
         {actionError ? (
-          <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className={styles.te71bc1}>
             <span>{actionError}</span>
             {loadFailed ? (
               <button
                 type="button"
                 onClick={loadUsers}
-                className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-danger/30 text-xs font-bold hover:bg-danger/10 shrink-0"
+                className={styles.t8ced62}
               >
-                <Icon icon="lucide:refresh-cw" className="w-3.5 h-3.5" />
+                <Icon icon="lucide:refresh-cw" className={styles.tb41c1b} />
                 Thử lại
               </button>
             ) : null}
           </div>
         ) : null}
         {actionMessage ? (
-          <div className="rounded-lg border border-success/30 bg-success-bg px-4 py-3 text-sm text-success-text">
+          <div className={styles.alertSuccess}>
             {actionMessage}
           </div>
         ) : null}

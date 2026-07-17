@@ -1,0 +1,34 @@
+.validationBox {
+  border-radius: 0.5rem;
+  border: 1px solid var(--theme-border-muted);
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+}
+
+.validationTitle {
+  font-weight: 700;
+}
+
+.validationDefault {
+  background-color: var(--theme-surface);
+  color: var(--theme-muted);
+  border-color: var(--theme-border-muted);
+}
+
+.validationBanned {
+  background-color: var(--theme-danger-bg);
+  color: var(--theme-danger-text);
+  border-color: color-mix(in srgb, var(--theme-danger) 30%, transparent);
+}
+
+.validationRestricted {
+  background-color: var(--theme-warning-bg);
+  color: var(--theme-warning-text);
+  border-color: color-mix(in srgb, var(--theme-warning) 30%, transparent);
+}
+
+.validationConditional {
+  background-color: var(--theme-info-bg);
+  color: var(--theme-info-text);
+  border-color: color-mix(in srgb, var(--theme-info) 30%, transparent);
+}

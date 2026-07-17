@@ -10,6 +10,7 @@ import * as servicePricingService from "@/utils/servicePricingService";
 import { getErrorMessage } from "@/utils/apiError";
 import { ROUTES } from "@/utils/appRoutes";
 import VndMoneyInput from "@/app/components/VndMoneyInput";
+import styles from "./CreateConsignmentRequestPage.module.scss";
 
 const { ITEM_VALIDATION_LABELS, ITEM_VALIDATION_STYLES } = orderConsignmentService;
 const {
@@ -23,9 +24,9 @@ const {
 
 function FieldLabel({ htmlFor, children, required }) {
   return (
-    <label htmlFor={htmlFor} className="text-sm font-semibold text-ink">
+    <label htmlFor={htmlFor} className={styles.fieldLabel}>
       {children}
-      {required ? <span className="text-danger"> *</span> : null}
+      {required ? <span className={styles.required}> *</span> : null}
     </label>
   );
 }
@@ -271,87 +272,75 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
 
   if (isLoadingPage) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 gap-3 text-muted">
-        <Icon icon="lucide:loader-2" className="w-8 h-8 animate-spin" />
-        <p className="text-sm font-medium">Đang tải dữ liệu...</p>
+      <div className={styles.loading}>
+        <Icon icon="lucide:loader-2" className={styles.loadingIcon} />
+        <p className={styles.loadingText}>Đang tải dữ liệu...</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8 max-w-3xl">
+    <div className={styles.root}>
       <div>
-        <Link
-          href={ROUTES.sales.consignments}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-muted hover:text-ink mb-4"
-        >
-          <Icon icon="lucide:arrow-left" className="w-4 h-4" />
+        <Link href={ROUTES.sales.consignments} className={styles.backLink}>
+          <Icon icon="lucide:arrow-left" className={styles.iconSm} />
           Quay lại danh sách
         </Link>
-        <h1 className="text-3xl lg:text-4xl font-black tracking-tight font-['Oswald'] text-ink">
-          Tạo yêu cầu ký gửi thay khách
-        </h1>
-        <p className="text-muted text-sm font-medium mt-2">
+        <h1 className={styles.title}>Tạo yêu cầu ký gửi thay khách</h1>
+        <p className={styles.subtitle}>
           Chỉ ghi nhận yêu cầu. Báo giá được thực hiện riêng sau khi Sales mở chi tiết yêu cầu.
         </p>
       </div>
 
-      {loadError ? (
-        <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
-          {loadError}
-        </div>
-      ) : null}
+      {loadError ? <div className={styles.alertDanger}>{loadError}</div> : null}
 
       {!routeOptions.length ? (
-        <div className="rounded-lg border border-warning/30 bg-warning-bg px-4 py-3 text-sm text-warning-text">
+        <div className={styles.alertWarning}>
           Chưa có bảng giá dịch vụ trên hệ thống. Admin cần cấu hình mục Giá dịch vụ chính trước
           khi Sales tạo yêu cầu.
         </div>
       ) : null}
 
-      <form onSubmit={handleSubmit} className="space-y-8">
-        <section className="rounded-xl border border-border-muted bg-surface-elevated p-6 space-y-4">
-          <h2 className="text-lg font-bold text-ink">Khách hàng</h2>
+      <form onSubmit={handleSubmit} className={styles.form}>
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>Khách hàng</h2>
           {selectedCustomer ? (
-            <div className="rounded-lg border border-border-muted bg-surface p-4 flex items-start justify-between gap-3">
+            <div className={styles.customerCard}>
               <div>
-                <p className="text-base font-bold text-ink">{selectedCustomer.fullName}</p>
-                <p className="text-xs text-muted mt-1">Mã: {selectedCustomer.id}</p>
+                <p className={styles.customerName}>{selectedCustomer.fullName}</p>
+                <p className={styles.customerId}>Mã: {selectedCustomer.id}</p>
               </div>
               <button
                 type="button"
                 onClick={() => setSelectedCustomer(null)}
-                className="text-sm font-semibold text-primary hover:underline shrink-0"
+                className={styles.changeBtn}
               >
                 Đổi khách
               </button>
             </div>
           ) : (
-            <div className="space-y-3">
-              <div className="relative">
-                <Icon
-                  icon="lucide:search"
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted"
-                />
+            <div className={styles.fieldStack}>
+              <div className={styles.searchWrap}>
+                <Icon icon="lucide:search" className={styles.searchIcon} />
                 <input
                   id="customerSearch"
                   type="search"
                   value={customerSearch}
                   onChange={(event) => setCustomerSearch(event.target.value)}
                   placeholder="Tên, email, SĐT, mã khách..."
-                  className="w-full h-11 pl-10 pr-4 rounded-lg border border-border-muted text-sm input-focus-ring"
+                  className={`${styles.inputSearch} input-focus-ring`}
                 />
               </div>
               {customerSearchError ? (
-                <p className="text-sm text-danger">{customerSearchError}</p>
+                <p className={styles.searchError}>{customerSearchError}</p>
               ) : null}
               {customerSearch.trim() && !isSearchingCustomers ? (
-                <ul className="rounded-lg border border-border-muted divide-y divide-border-muted overflow-hidden">
+                <ul className={styles.resultList}>
                   {customerResults.length === 0 ? (
-                    <li className="px-4 py-3 text-sm text-muted">Không tìm thấy khách hàng.</li>
+                    <li className={styles.emptyResult}>Không tìm thấy khách hàng.</li>
                   ) : (
                     customerResults.map((customer) => (
-                      <li key={customer.id}>
+                      <li key={customer.id} className={styles.resultItem}>
                         <button
                           type="button"
                           onClick={() => {
@@ -359,10 +348,10 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
                             setCustomerSearch("");
                             setCustomerResults([]);
                           }}
-                          className="w-full text-left px-4 py-3 hover:bg-surface transition-colors"
+                          className={styles.resultBtn}
                         >
-                          <p className="text-sm font-semibold text-ink">{customer.fullName}</p>
-                          <p className="text-xs text-muted mt-0.5">
+                          <p className={styles.resultName}>{customer.fullName}</p>
+                          <p className={styles.resultMeta}>
                             {[customer.email, customer.phone].filter(Boolean).join(" · ")}
                           </p>
                         </button>
@@ -375,10 +364,10 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
           )}
         </section>
 
-        <section className="rounded-xl border border-border-muted bg-surface-elevated p-6 space-y-4">
-          <h2 className="text-lg font-bold text-ink">Hàng hóa &amp; tuyến vận chuyển</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2 sm:col-span-2">
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>Hàng hóa &amp; tuyến vận chuyển</h2>
+          <div className={styles.grid}>
+            <div className={`${styles.fieldStack} ${styles.fieldStackWide}`}>
               <FieldLabel htmlFor="productName" required>
                 Hàng hóa
               </FieldLabel>
@@ -387,20 +376,20 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
                 value={productName}
                 onChange={(event) => setProductName(event.target.value)}
                 placeholder="VD: Loa Bluetooth JBL Charge 5"
-                className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
+                className={`${styles.input} input-focus-ring`}
               />
             </div>
-            <div className="space-y-2">
+            <div className={styles.fieldStack}>
               <FieldLabel htmlFor="productType">Loại hàng</FieldLabel>
               <input
                 id="productType"
                 value={productType}
                 onChange={(event) => setProductType(event.target.value)}
                 placeholder="VD: Điện tử"
-                className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
+                className={`${styles.input} input-focus-ring`}
               />
             </div>
-            <div className="space-y-2">
+            <div className={styles.fieldStack}>
               <FieldLabel htmlFor="declaredValue">Giá trị khai báo (VND)</FieldLabel>
               <VndMoneyInput
                 id="declaredValue"
@@ -408,7 +397,7 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
                 onChange={setDeclaredValue}
               />
             </div>
-            <div className="space-y-2 sm:col-span-2">
+            <div className={`${styles.fieldStack} ${styles.fieldStackWide}`}>
               <FieldLabel htmlFor="routeKey" required>
                 Tuyến &amp; loại dịch vụ
               </FieldLabel>
@@ -427,15 +416,15 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
                 ))}
               </select>
               {routeForCreate ? (
-                <p className="text-xs text-muted">
-                  Route gửi BE: <span className="font-mono">{routeForCreate}</span>
+                <p className={styles.routeHint}>
+                  Route gửi BE: <span className={styles.routeMono}>{routeForCreate}</span>
                   {" · "}
                   Dịch vụ: {formatServiceTypeLabel(serviceType)}
                 </p>
               ) : null}
             </div>
             {useWarehousePicker ? (
-              <div className="space-y-2 sm:col-span-2">
+              <div className={`${styles.fieldStack} ${styles.fieldStackWide}`}>
                 <FieldLabel htmlFor="warehouseId" required>
                   Kho quốc tế
                 </FieldLabel>
@@ -454,7 +443,7 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
                 </select>
               </div>
             ) : null}
-            <div className="space-y-2">
+            <div className={styles.fieldStack}>
               <FieldLabel htmlFor="weightKg" required>
                 Khối lượng (kg)
               </FieldLabel>
@@ -465,10 +454,10 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
                 step="0.01"
                 value={weightKg}
                 onChange={(event) => setWeightKg(event.target.value)}
-                className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
+                className={`${styles.input} input-focus-ring`}
               />
             </div>
-            <div className="space-y-2">
+            <div className={styles.fieldStack}>
               <FieldLabel htmlFor="volumeCm3" required>
                 Thể tích (cm³)
               </FieldLabel>
@@ -479,10 +468,10 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
                 step="1"
                 value={volumeCm3}
                 onChange={(event) => setVolumeCm3(event.target.value)}
-                className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
+                className={`${styles.input} input-focus-ring`}
               />
             </div>
-            <div className="space-y-2">
+            <div className={styles.fieldStack}>
               <FieldLabel htmlFor="packageCount" required>
                 Số kiện
               </FieldLabel>
@@ -492,32 +481,32 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
                 min="1"
                 value={packageCount}
                 onChange={(event) => setPackageCount(event.target.value)}
-                className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
+                className={`${styles.input} input-focus-ring`}
               />
             </div>
-            <div className="space-y-2 sm:col-span-2">
+            <div className={`${styles.fieldStack} ${styles.fieldStackWide}`}>
               <FieldLabel htmlFor="notes">Ghi chú</FieldLabel>
               <textarea
                 id="notes"
                 rows={3}
                 value={notes}
                 onChange={(event) => setNotes(event.target.value)}
-                className="w-full px-4 py-3 rounded-lg border border-border-muted text-sm input-focus-ring resize-y"
+                className={`${styles.textarea} input-focus-ring`}
               />
             </div>
           </div>
 
           {(isValidating || validationWarnings.length > 0) && productName.trim() ? (
-            <div className="space-y-2">
+            <div className={styles.fieldStack}>
               {validationWarnings.map((warning) => (
                 <div
                   key={`${warning.productName}-${warning.restrictionType}`}
-                  className={`rounded-lg border px-4 py-3 text-sm ${
+                  className={`${styles.validationBox} ${
                     ITEM_VALIDATION_STYLES[warning.restrictionType] ||
-                    "bg-surface text-muted border-border-muted"
+                    ""
                   }`}
                 >
-                  <p className="font-bold">
+                  <p className={styles.validationTitle}>
                     {ITEM_VALIDATION_LABELS[warning.restrictionType] || warning.restrictionType}
                   </p>
                 </div>
@@ -526,25 +515,21 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
           ) : null}
         </section>
 
-        {submitError ? (
-          <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
-            {submitError}
-          </div>
-        ) : null}
+        {submitError ? <div className={styles.alertDanger}>{submitError}</div> : null}
 
         <button
           type="submit"
           disabled={isSubmitting || hasBannedItem || !routeOptions.length}
-          className="inline-flex items-center justify-center gap-2 h-11 px-6 rounded-lg bg-primary text-white text-sm font-bold hover:bg-primary/90 disabled:opacity-50"
+          className={styles.submitBtn}
         >
           {isSubmitting ? (
             <>
-              <Icon icon="lucide:loader-2" className="w-4 h-4 animate-spin" />
+              <Icon icon="lucide:loader-2" className={`${styles.iconSm} ${styles.loadingIcon}`} />
               Đang tạo...
             </>
           ) : (
             <>
-              <Icon icon="lucide:plus" className="w-4 h-4" />
+              <Icon icon="lucide:plus" className={styles.iconSm} />
               Tạo yêu cầu ký gửi
             </>
           )}

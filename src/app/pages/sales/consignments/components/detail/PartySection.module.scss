@@ -1,0 +1,31 @@
+.card {
+  border-radius: 0.5rem;
+  border: 1px solid var(--theme-primary);
+  background-color: var(--theme-surface-elevated);
+  overflow: hidden;
+}
+
+.header {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--theme-primary);
+}
+
+.title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--theme-secondary);
+}
+
+.name {
+  margin-top: 0.25rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--theme-secondary);
+}
+
+.body {
+  padding-inline: 1rem;
+  padding-bottom: 0.25rem;
+}

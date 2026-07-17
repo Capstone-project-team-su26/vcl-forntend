@@ -1,4 +1,5 @@
 "use client";
+import styles from "./WarehouseLocationFormModal.module.scss";
 
 import { Icon } from "@iconify/react";
 import { useState } from "react";
@@ -60,40 +61,40 @@ export default function WarehouseLocationFormModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className={styles.overlay}>
       <button
         type="button"
-        className="absolute inset-0 bg-background/70 backdrop-blur-sm"
+        className={styles.backdrop}
         onClick={onClose}
         aria-label="Đóng"
       />
-      <div className="relative w-full max-w-lg bg-surface rounded-xl border border-border shadow-xl">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border-muted">
-          <h2 className="text-lg font-bold text-ink">
+      <div className={styles.panel}>
+        <div className={styles.header}>
+          <h2 className={styles.title}>
             {mode === "create" ? "Thêm vị trí lưu trữ" : "Chỉnh sửa vị trí"}
           </h2>
-          <button type="button" onClick={onClose} className="p-2 text-muted hover:text-ink">
-            <Icon icon="lucide:x" className="w-5 h-5" />
+          <button type="button" onClick={onClose} className={styles.closeBtn}>
+            <Icon icon="lucide:x" className={styles.closeIcon} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className={styles.form}>
           {error ? (
-            <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
+            <div className={styles.alertError}>
               {error}
             </div>
           ) : null}
 
-          <div className="space-y-2">
-            <label htmlFor="locationType" className="text-sm font-semibold text-ink">
-              Loại vị trí <span className="text-danger">*</span>
+          <div className={styles.field}>
+            <label htmlFor="locationType" className={styles.label}>
+              Loại vị trí <span className={styles.required}>*</span>
             </label>
             <select
               id="locationType"
               name="locationType"
               required
               defaultValue={location?.locationType ?? "ZONE"}
-              className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
+              className={`${styles.textField} input-focus-ring`}
             >
               {locationTypeOptions.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -103,10 +104,10 @@ export default function WarehouseLocationFormModal({
             </select>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label htmlFor="code" className="text-sm font-semibold text-ink">
-                Mã vị trí <span className="text-danger">*</span>
+          <div className={styles.fieldGrid}>
+            <div className={styles.field}>
+              <label htmlFor="code" className={styles.label}>
+                Mã vị trí <span className={styles.required}>*</span>
               </label>
               <input
                 id="code"
@@ -114,11 +115,11 @@ export default function WarehouseLocationFormModal({
                 required
                 defaultValue={location?.code ?? ""}
                 placeholder="VD: Z-A"
-                className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
+                className={`${styles.textField} input-focus-ring`}
               />
             </div>
-            <div className="space-y-2">
-              <label htmlFor="capacity" className="text-sm font-semibold text-ink">
+            <div className={styles.field}>
+              <label htmlFor="capacity" className={styles.label}>
                 Sức chứa
               </label>
               <input
@@ -128,14 +129,14 @@ export default function WarehouseLocationFormModal({
                 min="0"
                 defaultValue={location?.capacity ?? ""}
                 placeholder="VD: 100"
-                className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
+                className={`${styles.textField} input-focus-ring`}
               />
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="name" className="text-sm font-semibold text-ink">
-              Tên vị trí <span className="text-danger">*</span>
+          <div className={styles.field}>
+            <label htmlFor="name" className={styles.label}>
+              Tên vị trí <span className={styles.required}>*</span>
             </label>
             <input
               id="name"
@@ -143,19 +144,19 @@ export default function WarehouseLocationFormModal({
               required
               defaultValue={location?.name ?? ""}
               placeholder="VD: Zone A — Hàng thường"
-              className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
+              className={`${styles.textField} input-focus-ring`}
             />
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="parentId" className="text-sm font-semibold text-ink">
+          <div className={styles.field}>
+            <label htmlFor="parentId" className={styles.label}>
               Vị trí cha
             </label>
             <select
               id="parentId"
               name="parentId"
               defaultValue={location?.parentId ?? ""}
-              className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
+              className={`${styles.textField} input-focus-ring`}
             >
               <option value="">— Không có —</option>
               {parentOptions.map((item) => (
@@ -166,28 +167,28 @@ export default function WarehouseLocationFormModal({
             </select>
           </div>
 
-          <label className="flex items-center gap-2.5 cursor-pointer">
+          <label className={styles.checkboxRow}>
             <input
               type="checkbox"
               name="isActive"
               defaultChecked={location?.isActive ?? true}
-              className="w-4 h-4 rounded border-border-muted accent-primary"
+              className={styles.checkbox}
             />
-            <span className="text-sm text-ink font-medium">Đang hoạt động</span>
+            <span className={styles.checkboxLabel}>Đang hoạt động</span>
           </label>
 
-          <div className="flex justify-end gap-3 pt-2">
+          <div className={styles.actions}>
             <button
               type="button"
               onClick={onClose}
-              className="h-11 px-5 rounded-lg border border-border-muted text-sm font-semibold text-muted hover:bg-surface"
+              className={styles.cancelBtn}
             >
               Hủy
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="h-11 px-5 rounded-lg bg-insight hover:bg-secondary text-white text-sm font-bold disabled:opacity-60"
+              className={styles.submitBtn}
             >
               {isSubmitting ? "Đang lưu..." : mode === "create" ? "Thêm vị trí" : "Lưu thay đổi"}
             </button>

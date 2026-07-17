@@ -1,4 +1,5 @@
 "use client";
+import styles from "./CustomerListPanel.module.scss";
 
 import { Icon } from "@iconify/react";
 import Link from "next/link";
@@ -21,8 +22,8 @@ const STATUS_FILTER_OPTIONS = Object.entries(CUSTOMER_STATUS_LABELS).map(([value
 function StatusBadge({ status }) {
   return (
     <span
-      className={`inline-block px-3 py-1 rounded-full text-[11px] font-bold ${
-        CUSTOMER_STATUS_STYLES[status] || "bg-surface text-muted"
+      className={`${styles.t5f03d3}  ${
+        CUSTOMER_STATUS_STYLES[status] || "status-badge--surface"
       }`}
     >
       {CUSTOMER_STATUS_LABELS[status] || status}
@@ -75,7 +76,7 @@ export default function CustomerListPanel() {
         title: "Mã KH",
         sortable: true,
         searchable: true,
-        className: "font-mono text-xs",
+        className: styles.tf05d22,
         render: (row) => row.customerCode || "—",
       },
       {
@@ -83,28 +84,28 @@ export default function CustomerListPanel() {
         title: "Họ tên",
         sortable: true,
         searchable: true,
-        className: "font-semibold text-ink",
+        className: styles.t1d3e56,
         render: (row) => row.fullName,
       },
       {
         key: "phone",
         title: "Điện thoại",
         searchable: true,
-        className: "text-muted",
+        className: styles.t9a12f0,
         render: (row) => row.phone || "—",
       },
       {
         key: "email",
         title: "Email",
         searchable: true,
-        className: "text-muted",
+        className: styles.t9a12f0,
         render: (row) => row.email || "—",
       },
       {
         key: "address",
         title: "Địa chỉ",
         headerClassName: "hidden lg:table-cell",
-        className: "text-muted hidden lg:table-cell max-w-xs truncate",
+        className: styles.te38c30,
         render: (row) => row.address || "—",
       },
       {
@@ -119,27 +120,27 @@ export default function CustomerListPanel() {
         title: "Thao tác",
         align: "right",
         render: (row) => (
-          <div className="flex items-center justify-end gap-1">
+          <div className={styles.t0bd0c1}>
             <Link
               href={buildCreateConsignmentUrl(row.id)}
-              className="p-2 text-primary hover:bg-primary/10 rounded-lg"
+              className={styles.t2e9506}
               title="Tạo ký gửi thay khách"
             >
-              <Icon icon="lucide:package-plus" className="w-4 h-4" />
+              <Icon icon="lucide:package-plus" className={styles.t0bfbea} />
             </Link>
             <Link
               href={buildCreateConsignmentUrl(row.id, "PURCHASE_ORDER")}
-              className="p-2 text-secondary hover:bg-secondary/10 rounded-lg"
+              className={styles.t3963f0}
               title="Mua hộ thay khách"
             >
-              <Icon icon="lucide:shopping-cart" className="w-4 h-4" />
+              <Icon icon="lucide:shopping-cart" className={styles.t0bfbea} />
             </Link>
             <Link
               href={ROUTES.sales.customer(row.id)}
-              className="p-2 text-muted hover:text-ink hover:bg-surface rounded-lg"
+              className={styles.t540c9f}
               title="Xem chi tiết / chỉnh sửa"
             >
-              <Icon icon="lucide:eye" className="w-4 h-4" />
+              <Icon icon="lucide:eye" className={styles.t0bfbea} />
             </Link>
           </div>
         ),
@@ -149,34 +150,34 @@ export default function CustomerListPanel() {
   );
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+    <div className={styles.t793f9e}>
+      <div className={styles.tbccecd}>
         <div>
-          <h1 className="text-3xl lg:text-4xl font-black tracking-tight font-['Oswald'] text-ink">
+          <h1 className={styles.t4d16e2}>
             Hồ sơ khách hàng
           </h1>
-          <p className="text-muted text-sm font-medium mt-2">
+          <p className={styles.t466889}>
             Tìm kiếm, tạo mới và quản lý thông tin khách để phục vụ ký gửi hoặc mua hộ thay khách.
           </p>
         </div>
         <button
           type="button"
           onClick={() => setModalMode("create")}
-          className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-lg bg-primary text-white text-sm font-bold hover:bg-primary/90 shrink-0"
+          className={styles.t17259a}
         >
-          <Icon icon="lucide:user-plus" className="w-4 h-4" />
+          <Icon icon="lucide:user-plus" className={styles.t0bfbea} />
           Thêm khách hàng
         </button>
       </div>
 
       {error ? (
-        <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
+        <div className={styles.te12bff}>
           {error}
         </div>
       ) : null}
 
       {successMessage ? (
-        <div className="rounded-lg border border-success/30 bg-success-bg px-4 py-3 text-sm text-success-text">
+        <div className={styles.te918f5}>
           {successMessage}
         </div>
       ) : null}

@@ -1,4 +1,5 @@
 "use client";
+import styles from "./PricingRuleFormModal.module.scss";
 
 import { Icon } from "@iconify/react";
 import { useEffect, useMemo, useState } from "react";
@@ -196,37 +197,37 @@ export default function ServicePricingFormModal({ open, mode, item, onClose, onS
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className={styles.ta73cc4}>
       <button
         type="button"
-        className="absolute inset-0 bg-background/70 backdrop-blur-sm"
+        className={styles.tf04169}
         onClick={onClose}
         aria-label="Đóng"
       />
-      <div className="relative w-full max-w-2xl bg-surface rounded-xl border border-border shadow-xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border-muted sticky top-0 bg-surface-elevated">
-          <h2 className="text-lg font-bold text-ink">
+      <div className={styles.t9905e7}>
+        <div className={styles.t098018}>
+          <h2 className={styles.te817d8}>
             {mode === "create" ? "Thêm giá dịch vụ chính" : "Chỉnh sửa giá dịch vụ chính"}
           </h2>
-          <button type="button" onClick={onClose} className="p-2 text-muted hover:text-ink">
-            <Icon icon="lucide:x" className="w-5 h-5" />
+          <button type="button" onClick={onClose} className={styles.t6265d4}>
+            <Icon icon="lucide:x" className={styles.ta8600f} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className={styles.tcccb28}>
           {error ? (
-            <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
+            <div className={styles.te12bff}>
               {error}
             </div>
           ) : null}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2 sm:col-span-2">
-              <label htmlFor="carrierId" className="text-sm font-semibold text-ink">
-                Đơn vị vận chuyển <span className="text-danger">*</span>
+          <div className={styles.t4c017d}>
+            <div className={styles.t3e53e3}>
+              <label htmlFor="carrierId" className={styles.tae03fc}>
+                Đơn vị vận chuyển <span className={styles.tf3fb31}>*</span>
               </label>
               {carriers.length === 0 ? (
-                <p className="text-sm text-muted">
+                <p className={styles.ta7b499}>
                   Chưa có đơn vị vận chuyển đang hoạt động. Vui lòng cấu hình tại mục Đơn vị vận
                   chuyển.
                 </p>
@@ -252,9 +253,9 @@ export default function ServicePricingFormModal({ open, mode, item, onClose, onS
                 value={selectedCarrier?.name ?? item?.carrierName ?? ""}
               />
             </div>
-            <div className="space-y-2">
-              <label htmlFor="serviceType" className="text-sm font-semibold text-ink">
-                Loại dịch vụ <span className="text-danger">*</span>
+            <div className={styles.t6f7e01}>
+              <label htmlFor="serviceType" className={styles.tae03fc}>
+                Loại dịch vụ <span className={styles.tf3fb31}>*</span>
               </label>
               <select
                 id="serviceType"
@@ -270,12 +271,12 @@ export default function ServicePricingFormModal({ open, mode, item, onClose, onS
                 ))}
               </select>
             </div>
-            <div className="space-y-2">
-              <label htmlFor="originCountry" className="text-sm font-semibold text-ink">
-                Xuất phát <span className="text-danger">*</span>
+            <div className={styles.t6f7e01}>
+              <label htmlFor="originCountry" className={styles.tae03fc}>
+                Xuất phát <span className={styles.tf3fb31}>*</span>
               </label>
               {originOptions.length === 0 ? (
-                <p className="text-sm text-muted">
+                <p className={styles.ta7b499}>
                   Chưa có kho loại Origin đang hoạt động. Thêm kho xuất phát trước.
                 </p>
               ) : (
@@ -295,12 +296,12 @@ export default function ServicePricingFormModal({ open, mode, item, onClose, onS
                 </select>
               )}
             </div>
-            <div className="space-y-2">
-              <label htmlFor="destinationCountry" className="text-sm font-semibold text-ink">
-                Đích <span className="text-danger">*</span>
+            <div className={styles.t6f7e01}>
+              <label htmlFor="destinationCountry" className={styles.tae03fc}>
+                Đích <span className={styles.tf3fb31}>*</span>
               </label>
               {destinationOptions.length === 0 ? (
-                <p className="text-sm text-muted">
+                <p className={styles.ta7b499}>
                   Chưa có kho loại Destination đang hoạt động. Thêm kho đích trước.
                 </p>
               ) : (
@@ -320,9 +321,9 @@ export default function ServicePricingFormModal({ open, mode, item, onClose, onS
                 </select>
               )}
             </div>
-            <div className="space-y-2">
-              <label htmlFor="unitType" className="text-sm font-semibold text-ink">
-                Đơn vị tính <span className="text-danger">*</span>
+            <div className={styles.t6f7e01}>
+              <label htmlFor="unitType" className={styles.tae03fc}>
+                Đơn vị tính <span className={styles.tf3fb31}>*</span>
               </label>
               <select
                 id="unitType"
@@ -339,21 +340,21 @@ export default function ServicePricingFormModal({ open, mode, item, onClose, onS
                 ))}
               </select>
             </div>
-            <div className="space-y-2">
-              <label htmlFor="currency" className="text-sm font-semibold text-ink">
+            <div className={styles.t6f7e01}>
+              <label htmlFor="currency" className={styles.tae03fc}>
                 Tiền tệ
               </label>
               <input
                 id="currency"
                 name="currency"
                 defaultValue={item?.currency ?? "VND"}
-                className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring uppercase"
+                className={`${styles.t870ae3} input-focus-ring`}
               />
             </div>
             {showSinglePrice ? (
-              <div className="space-y-2">
-                <label htmlFor="price" className="text-sm font-semibold text-ink">
-                  Đơn giá <span className="text-danger">*</span>
+              <div className={styles.t6f7e01}>
+                <label htmlFor="price" className={styles.tae03fc}>
+                  Đơn giá <span className={styles.tf3fb31}>*</span>
                 </label>
                 <VndMoneyInput
                   id="price"
@@ -364,9 +365,9 @@ export default function ServicePricingFormModal({ open, mode, item, onClose, onS
               </div>
             ) : null}
             {showKg ? (
-              <div className="space-y-2">
-                <label htmlFor="pricePerKg" className="text-sm font-semibold text-ink">
-                  Giá/kg {unitType === "KG_OR_CBM" ? <span className="text-danger">*</span> : null}
+              <div className={styles.t6f7e01}>
+                <label htmlFor="pricePerKg" className={styles.tae03fc}>
+                  Giá/kg {unitType === "KG_OR_CBM" ? <span className={styles.tf3fb31}>*</span> : null}
                 </label>
                 <VndMoneyInput
                   id="pricePerKg"
@@ -377,9 +378,9 @@ export default function ServicePricingFormModal({ open, mode, item, onClose, onS
               </div>
             ) : null}
             {showCbm ? (
-              <div className="space-y-2">
-                <label htmlFor="pricePerCbm" className="text-sm font-semibold text-ink">
-                  Giá/cm³ {unitType === "KG_OR_CBM" ? <span className="text-danger">*</span> : null}
+              <div className={styles.t6f7e01}>
+                <label htmlFor="pricePerCbm" className={styles.tae03fc}>
+                  Giá/cm³ {unitType === "KG_OR_CBM" ? <span className={styles.tf3fb31}>*</span> : null}
                 </label>
                 <VndMoneyInput
                   id="pricePerCbm"
@@ -389,8 +390,8 @@ export default function ServicePricingFormModal({ open, mode, item, onClose, onS
                 />
               </div>
             ) : null}
-            <div className="space-y-2">
-              <label htmlFor="effectiveDate" className="text-sm font-semibold text-ink">
+            <div className={styles.t6f7e01}>
+              <label htmlFor="effectiveDate" className={styles.tae03fc}>
                 Ngày hiệu lực
               </label>
               <input
@@ -402,33 +403,33 @@ export default function ServicePricingFormModal({ open, mode, item, onClose, onS
                     ? new Date(item.effectiveDate).toISOString().slice(0, 10)
                     : new Date().toISOString().slice(0, 10)
                 }
-                className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
+                className={`${styles.t752d10} input-focus-ring`}
               />
             </div>
           </div>
 
-          <label className="inline-flex items-center gap-2 text-sm font-medium text-ink">
+          <label className={styles.tbec2b1}>
             <input
               type="checkbox"
               name="isActive"
               defaultChecked={item?.isActive !== false}
-              className="rounded border-border-muted"
+              className={styles.tb44025}
             />
             Đang hoạt động
           </label>
 
-          <div className="flex justify-end gap-3 pt-2">
+          <div className={styles.tfb9b0c}>
             <button
               type="button"
               onClick={onClose}
-              className="h-11 px-5 rounded-lg border border-border-muted text-sm font-semibold"
+              className={styles.tb4182f}
             >
               Hủy
             </button>
             <button
               type="submit"
               disabled={isSubmitting || carriers.length === 0 || !routeReady}
-              className="h-11 px-5 rounded-lg bg-insight text-white text-sm font-bold disabled:opacity-60"
+              className={styles.te3d938}
             >
               {isSubmitting ? "Đang lưu..." : mode === "create" ? "Thêm" : "Lưu"}
             </button>

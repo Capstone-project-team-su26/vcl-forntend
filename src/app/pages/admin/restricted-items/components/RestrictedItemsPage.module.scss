@@ -1,0 +1,19 @@
+@import "../../components/admin-crud-page";
+
+.t52c30e {
+  &:disabled {
+    opacity: 0.5;
+  }
+}
+
+.t9a12f0 {
+  color: var(--theme-muted);
+}
+
+.t813519 {
+  color: var(--theme-muted);
+  max-width: xs;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

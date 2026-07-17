@@ -1,0 +1,77 @@
+@import "../../components/admin-crud-page";
+
+.t336fe7 {
+  font-weight: 700;
+  color: var(--theme-secondary);
+}
+
+.t2689f3 {
+  font-weight: 500;
+}
+
+.t96e45c {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  border-width: 1px;
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--theme-secondary) 30%, transparent);
+  color: var(--theme-secondary);
+  transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+  &:hover {
+    background-color: var(--theme-surface-muted);
+  }
+}
+
+.te12bff {
+  border-radius: 0.5rem;
+  border-width: 1px;
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--theme-danger) 30%, transparent);
+  background-color: color-mix(in srgb, var(--theme-danger) 5%, transparent);
+  padding-left: 1rem;
+  padding-right: 1rem;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+  font-size: 0.875rem;
+  color: var(--theme-danger);
+}
+
+.tb43b4c {
+  & > :not([hidden]) ~ :not([hidden]) {
+    margin-top: null;
+  }
+}
+
+.t9a12f0 {
+  color: var(--theme-muted);
+}
+
+.t39910d {
+  color: var(--theme-muted);
+  white-space: nowrap;
+}
+
+.ta0ff26 {
+  font-size: 0.875rem;
+  color: var(--theme-muted);
+  margin-top: 0.25rem;
+  line-height: 1.625;
+}
+
+.teed4df {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--theme-ink);
+  letter-spacing: -0.025em;
+  @media (min-width: 1024px) {
+    font-size: 1.5rem;
+  }
+}
+
+.t0bfbea {
+  width: 1rem;
+  height: 1rem;
+}

@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import CustomerListPanel from "@/app/pages/sales/customers/components/CustomerListPanel";
 import { useAuth } from "@/hooks/useAuth";
 import { ROUTES } from "@/utils/appRoutes";
+import styles from "./StaffCustomersPage.module.scss";
 
 export default function StaffCustomersPage() {
   const router = useRouter();
@@ -19,7 +20,7 @@ export default function StaffCustomersPage() {
 
   if (!isReady || !isSale) {
     return (
-      <div className="flex items-center justify-center py-24 text-muted">
+      <div className={styles.accessGate}>
         Đang kiểm tra quyền truy cập...
       </div>
     );

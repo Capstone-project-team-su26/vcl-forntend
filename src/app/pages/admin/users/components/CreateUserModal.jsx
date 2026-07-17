@@ -1,4 +1,5 @@
 "use client";
+import styles from "./CreateUserModal.module.scss";
 
 import { Icon } from "@iconify/react";
 import { useEffect, useMemo, useState } from "react";
@@ -177,51 +178,51 @@ export default function CreateUserModal({ open, onClose, onCreated }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className={styles.ta73cc4}>
       <button
         type="button"
-        className="absolute inset-0 bg-background/70 backdrop-blur-sm"
+        className={styles.tf04169}
         aria-label="Đóng"
         onClick={onClose}
       />
-      <div className="relative w-full max-w-lg bg-surface rounded-2xl border border-border shadow-xl p-6">
-        <div className="flex items-center justify-between mb-6">
+      <div className={styles.tbab13e}>
+        <div className={styles.t5972d8}>
           <div>
-            <h2 className="text-xl font-bold text-ink">Thêm nhân viên</h2>
-            <p className="text-sm text-muted mt-1">Tạo tài khoản nhân viên mới.</p>
+            <h2 className={styles.t9bc24c}>Thêm nhân viên</h2>
+            <p className={styles.tfbeb38}>Tạo tài khoản nhân viên mới.</p>
           </div>
-          <button type="button" onClick={onClose} className="p-2 text-muted hover:text-ink">
-            <Icon icon="lucide:x" className="w-5 h-5" />
+          <button type="button" onClick={onClose} className={styles.t6265d4}>
+            <Icon icon="lucide:x" className={styles.ta8600f} />
           </button>
         </div>
 
         {error ? (
-          <div className="mb-4 rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
+          <div className={styles.t6881d9}>
             {error}
           </div>
         ) : null}
 
         <form
-          className="space-y-4"
+          className={styles.t3e7ce5}
           onSubmit={handleSubmit}
           onInput={() => {
             if (error) setError("");
           }}
         >
-          <div className="space-y-2">
-            <label htmlFor="fullName" className="text-sm font-semibold text-ink">
+          <div className={styles.t6f7e01}>
+            <label htmlFor="fullName" className={styles.tae03fc}>
               Họ tên
             </label>
             <input
               id="fullName"
               name="fullName"
               required
-              className="w-full h-11 px-4 border border-border-muted rounded-lg text-sm bg-surface-muted text-ink input-focus-ring"
+              className={`${styles.t54c2be} input-focus-ring`}
             />
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="email" className="text-sm font-semibold text-ink">
+          <div className={styles.t6f7e01}>
+            <label htmlFor="email" className={styles.tae03fc}>
               Email
             </label>
             <input
@@ -229,24 +230,24 @@ export default function CreateUserModal({ open, onClose, onCreated }) {
               name="email"
               type="email"
               required
-              className="w-full h-11 px-4 border border-border-muted rounded-lg text-sm bg-surface-muted text-ink input-focus-ring"
+              className={`${styles.t54c2be} input-focus-ring`}
             />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label htmlFor="phone" className="text-sm font-semibold text-ink">
+          <div className={styles.t4c017d}>
+            <div className={styles.t6f7e01}>
+              <label htmlFor="phone" className={styles.tae03fc}>
                 Số điện thoại
               </label>
               <input
                 id="phone"
                 name="phone"
                 required
-                className="w-full h-11 px-4 border border-border-muted rounded-lg text-sm bg-surface-muted text-ink input-focus-ring"
+                className={`${styles.t54c2be} input-focus-ring`}
               />
             </div>
-            <div className="space-y-2">
-              <label htmlFor="employeeRole" className="text-sm font-semibold text-ink">
+            <div className={styles.t6f7e01}>
+              <label htmlFor="employeeRole" className={styles.tae03fc}>
                 Vai trò
               </label>
               <select
@@ -259,7 +260,7 @@ export default function CreateUserModal({ open, onClose, onCreated }) {
                   setSelectedRole(nextRole);
                   if (nextRole !== "Warehouse") setSelectedRegion("");
                 }}
-                className="w-full h-11 px-4 border border-border-muted rounded-lg text-sm input-focus-ring bg-surface-muted text-ink"
+                className={`${styles.t171853} input-focus-ring`}
               >
                 {EMPLOYEE_ROLES.map((item) => (
                   <option key={item.value} value={item.value}>
@@ -271,8 +272,8 @@ export default function CreateUserModal({ open, onClose, onCreated }) {
           </div>
 
           {needsRegion ? (
-            <div className="space-y-2">
-              <label htmlFor="region" className="text-sm font-semibold text-ink">
+            <div className={styles.t6f7e01}>
+              <label htmlFor="region" className={styles.tae03fc}>
                 Region
               </label>
               <select
@@ -282,7 +283,7 @@ export default function CreateUserModal({ open, onClose, onCreated }) {
                 value={selectedRegionValue}
                 onChange={(e) => setSelectedRegion(e.target.value)}
                 disabled={regionsLoading || regionOptions.length === 0}
-                className="w-full h-11 px-4 border border-border-muted rounded-lg text-sm input-focus-ring bg-surface-muted text-ink disabled:opacity-60"
+                className={`${styles.t4376e5} input-focus-ring`}
               >
                 {regionsLoading ? (
                   <option value="">Đang tải...</option>
@@ -297,13 +298,13 @@ export default function CreateUserModal({ open, onClose, onCreated }) {
                 )}
               </select>
               {regionsError ? (
-                <p className="text-xs text-danger">Không tải được kho: {regionsError}</p>
+                <p className={styles.t72b72d}>Không tải được kho: {regionsError}</p>
               ) : null}
             </div>
           ) : null}
 
-          <div className="space-y-2">
-            <label htmlFor="password" className="text-sm font-semibold text-ink">
+          <div className={styles.t6f7e01}>
+            <label htmlFor="password" className={styles.tae03fc}>
               Mật khẩu
             </label>
             <input
@@ -313,22 +314,22 @@ export default function CreateUserModal({ open, onClose, onCreated }) {
               required
               minLength={8}
               maxLength={100}
-              className="w-full h-11 px-4 border border-border-muted rounded-lg text-sm bg-surface-muted text-ink input-focus-ring"
+              className={`${styles.t54c2be} input-focus-ring`}
             />
           </div>
 
-          <div className="flex justify-end gap-3 pt-2">
+          <div className={styles.tfb9b0c}>
             <button
               type="button"
               onClick={onClose}
-              className="h-11 px-4 rounded-lg text-sm font-semibold text-muted hover:bg-surface-muted"
+              className={styles.t93e0c3}
             >
               Hủy
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="h-11 px-5 rounded-lg text-sm font-bold bg-insight text-on-solid hover:bg-secondary disabled:opacity-60"
+              className={styles.t9c95ef}
             >
               {isSubmitting ? "Đang tạo..." : "Tạo tài khoản"}
             </button>

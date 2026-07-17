@@ -1,0 +1,83 @@
+.wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-decoration: none;
+  transition: opacity 0.2s;
+
+  &:hover {
+    opacity: 0.9;
+  }
+}
+
+.iconBox {
+  background-color: var(--theme-secondary);
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
+
+  &.sidebar {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+
+  &.auth {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+}
+
+.icon {
+  color: var(--theme-accent-subtle);
+
+  .sidebar & {
+    width: 18px;
+    height: 18px;
+  }
+
+  .auth & {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+}
+
+.authTitle {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--theme-ink);
+  letter-spacing: -0.025em;
+  line-height: 1.25;
+}
+
+.brandPrimary {
+  display: block;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--theme-ink);
+  letter-spacing: -0.025em;
+  line-height: 1.25;
+}
+
+.brandSecondary {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--theme-secondary);
+  line-height: 1.25;
+}
+
+.textBlock {
+  min-width: 0;
+  line-height: 1.25;
+}

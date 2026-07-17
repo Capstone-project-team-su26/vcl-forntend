@@ -1,4 +1,3 @@
-import * as signalR from "@microsoft/signalr";
 import { getAccessToken } from "@/utils/authSession";
 
 export const CHAT_EVENTS = {
@@ -10,6 +9,14 @@ const HUB_CACHE_KEY = "vcl:chatHubAvailable";
 const HUB_CACHE_AT_KEY = "vcl:chatHubAvailableAt";
 const HUB_CACHE_TTL_MS = 60_000;
 let hubProbePromise = null;
+let signalRModulePromise = null;
+
+function loadSignalR() {
+  if (!signalRModulePromise) {
+    signalRModulePromise = import("@microsoft/signalr");
+  }
+  return signalRModulePromise;
+}
 
 export function clearChatHubCache() {
   if (typeof window === "undefined") return;
@@ -63,6 +70,14 @@ export function isChatHubEnabled() {
 export function isHubNotFoundError(error) {
   const message = String(error?.message || error || "");
   return message.includes("404") || message.includes("not a SignalR endpoint");
+}
+
+export function isHubConnectionConnected(connection) {
+  return connection?.state === "Connected";
+}
+
+export function isHubConnectionDisconnected(connection) {
+  return connection?.state === "Disconnected";
 }
 
 async function probeChatHubOnce() {
@@ -121,11 +136,13 @@ export function probeChatHubAvailability() {
   return hubProbePromise;
 }
 
-export function createChatHubConnection() {
+export async function createChatHubConnection() {
   const hubUrl = getChatHubUrl();
   if (!hubUrl) {
     return null;
   }
+
+  const signalR = await loadSignalR();
 
   return new signalR.HubConnectionBuilder()
     .withUrl(hubUrl, {
@@ -144,7 +161,7 @@ export function createChatHubConnection() {
 }
 
 export async function joinConversation(connection, conversationId) {
-  if (!connection || connection.state !== signalR.HubConnectionState.Connected) {
+  if (!connection || !isHubConnectionConnected(connection)) {
     return;
   }
 
@@ -152,7 +169,7 @@ export async function joinConversation(connection, conversationId) {
 }
 
 export async function leaveConversation(connection, conversationId) {
-  if (!connection || connection.state !== signalR.HubConnectionState.Connected) {
+  if (!connection || !isHubConnectionConnected(connection)) {
     return;
   }
 
@@ -162,5 +179,3 @@ export async function leaveConversation(connection, conversationId) {
     // ignore disconnect race
   }
 }
-
-export { signalR };

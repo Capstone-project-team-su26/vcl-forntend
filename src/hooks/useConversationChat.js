@@ -5,11 +5,12 @@ import {
   CHAT_EVENTS,
   clearChatHubCache,
   createChatHubConnection,
+  isHubConnectionConnected,
+  isHubConnectionDisconnected,
   isHubNotFoundError,
   joinConversation,
   leaveConversation,
   probeChatHubAvailability,
-  signalR,
 } from "@/utils/chatHubClient";
 import { isMockMode } from "@/utils/mocks/dataSource";
 
@@ -53,7 +54,7 @@ export function useConversationChat({ conversationId, onMessage, onMessagesRead 
         return;
       }
 
-      const connection = createChatHubConnection();
+      const connection = await createChatHubConnection();
       if (!connection) {
         setIsConnected(false);
         return;
@@ -106,7 +107,7 @@ export function useConversationChat({ conversationId, onMessage, onMessagesRead 
     let active = true;
 
     const syncGroup = async () => {
-      if (connection.state !== signalR.HubConnectionState.Connected) {
+      if (!isHubConnectionConnected(connection)) {
         return;
       }
 
@@ -129,7 +130,7 @@ export function useConversationChat({ conversationId, onMessage, onMessagesRead 
     const connection = connectionRef.current;
     if (!connection || isMockMode() || !hubAvailable) return;
 
-    if (connection.state === signalR.HubConnectionState.Disconnected) {
+    if (isHubConnectionDisconnected(connection)) {
       try {
         await connection.start();
         setIsConnected(true);

@@ -1,0 +1,41 @@
+@use "../../../../../../styles/mixins" as *;
+
+.banner {
+  display: flex;
+  gap: 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--theme-primary);
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+}
+
+.success {
+  background-color: var(--theme-success-bg);
+  color: var(--theme-success-text);
+}
+
+.warning,
+.error {
+  background-color: var(--theme-warning-bg);
+  color: var(--theme-warning-text);
+  border-color: var(--theme-accent);
+}
+
+.info {
+  background-color: var(--theme-info-bg);
+  color: var(--theme-info-text);
+}
+
+.icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+  color: var(--theme-secondary);
+}
+
+.content {
+  min-width: 0;
+  font-weight: 500;
+  color: var(--theme-secondary);
+  line-height: 1.625;
+}

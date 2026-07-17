@@ -15,6 +15,7 @@ import {
   sendMessage,
   dedupeConversations,
 } from "@/utils/conversationService";
+import styles from "./MessagesPage.module.scss";
 
 function haveMessagesChanged(prev = [], next = []) {
   if (prev.length !== next.length) return true;
@@ -43,60 +44,58 @@ function ConversationListItem({ item, isActive, onSelect }) {
     <button
       type="button"
       onClick={() => onSelect(item.id)}
-      className={`w-full text-left p-4 border-b border-border-muted transition-colors ${
-        isActive ? "bg-primary/20 border-l-4 border-l-secondary" : "hover:bg-surface-muted"
+      className={`${styles.conversationButton} ${
+        isActive ? styles.conversationButtonActive : styles.conversationButtonIdle
       }`}
     >
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <p className="text-sm font-bold text-ink truncate">{item.customerName || "Khách hàng"}</p>
-          <p className="text-xs text-muted mt-0.5">
+      <div className={styles.conversationRow}>
+        <div className={styles.conversationText}>
+          <p className={styles.customerName}>{item.customerName || "Khách hàng"}</p>
+          <p className={styles.conversationMeta}>
             {CONVERSATION_RELATED_TYPE_LABELS[item.relatedType] || item.relatedType}
             {item.relatedId ? ` · ${item.relatedId}` : ""}
           </p>
         </div>
-        <div className="shrink-0 text-right">
-          <p className="text-[11px] text-muted">{formatMessageTime(item.lastMessageAt)}</p>
+        <div className={styles.conversationTimeBlock}>
+          <p className={styles.conversationTime}>{formatMessageTime(item.lastMessageAt)}</p>
           {item.unreadCount > 0 ? (
-            <span className="inline-flex mt-1 min-w-5 h-5 px-1.5 items-center justify-center rounded-full bg-danger text-[10px] font-bold text-danger-bg">
+            <span className={styles.unreadBadge}>
               {item.unreadCount}
             </span>
           ) : null}
         </div>
       </div>
-      <p className="text-sm text-subtle mt-2 line-clamp-2">{item.lastMessagePreview || "Chưa có tin nhắn"}</p>
+      <p className={styles.conversationPreview}>{item.lastMessagePreview || "Chưa có tin nhắn"}</p>
     </button>
   );
 }
 
 function MessageBubble({ message, isOwn }) {
   return (
-    <div className={`flex ${isOwn ? "justify-end" : "justify-start"}`}>
+    <div className={`${styles.messageBubbleRow} ${isOwn ? styles.messageBubbleRowOwn : styles.messageBubbleRowOther}`}>
       <div
-        className={`max-w-[80%] rounded-2xl px-4 py-2.5 shadow-sm ${
-          isOwn
-            ? "bg-secondary text-accent-subtle rounded-br-md"
-            : "bg-surface-elevated border border-border-muted text-ink rounded-bl-md"
+        className={`${styles.messageBubble} ${
+          isOwn ? styles.messageBubbleOwn : styles.messageBubbleOther
         }`}
       >
         {!isOwn ? (
-          <p className="text-[11px] font-bold text-muted mb-1">{message.senderName || message.senderRole}</p>
+          <p className={styles.messageSender}>{message.senderName || message.senderRole}</p>
         ) : null}
-        <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+        <p className={styles.messageContent}>{message.content}</p>
         {message.attachmentUrl ? (
           <a
             href={message.attachmentUrl}
             target="_blank"
             rel="noreferrer"
-            className={`inline-flex items-center gap-1 mt-2 text-xs font-semibold underline ${
-              isOwn ? "text-accent-subtle/90" : "text-secondary"
+            className={`${styles.attachmentLink} ${
+              isOwn ? styles.attachmentLinkOwn : styles.attachmentLinkOther
             }`}
           >
-            <Icon icon="lucide:paperclip" className="w-3.5 h-3.5" />
+            <Icon icon="lucide:paperclip" className={styles.attachmentIcon} />
             Tệp đính kèm
           </a>
         ) : null}
-        <p className={`text-[10px] mt-1 ${isOwn ? "text-accent-subtle/80" : "text-muted"}`}>
+        <p className={`${styles.messageTime} ${isOwn ? styles.messageTimeOwn : styles.messageTimeOther}`}>
           {formatMessageTime(message.createdAt)}
           {isOwn && message.isRead ? " · Đã xem" : ""}
         </p>
@@ -313,58 +312,58 @@ export default function MessagesPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className={styles.page}>
       <div>
-        <h1 className="text-3xl lg:text-4xl font-black tracking-tight font-['Oswald'] text-ink">
+        <h1 className={styles.title}>
           Trao đổi khách hàng
         </h1>
-        <p className="text-muted text-sm font-medium mt-2">
+        <p className={styles.subtitle}>
           Phản hồi khách hàng về ký gửi, mua hộ, báo giá và trạng thái xử lý theo thời gian thực.
         </p>
       </div>
 
       {!isConnected ? (
-        <div className="rounded-lg border border-border bg-surface-muted px-4 py-2.5 text-xs text-muted flex items-center gap-2">
-          <Icon icon="lucide:refresh-cw" className="w-3.5 h-3.5" />
+        <div className={styles.connectionBanner}>
+          <Icon icon="lucide:refresh-cw" className={styles.bannerIcon} />
           {hubAvailable === false
             ? "Server chưa bật SignalR (/hubs/chat 404) — đang dùng chế độ cập nhật nhanh mỗi 2.5 giây."
             : "Đang kết nối real-time... tạm dùng chế độ cập nhật nhanh."}
         </div>
       ) : (
-        <div className="rounded-lg border border-primary/40 bg-info-bg px-4 py-2.5 text-xs text-info-text flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-success" />
+        <div className={styles.realtimeBanner}>
+          <span className={styles.statusDot} />
           Real-time đang hoạt động.
         </div>
       )}
 
       {error ? (
-        <div className="rounded-lg border border-danger/30 bg-danger-bg px-4 py-3 text-sm text-danger">
+        <div className={styles.errorAlert}>
           {error}
         </div>
       ) : null}
 
-      <div className="bg-surface-elevated rounded-xl border border-border overflow-hidden min-h-[640px] flex">
-        <aside className="w-full max-w-sm border-r border-border-muted flex flex-col">
-          <div className="px-4 py-3 border-b border-border-muted flex items-center justify-between">
-            <h2 className="text-sm font-bold text-ink">Cuộc trao đổi</h2>
+      <div className={styles.layout}>
+        <aside className={styles.sidebar}>
+          <div className={styles.sidebarHeader}>
+            <h2 className={styles.sidebarTitle}>Cuộc trao đổi</h2>
             <button
               type="button"
               onClick={loadConversations}
-              className="p-2 rounded-lg text-muted hover:text-ink hover:bg-surface-muted"
+              className={styles.refreshButton}
               title="Làm mới"
             >
-              <Icon icon="lucide:refresh-cw" className="w-4 h-4" />
+              <Icon icon="lucide:refresh-cw" className={styles.actionIcon} />
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto custom-scrollbar">
+          <div className={`${styles.conversationList} custom-scrollbar`}>
             {isLoadingList ? (
-              <div className="p-6 text-sm text-muted flex items-center gap-2">
-                <Icon icon="lucide:loader-2" className="w-4 h-4 animate-spin" />
+              <div className={styles.loadingState}>
+                <Icon icon="lucide:loader-2" className={`${styles.actionIcon} ${styles.spin}`} />
                 Đang tải...
               </div>
             ) : conversations.length === 0 ? (
-              <div className="p-6 text-sm text-muted">Chưa có cuộc trao đổi nào.</div>
+              <div className={styles.emptyState}>Chưa có cuộc trao đổi nào.</div>
             ) : (
               conversations.map((item) => (
                 <ConversationListItem
@@ -378,21 +377,21 @@ export default function MessagesPage() {
           </div>
         </aside>
 
-        <section className="flex-1 flex flex-col min-w-0">
+        <section className={styles.chatPanel}>
           {selectedSummary ? (
             <>
-              <div className="px-5 py-4 border-b border-border-muted">
-                <p className="text-lg font-bold text-ink">{selectedSummary.customerName}</p>
-                <p className="text-sm text-muted mt-1">
+              <div className={styles.chatHeader}>
+                <p className={styles.chatCustomerName}>{selectedSummary.customerName}</p>
+                <p className={styles.chatMeta}>
                   {CONVERSATION_RELATED_TYPE_LABELS[selectedSummary.relatedType] || selectedSummary.relatedType}
                   {selectedSummary.relatedId ? ` · ${selectedSummary.relatedId}` : ""}
                 </p>
               </div>
 
-              <div className="flex-1 overflow-y-auto custom-scrollbar px-5 py-4 space-y-4 bg-background">
+              <div className={`${styles.messageList} custom-scrollbar`}>
                 {isLoadingDetail ? (
-                  <div className="text-sm text-muted flex items-center gap-2">
-                    <Icon icon="lucide:loader-2" className="w-4 h-4 animate-spin" />
+                  <div className={styles.detailLoadingState}>
+                    <Icon icon="lucide:loader-2" className={`${styles.actionIcon} ${styles.spin}`} />
                     Đang tải tin nhắn...
                   </div>
                 ) : (
@@ -406,14 +405,14 @@ export default function MessagesPage() {
                 )}
               </div>
 
-              <div className="border-t border-border-muted p-4 bg-surface-elevated">
-                <div className="flex items-end gap-3">
+              <div className={styles.composer}>
+                <div className={styles.composerRow}>
                   <textarea
                     value={draft}
                     onChange={(event) => setDraft(event.target.value)}
                     rows={2}
                     placeholder="Nhập tin nhắn phản hồi khách hàng..."
-                    className="flex-1 resize-none rounded-lg border border-border-muted px-4 py-3 text-sm input-focus-ring"
+                    className={`${styles.messageInput} input-focus-ring`}
                     onKeyDown={(event) => {
                       if (event.key === "Enter" && !event.shiftKey) {
                         event.preventDefault();
@@ -425,12 +424,12 @@ export default function MessagesPage() {
                     type="button"
                     disabled={isSending || !draft.trim()}
                     onClick={handleSend}
-                    className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-lg bg-secondary text-accent-subtle text-sm font-bold hover:opacity-90 disabled:opacity-50"
+                    className={styles.sendButton}
                   >
                     {isSending ? (
-                      <Icon icon="lucide:loader-2" className="w-4 h-4 animate-spin" />
+                      <Icon icon="lucide:loader-2" className={`${styles.actionIcon} ${styles.spin}`} />
                     ) : (
-                      <Icon icon="lucide:send" className="w-4 h-4" />
+                      <Icon icon="lucide:send" className={styles.actionIcon} />
                     )}
                     Gửi
                   </button>
@@ -438,7 +437,7 @@ export default function MessagesPage() {
               </div>
             </>
           ) : (
-            <div className="flex-1 flex items-center justify-center text-sm text-muted p-8">
+            <div className={styles.noSelection}>
               Chọn một cuộc trao đổi để bắt đầu.
             </div>
           )}

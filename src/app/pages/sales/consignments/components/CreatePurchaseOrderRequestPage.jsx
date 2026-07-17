@@ -8,8 +8,9 @@ import * as shippingMethodService from "@/utils/shippingMethodService";
 import * as orderConsignmentService from "@/utils/orderConsignmentService";
 import { getErrorMessage } from "@/utils/apiError";
 import { ROUTES } from "@/utils/appRoutes";
+import styles from "./CreatePurchaseOrderRequestPage.module.scss";
 
-const { ITEM_VALIDATION_LABELS, ITEM_VALIDATION_STYLES } = orderConsignmentService;
+const { ITEM_VALIDATION_LABELS } = orderConsignmentService;
 
 const emptyItem = {
   productName: "",
@@ -22,9 +23,9 @@ const emptyItem = {
 
 function FieldLabel({ htmlFor, children, required }) {
   return (
-    <label htmlFor={htmlFor} className="text-sm font-semibold text-ink">
+    <label htmlFor={htmlFor} className={styles.fieldLabel}>
       {children}
-      {required ? <span className="text-danger"> *</span> : null}
+      {required ? <span className={styles.required}> *</span> : null}
     </label>
   );
 }
@@ -154,49 +155,38 @@ export default function CreatePurchaseOrderRequestPage({ preselectedCustomerId }
 
   if (isLoadingPage) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 gap-3 text-muted">
-        <Icon icon="lucide:loader-2" className="w-8 h-8 animate-spin" />
-        <p className="text-sm font-medium">Đang tải dữ liệu...</p>
+      <div className={styles.loading}>
+        <Icon icon="lucide:loader-2" className={styles.loadingIcon} />
+        <p className={styles.loadingText}>Đang tải dữ liệu...</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8 max-w-3xl">
-      <div>
-        <Link
-          href={ROUTES.sales.consignments}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-muted hover:text-ink mb-4"
-        >
-          <Icon icon="lucide:arrow-left" className="w-4 h-4" />
+    <div className={styles.root}>
+      <div className={styles.header}>
+        <Link href={ROUTES.sales.consignments} className={styles.backLink}>
+          <Icon icon="lucide:arrow-left" className={styles.iconSm} />
           Quay lại danh sách
         </Link>
-        <h1 className="text-3xl lg:text-4xl font-black tracking-tight font-['Oswald'] text-ink">
-          Tạo yêu cầu mua hộ
-        </h1>
-        <p className="text-muted text-sm font-medium mt-2">
-          Nhập thông tin đơn mua hộ thay khách.
-        </p>
+        <h1 className={styles.title}>Tạo yêu cầu mua hộ</h1>
+        <p className={styles.subtitle}>Nhập thông tin đơn mua hộ thay khách.</p>
       </div>
 
-      {loadError ? (
-        <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
-          {loadError}
-        </div>
-      ) : null}
-      {successMessage ? (
-        <div className="rounded-lg border border-success/30 bg-success-bg px-4 py-3 text-sm text-success-text">
-          {successMessage}
-        </div>
-      ) : null}
+      {loadError ? <div className={styles.alertDanger}>{loadError}</div> : null}
+      {successMessage ? <div className={styles.alertSuccess}>{successMessage}</div> : null}
 
-      <form onSubmit={handleSubmit} className="space-y-8">
-        <section className="rounded-xl border border-border-muted bg-surface-elevated p-6 space-y-4">
-          <h2 className="text-lg font-bold text-ink">Khách hàng</h2>
+      <form onSubmit={handleSubmit} className={styles.form}>
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>Khách hàng</h2>
           {selectedCustomer ? (
-            <div className="flex items-center justify-between gap-3">
-              <p className="font-bold text-ink">{selectedCustomer.fullName}</p>
-              <button type="button" onClick={() => setSelectedCustomer(null)} className="text-sm text-primary font-semibold">
+            <div className={styles.customerRow}>
+              <p className={styles.customerName}>{selectedCustomer.fullName}</p>
+              <button
+                type="button"
+                onClick={() => setSelectedCustomer(null)}
+                className={styles.changeBtn}
+              >
                 Đổi khách
               </button>
             </div>
@@ -206,14 +196,14 @@ export default function CreatePurchaseOrderRequestPage({ preselectedCustomerId }
                 value={customerSearch}
                 onChange={(e) => setCustomerSearch(e.target.value)}
                 placeholder="Tìm khách hàng..."
-                className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
+                className={`${styles.input} input-focus-ring`}
               />
               {customerResults.map((customer) => (
                 <button
                   key={customer.id}
                   type="button"
                   onClick={() => setSelectedCustomer(customer)}
-                  className="w-full text-left px-4 py-3 rounded-lg border border-border-muted hover:bg-surface"
+                  className={styles.customerResultBtn}
                 >
                   {customer.fullName}
                 </button>
@@ -222,14 +212,14 @@ export default function CreatePurchaseOrderRequestPage({ preselectedCustomerId }
           )}
         </section>
 
-        <section className="rounded-xl border border-border-muted bg-surface-elevated p-6 space-y-4">
-          <h2 className="text-lg font-bold text-ink">Hàng hóa</h2>
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>Hàng hóa</h2>
           <input
             required
             value={item.productName}
             onChange={(e) => setItem((c) => ({ ...c, productName: e.target.value }))}
             placeholder="Tên hàng"
-            className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
+            className={`${styles.input} input-focus-ring`}
           />
           <input
             type="number"
@@ -237,26 +227,26 @@ export default function CreatePurchaseOrderRequestPage({ preselectedCustomerId }
             value={item.quantity}
             onChange={(e) => setItem((c) => ({ ...c, quantity: e.target.value }))}
             placeholder="Số lượng"
-            className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
+            className={`${styles.input} input-focus-ring`}
           />
           {validationWarnings.map((warning) => (
-            <div key={warning.restrictionType} className="text-sm text-warning-text">
+            <div key={warning.restrictionType} className={styles.warningText}>
               {ITEM_VALIDATION_LABELS[warning.restrictionType]}
             </div>
           ))}
         </section>
 
-        <section className="rounded-xl border border-border-muted bg-surface-elevated p-6 space-y-4">
-          <h2 className="text-lg font-bold text-ink">Vận chuyển</h2>
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>Vận chuyển</h2>
           {shippingMethods.map((method) => (
-            <label key={method.id} className="flex items-center gap-3 cursor-pointer">
+            <label key={method.id} className={styles.radioLabel}>
               <input
                 type="radio"
                 name="shippingMethod"
                 checked={shippingMethodId === method.id}
                 onChange={() => setShippingMethodId(method.id)}
               />
-              <span className="text-sm font-semibold">{method.name}</span>
+              <span className={styles.radioText}>{method.name}</span>
             </label>
           ))}
         </section>
@@ -265,15 +255,15 @@ export default function CreatePurchaseOrderRequestPage({ preselectedCustomerId }
           value={salesNote}
           onChange={(e) => setSalesNote(e.target.value)}
           placeholder="Ghi chú"
-          className="w-full px-4 py-3 rounded-lg border border-border-muted text-sm input-focus-ring min-h-[88px]"
+          className={`${styles.textarea} input-focus-ring`}
         />
 
-        {submitError ? <p className="text-sm text-danger">{submitError}</p> : null}
+        {submitError ? <p className={styles.submitError}>{submitError}</p> : null}
 
         <button
           type="submit"
           disabled={isSubmitting || hasBannedItem}
-          className="h-11 px-6 rounded-lg bg-primary text-white text-sm font-bold disabled:opacity-50"
+          className={styles.submitBtn}
         >
           {isSubmitting ? "Đang tạo..." : "Tạo yêu cầu mua hộ"}
         </button>

@@ -1,8 +1,7 @@
 "use client";
+import styles from "./OperationalConsolidate.module.scss";
 
 import { useEffect, useMemo, useState } from "react";
-import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
 import { useAuth } from "@/hooks/useAuth";
 import OperationsShell from "@/app/pages/operations/components/OperationsShell";
 
@@ -130,8 +129,14 @@ export default function OperationalConsolidate() {
     }
   }
 
-  function createConsolidatePdf() {
+  async function createConsolidatePdf() {
     if (!detailData) return;
+
+    const [{ jsPDF }, autoTableModule] = await Promise.all([
+      import("jspdf"),
+      import("jspdf-autotable"),
+    ]);
+    const autoTable = autoTableModule.default;
 
     const pdf = new jsPDF();
     const fileName = `${formatPdfValue(detailData?.masterCode || "consolidation")}.pdf`;
@@ -165,78 +170,78 @@ export default function OperationalConsolidate() {
 
   return (
     <OperationsShell activeNav="consolidation">
-      <div className="space-y-8">
+      <div className={styles.t793f9e}>
         <section>
-          <h1 className="text-3xl lg:text-4xl font-black tracking-tight">
-            Xin chào, <span className="text-secondary">{displayName}</span>
+          <h1 className={styles.td8c90b}>
+            Xin chào, <span className={styles.t5436d5}>{displayName}</span>
           </h1>
-          <p className="text-muted text-sm font-medium mt-2">
+          <p className={styles.t466889}>
             Danh sách gom kien hang — hiển thị dữ liệu từ API consolidation.
           </p>
         </section>
 
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white p-6 rounded-xl border border-surface-muted shadow-sm">
-            <p className="text-xs font-medium text-muted uppercase tracking-wide">Số lô gom hàng</p>
-            <p className="text-3xl font-bold font-['Oswald'] mt-2">{consolidations.length}</p>
+        <section className={styles.taf6ac6}>
+          <div className={styles.t071318}>
+            <p className={styles.t08d99f}>Số lô gom hàng</p>
+            <p className={styles.t05612a}>{consolidations.length}</p>
           </div>
-          <div className="bg-white p-6 rounded-xl border border-surface-muted shadow-sm">
-            <p className="text-xs font-medium text-muted uppercase tracking-wide">Tổng trọng lượng</p>
-            <p className="text-3xl font-bold font-['Oswald'] mt-2">{summary.totalWeight}</p>
+          <div className={styles.t071318}>
+            <p className={styles.t08d99f}>Tổng trọng lượng</p>
+            <p className={styles.t05612a}>{summary.totalWeight}</p>
           </div>
-          <div className="bg-white p-6 rounded-xl border border-surface-muted shadow-sm">
-            <p className="text-xs font-medium text-muted uppercase tracking-wide">Tổng thể tích</p>
-            <p className="text-3xl font-bold font-['Oswald'] mt-2">{summary.totalVolume}</p>
+          <div className={styles.t071318}>
+            <p className={styles.t08d99f}>Tổng thể tích</p>
+            <p className={styles.t05612a}>{summary.totalVolume}</p>
           </div>
         </section>
 
-        <section className="bg-white rounded-xl border border-surface-muted overflow-hidden">
-          <div className="px-6 py-4 border-b border-surface-muted">
-            <h2 className="text-lg font-bold font-['Oswald']">lô gom hàng</h2>
+        <section className={styles.t6fe022}>
+          <div className={styles.tdeced1}>
+            <h2 className={styles.tb7327e}>lô gom hàng</h2>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left min-w-[640px]">
+          <div className={styles.t1384f6}>
+            <table className={styles.t072da3}>
               <thead>
-                <tr className="border-b border-gray-50 text-sm font-bold">
-                  <th className="px-6 py-3">Mã master</th>
-                  <th className="px-6 py-3">Tổng trọng lượng</th>
-                  <th className="px-6 py-3">Tổng thể tích</th>
-                  <th className="px-6 py-3">Trạng thái</th>
-                  <th className="px-6 py-3">Số đơn</th>
-                  <th className="px-6 py-3">Hành động</th>
+                <tr className={styles.t7accfb}>
+                  <th className={styles.taa6b74}>Mã master</th>
+                  <th className={styles.taa6b74}>Tổng trọng lượng</th>
+                  <th className={styles.taa6b74}>Tổng thể tích</th>
+                  <th className={styles.taa6b74}>Trạng thái</th>
+                  <th className={styles.taa6b74}>Số đơn</th>
+                  <th className={styles.taa6b74}>Hành động</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50 text-sm">
+              <tbody className={styles.t6951c1}>
                 {isLoading ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-8 text-center text-muted">
+                    <td colSpan={6} className={styles.t1a3904}>
                       Đang tải...
                     </td>
                   </tr>
                 ) : currentError ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-8 text-center text-danger">
+                    <td colSpan={6} className={styles.t9bddcb}>
                       {currentError}
                     </td>
                   </tr>
                 ) : consolidations.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-8 text-center text-muted">
+                    <td colSpan={6} className={styles.t1a3904}>
                       Không có lô gom hàng.
                     </td>
                   </tr>
                 ) : (
                   consolidations.map((item) => (
-                    <tr key={item.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-3 font-bold text-secondary">{item.masterCode}</td>
-                      <td className="px-6 py-3">{item.totalWeight}</td>
-                      <td className="px-6 py-3">{item.totalVolume}</td>
-                      <td className="px-6 py-3">{item.status}</td>
-                      <td className="px-6 py-3">{item.orders?.length ?? 0}</td>
-                      <td className="px-6 py-3">
+                    <tr key={item.id} className={styles.t6c0fe2}>
+                      <td className={styles.tc86580}>{item.masterCode}</td>
+                      <td className={styles.taa6b74}>{item.totalWeight}</td>
+                      <td className={styles.taa6b74}>{item.totalVolume}</td>
+                      <td className={styles.taa6b74}>{item.status}</td>
+                      <td className={styles.taa6b74}>{item.orders?.length ?? 0}</td>
+                      <td className={styles.taa6b74}>
                         <button
                           onClick={() => openDetail(item.id)}
-                          className="text-sm px-3 py-1 bg-surface-muted rounded-md"
+                          className={styles.tfa5e2f}
                         >
                           Chi tiết
                         </button>
@@ -250,91 +255,91 @@ export default function OperationalConsolidate() {
         </section>
 
         {detailOpen ? (
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg max-w-4xl w-full mx-4 overflow-auto max-h-[90vh]">
-              <div className="px-6 py-4 border-b flex items-center justify-between">
-                <h3 className="font-bold">Chi tiết lô gom hàng</h3>
-                <div className="flex items-center gap-2">
+          <div className={styles.ta8894f}>
+            <div className={styles.t0a0088}>
+              <div className={styles.t0eb8bf}>
+                <h3 className={styles.t69450e}>Chi tiết lô gom hàng</h3>
+                <div className={styles.t6cfc7e}>
                   <button
                     onClick={createConsolidatePdf}
                     disabled={!detailData || isDetailLoading}
-                    className="text-sm px-3 py-1 bg-primary text-white rounded-md disabled:opacity-50"
+                    className={styles.ta526df}
                   >
                     Create Consolidate PDF
                   </button>
-                  <button onClick={closeDetail} className="text-sm px-3 py-1">
+                  <button onClick={closeDetail} className={styles.tb77982}>
                     Đóng
                   </button>
                 </div>
               </div>
-              <div className="p-6 space-y-6">
+              <div className={styles.t895934}>
                 {isDetailLoading ? (
                   <p>Đang tải chi tiết...</p>
                 ) : detailData ? (
                   <>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className={styles.t11d413}>
                       <div>
-                        <p className="font-semibold">Master code</p>
+                        <p className={styles.te83a70}>Master code</p>
                         <p>{detailData.masterCode}</p>
                       </div>
                       <div>
-                        <p className="font-semibold">Trạng thái</p>
+                        <p className={styles.te83a70}>Trạng thái</p>
                         <p>{detailData.status}</p>
                       </div>
                       <div>
-                        <p className="font-semibold">Tổng trọng lượng</p>
+                        <p className={styles.te83a70}>Tổng trọng lượng</p>
                         <p>{detailData.totalWeight}</p>
                       </div>
                       <div>
-                        <p className="font-semibold">Tổng thể tích</p>
+                        <p className={styles.te83a70}>Tổng thể tích</p>
                         <p>{detailData.totalVolume}</p>
                       </div>
                     </div>
 
                     <div>
-                      <p className="font-semibold">Đơn hàng</p>
-                      <div className="mt-3 space-y-4">
+                      <p className={styles.te83a70}>Đơn hàng</p>
+                      <div className={styles.t0e7a5a}>
                         {detailData.orders?.map((order) => (
-                          <div key={order.id} className="border rounded-lg p-4">
-                            <div className="grid grid-cols-2 gap-4">
+                          <div key={order.id} className={styles.t6908dc}>
+                            <div className={styles.t11d413}>
                               <div>
-                                <p className="font-semibold">Mã kiện</p>
+                                <p className={styles.te83a70}>Mã kiện</p>
                                 <p>{order.consignmentCode}</p>
                               </div>
                               <div>
-                                <p className="font-semibold">Trạng thái</p>
+                                <p className={styles.te83a70}>Trạng thái</p>
                                 <p>{order.status}</p>
                               </div>
                               <div>
-                                <p className="font-semibold">Tuyến</p>
+                                <p className={styles.te83a70}>Tuyến</p>
                                 <p>{order.route}</p>
                               </div>
                               <div>
-                                <p className="font-semibold">Số lượng kiện</p>
+                                <p className={styles.te83a70}>Số lượng kiện</p>
                                 <p>{order.parcels?.length ?? 0}</p>
                               </div>
                             </div>
-                            <div className="mt-4">
-                              <p className="font-semibold">Parcels</p>
+                            <div className={styles.t0ab866}>
+                              <p className={styles.te83a70}>Parcels</p>
                               {order.parcels?.length ? (
-                                <div className="mt-2 grid gap-3">
+                                <div className={styles.te5b1dd}>
                                   {order.parcels.map((parcel) => (
-                                    <div key={parcel.id} className="rounded-md border p-3">
-                                      <div className="grid grid-cols-2 gap-4 text-sm">
+                                    <div key={parcel.id} className={styles.t98b25b}>
+                                      <div className={styles.tbf2aed}>
                                         <div>
-                                          <p className="font-semibold">Mã kiện</p>
+                                          <p className={styles.te83a70}>Mã kiện</p>
                                           <p>{parcel.packageCode}</p>
                                         </div>
                                         <div>
-                                          <p className="font-semibold">Trạng thái</p>
+                                          <p className={styles.te83a70}>Trạng thái</p>
                                           <p>{parcel.packageStatus}</p>
                                         </div>
                                         <div>
-                                          <p className="font-semibold">Trọng lượng thực tế</p>
+                                          <p className={styles.te83a70}>Trọng lượng thực tế</p>
                                           <p>{parcel.actualWeight}</p>
                                         </div>
                                         <div>
-                                          <p className="font-semibold">Chargeable</p>
+                                          <p className={styles.te83a70}>Chargeable</p>
                                           <p>{parcel.chargeableWeight}</p>
                                         </div>
                                       </div>
@@ -342,7 +347,7 @@ export default function OperationalConsolidate() {
                                   ))}
                                 </div>
                               ) : (
-                                <p className="text-muted">Không có parcel.</p>
+                                <p className={styles.t9a12f0}>Không có parcel.</p>
                               )}
                             </div>
                           </div>
@@ -351,7 +356,7 @@ export default function OperationalConsolidate() {
                     </div>
                   </>
                 ) : (
-                  <p className="p-6 text-center text-muted">Không có dữ liệu chi tiết.</p>
+                  <p className={styles.t424e1f}>Không có dữ liệu chi tiết.</p>
                 )}
               </div>
             </div>

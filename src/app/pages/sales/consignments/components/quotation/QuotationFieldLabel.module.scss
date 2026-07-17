@@ -1,0 +1,9 @@
+@use "../consignment-ui" as ui;
+
+.label {
+  @include ui.field-label;
+}
+
+.required {
+  color: var(--theme-danger);
+}

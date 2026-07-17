@@ -1,4 +1,5 @@
 "use client";
+import styles from "./ShippingMethodsPage.module.scss";
 
 import { Icon } from "@iconify/react";
 import { useEffect, useMemo, useState } from "react";
@@ -15,11 +16,7 @@ const STATUS_FILTER_OPTIONS = [
 
 function ActiveBadge({ isActive }) {
   return (
-    <span
-      className={`inline-block px-3 py-1 rounded-full text-[11px] font-bold ${
-        isActive ? "bg-success-bg text-success-text" : "bg-surface text-muted"
-      }`}
-    >
+    <span className={isActive ? styles.badgeActive : styles.badgeInactive}>
       {isActive ? "Hoạt động" : "Vô hiệu"}
     </span>
   );
@@ -139,7 +136,7 @@ export default function ShippingMethodsPage() {
         title: "Mã",
         sortable: true,
         searchable: true,
-        className: "font-mono text-xs",
+        className: styles.tf05d22,
         render: (item) => item.code || "—",
       },
       {
@@ -150,10 +147,10 @@ export default function ShippingMethodsPage() {
         searchAccessor: (item) => `${item.name || ""} ${item.internalNotes || ""}`,
         render: (item) => (
           <div>
-            <p className="font-semibold text-ink">{item.name}</p>
+            <p className={styles.cellNameSemibold}>{item.name}</p>
             {item.internalNotes ? (
               <p
-                className="text-xs text-muted mt-1 line-clamp-1"
+                className={styles.cellNote}
                 title={item.internalNotes}
               >
                 Ghi chú: {item.internalNotes}
@@ -167,23 +164,23 @@ export default function ShippingMethodsPage() {
         title: "Mô tả",
         searchable: true,
         headerClassName: "hidden md:table-cell",
-        className: "text-muted hidden md:table-cell max-w-xs",
-        render: (item) => <span className="line-clamp-2">{item.description || "—"}</span>,
+        className: styles.t5f0723,
+        render: (item) => <span className={styles.lineClamp2}>{item.description || "—"}</span>,
       },
       {
         key: "estimatedDeliveryTime",
         title: "Thời gian dự kiến",
         headerClassName: "hidden lg:table-cell",
-        className: "text-muted hidden lg:table-cell whitespace-nowrap",
+        className: styles.t884de6,
         render: (item) => item.estimatedDeliveryTime || "—",
       },
       {
         key: "applicableConditions",
         title: "Điều kiện",
         headerClassName: "hidden xl:table-cell",
-        className: "text-muted hidden xl:table-cell max-w-xs",
+        className: styles.t71f62c,
         render: (item) => (
-          <span className="line-clamp-2">{item.applicableConditions || "—"}</span>
+          <span className={styles.lineClamp2}>{item.applicableConditions || "—"}</span>
         ),
       },
       {
@@ -200,35 +197,35 @@ export default function ShippingMethodsPage() {
         title: "Thao tác",
         align: "right",
         render: (item) => (
-          <div className="flex items-center justify-end gap-1">
+          <div className={styles.actions}>
             <button
               type="button"
               onClick={() => openEdit(item)}
-              className="p-2 text-muted hover:text-ink rounded-lg hover:bg-surface"
+              className={styles.editBtnNeutral}
               title="Sửa"
             >
-              <Icon icon="lucide:pencil" className="w-4 h-4" />
+              <Icon icon="lucide:pencil" className={styles.actionIcon} />
             </button>
             <button
               type="button"
               disabled={pendingId === item.id}
               onClick={() => handleToggleActive(item)}
-              className="p-2 text-muted hover:text-ink rounded-lg hover:bg-surface disabled:opacity-50"
+              className={styles.toggleBtnNeutral}
               title={item.isActive ? "Vô hiệu hóa" : "Kích hoạt"}
             >
               <Icon
                 icon={item.isActive ? "lucide:ban" : "lucide:check-circle"}
-                className="w-4 h-4"
+                className={styles.actionIcon}
               />
             </button>
             <button
               type="button"
               disabled={pendingId === item.id}
               onClick={() => handleDelete(item)}
-              className="btn-delete-icon disabled:opacity-50"
+              className={`${styles.t52c30e} btn-delete-icon`}
               title="Xóa"
             >
-              <Icon icon="lucide:trash-2" className="w-4 h-4" />
+              <Icon icon="lucide:trash-2" className={styles.actionIcon} />
             </button>
           </div>
         ),
@@ -239,34 +236,34 @@ export default function ShippingMethodsPage() {
 
   return (
     <AdminLayout activeNav="shipping-methods">
-      <div className="space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+      <div className={styles.page}>
+        <div className={styles.headerRow}>
           <div>
-            <h1 className="text-xl lg:text-2xl font-bold text-ink tracking-tight">
+            <h1 className={styles.title}>
               Phương thức vận chuyển
             </h1>
-            <p className="text-sm text-muted mt-1 leading-relaxed">
+            <p className={styles.subtitle}>
               Cấu hình lựa chọn vận chuyển cho ký gửi, báo giá và điều phối.
             </p>
           </div>
           <button
             type="button"
             onClick={openCreate}
-            className="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-lg bg-insight hover:bg-secondary text-white text-sm font-bold shrink-0"
+            className={styles.addBtn}
           >
-            <Icon icon="lucide:plus" className="w-4 h-4" />
+            <Icon icon="lucide:plus" className={styles.actionIcon} />
             Thêm phương thức
           </button>
         </div>
 
         {actionError ? (
-          <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
+          <div className={styles.alertError}>
             {actionError}
           </div>
         ) : null}
 
         {actionMessage ? (
-          <div className="rounded-lg border border-success/30 bg-success-bg px-4 py-3 text-sm text-success-text">
+          <div className={styles.alertSuccess}>
             {actionMessage}
           </div>
         ) : null}

@@ -1,4 +1,5 @@
 "use client";
+import styles from "./PurchaseRequestDetailPanel.module.scss";
 
 import { Icon } from "@iconify/react";
 import Link from "next/link";
@@ -25,9 +26,9 @@ const {
 
 function DetailRow({ label, value }) {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4 py-3 border-b border-border-muted/60 last:border-0">
-      <dt className="text-sm font-bold text-muted sm:w-44 shrink-0">{label}</dt>
-      <dd className="text-sm font-medium text-ink">{value}</dd>
+    <div className={styles.tf32257}>
+      <dt className={styles.te7ca9b}>{label}</dt>
+      <dd className={styles.t1ad995}>{value}</dd>
     </div>
   );
 }
@@ -35,8 +36,8 @@ function DetailRow({ label, value }) {
 function StatusBadge({ status }) {
   return (
     <span
-      className={`inline-block px-3 py-1 rounded-full text-[12px] font-bold ${
-        PURCHASE_REQUEST_STATUS_STYLES[status] || "bg-surface text-muted"
+      className={`${styles.teb7554}  ${
+        PURCHASE_REQUEST_STATUS_STYLES[status] || "status-badge--surface"
       }`}
     >
       {PURCHASE_REQUEST_STATUS_LABELS[status] || status}
@@ -148,24 +149,24 @@ export default function PurchaseRequestDetailPanel({
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 gap-3 text-muted">
-        <Icon icon="lucide:loader-2" className="w-8 h-8 animate-spin" />
-        <p className="text-sm font-medium">Đang tải yêu cầu mua hộ...</p>
+      <div className={styles.t9ad5d8}>
+        <Icon icon="lucide:loader-2" className={styles.t27b8b3} />
+        <p className={styles.taaa307}>Đang tải yêu cầu mua hộ...</p>
       </div>
     );
   }
 
   if (error && !detail) {
     return (
-      <div className="space-y-4">
+      <div className={styles.t3e7ce5}>
         <Link
           href={backHref}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-muted hover:text-ink"
+          className={styles.t025913}
         >
-          <Icon icon="lucide:arrow-left" className="w-4 h-4" />
+          <Icon icon="lucide:arrow-left" className={styles.t0bfbea} />
           Quay lại danh sách
         </Link>
-        <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
+        <div className={styles.te12bff}>
           {error}
         </div>
       </div>
@@ -175,23 +176,23 @@ export default function PurchaseRequestDetailPanel({
   if (!detail) return null;
 
   return (
-    <div className="space-y-8 max-w-4xl">
+    <div className={styles.t50a089}>
       <div>
         <Link
           href={backHref}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-muted hover:text-ink mb-4"
+          className={styles.t197bd0}
         >
-          <Icon icon="lucide:arrow-left" className="w-4 h-4" />
+          <Icon icon="lucide:arrow-left" className={styles.t0bfbea} />
           Quay lại danh sách
         </Link>
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div className={styles.tbccecd}>
           <div>
-            <h1 className="text-3xl lg:text-4xl font-black tracking-tight font-['Oswald'] text-ink">
+            <h1 className={styles.t4d16e2}>
               Yêu cầu mua hộ
             </h1>
-            <p className="text-muted text-sm font-medium mt-2">
+            <p className={styles.t466889}>
               Mã yêu cầu:{" "}
-              <span className="font-mono text-ink">{detail.requestCode}</span>
+              <span className={styles.t971bb3}>{detail.requestCode}</span>
             </p>
           </div>
           <StatusBadge status={detail.status} />
@@ -199,22 +200,22 @@ export default function PurchaseRequestDetailPanel({
       </div>
 
       {successMessage ? (
-        <div className="rounded-lg border border-success/30 bg-success-bg px-4 py-3 text-sm text-success-text">
+        <div className={styles.te918f5}>
           {successMessage}
-          <p className="mt-1 font-semibold">
+          <p className={styles.t88fac9}>
             Trạng thái mới: {PURCHASE_REQUEST_STATUS_LABELS[detail.status] || detail.status}
           </p>
         </div>
       ) : null}
 
       {actionError ? (
-        <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
+        <div className={styles.te12bff}>
           {actionError}
         </div>
       ) : null}
 
-      <section className="rounded-xl border border-border-muted bg-surface-elevated p-6">
-        <h2 className="text-lg font-bold text-ink mb-2">Thông tin yêu cầu</h2>
+      <section className={styles.td78253}>
+        <h2 className={styles.t0fe579}>Thông tin yêu cầu</h2>
         <dl>
           <DetailRow label="Khách hàng" value={detail.customerName} />
           <DetailRow label="Ngày tạo" value={formatPurchaseRequestDate(detail.createdAt)} />
@@ -228,34 +229,34 @@ export default function PurchaseRequestDetailPanel({
         </dl>
       </section>
 
-      <section className="rounded-xl border border-border-muted bg-surface-elevated overflow-hidden">
-        <div className="px-6 py-4 border-b border-border-muted">
-          <h2 className="text-lg font-bold text-ink">Sản phẩm cần mua</h2>
+      <section className={styles.t8ddf6c}>
+        <div className={styles.t962254}>
+          <h2 className={styles.te817d8}>Sản phẩm cần mua</h2>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className={styles.t1384f6}>
+          <table className={styles.t8af758}>
             <thead>
-              <tr className="text-left text-xs uppercase tracking-wide text-muted border-b border-border-muted bg-surface/50">
-                <th className="px-6 py-3 font-bold">Tên sản phẩm</th>
-                <th className="px-6 py-3 font-bold">Link mua hàng</th>
-                <th className="px-6 py-3 font-bold">SL</th>
-                <th className="px-6 py-3 font-bold">Thuộc tính</th>
+              <tr className={styles.t25eccb}>
+                <th className={styles.t4bbc2d}>Tên sản phẩm</th>
+                <th className={styles.t4bbc2d}>Link mua hàng</th>
+                <th className={styles.t4bbc2d}>SL</th>
+                <th className={styles.t4bbc2d}>Thuộc tính</th>
               </tr>
             </thead>
             <tbody>
               {detail.items.map((product) => (
                 <tr
                   key={product.id}
-                  className="border-b border-border-muted/60 last:border-0"
+                  className={styles.t85eb24}
                 >
-                  <td className="px-6 py-4 font-semibold text-ink">{product.productName}</td>
-                  <td className="px-6 py-4">
+                  <td className={styles.t10617a}>{product.productName}</td>
+                  <td className={styles.t9bba71}>
                     {product.productLink ? (
                       <a
                         href={product.productLink}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-primary hover:underline break-all"
+                        className={styles.t950be1}
                       >
                         {product.productLink}
                       </a>
@@ -263,8 +264,8 @@ export default function PurchaseRequestDetailPanel({
                       "—"
                     )}
                   </td>
-                  <td className="px-6 py-4">{product.quantity}</td>
-                  <td className="px-6 py-4 text-muted">{product.attributes || "—"}</td>
+                  <td className={styles.t9bba71}>{product.quantity}</td>
+                  <td className={styles.tb9c0d6}>{product.attributes || "—"}</td>
                 </tr>
               ))}
             </tbody>
@@ -273,87 +274,87 @@ export default function PurchaseRequestDetailPanel({
       </section>
 
       {canQuote ? (
-        <section className="rounded-xl border border-primary/30 bg-primary/5 p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <section className={styles.t2cf5f2}>
           <div>
-            <h2 className="text-lg font-bold text-ink">Báo giá mua hộ</h2>
-            <p className="text-sm text-muted mt-1">
+            <h2 className={styles.te817d8}>Báo giá mua hộ</h2>
+            <p className={styles.tfbeb38}>
               Đã kiểm tra sản phẩm — nhập chi phí và gửi báo giá cho khách.
             </p>
           </div>
           <Link
             href={ROUTES.sales.purchaseRequestQuotation(id)}
-            className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-lg bg-primary text-white text-sm font-bold hover:bg-primary/90 shrink-0"
+            className={styles.t17259a}
           >
-            <Icon icon="lucide:file-text" className="w-4 h-4" />
+            <Icon icon="lucide:file-text" className={styles.t0bfbea} />
             Tạo báo giá
           </Link>
         </section>
       ) : null}
 
       {detail.status === "QUOTED" && detail.quotation ? (
-        <section className="rounded-xl border border-success/30 bg-success-bg/30 p-6 space-y-2">
-          <h2 className="text-lg font-bold text-ink">Báo giá đã gửi</h2>
-          <p className="text-sm text-muted">
+        <section className={styles.t16c1be}>
+          <h2 className={styles.te817d8}>Báo giá đã gửi</h2>
+          <p className={styles.ta7b499}>
             Tổng tiền:{" "}
-            <span className="font-bold text-ink">
+            <span className={styles.t34b81e}>
               {formatQuotationAmount(detail.quotation.totalAmount)}
             </span>
           </p>
           {detail.quotation.quotationNote ? (
-            <p className="text-sm text-muted">Ghi chú: {detail.quotation.quotationNote}</p>
+            <p className={styles.ta7b499}>Ghi chú: {detail.quotation.quotationNote}</p>
           ) : null}
         </section>
       ) : null}
 
       {detail.status === "CONFIRMED" && detail.quotation ? (
-        <section className="rounded-xl border border-success/30 bg-success-bg/30 p-6 space-y-2">
-          <h2 className="text-lg font-bold text-ink">Báo giá đã được Customer xác nhận</h2>
-          <p className="text-sm text-muted">
+        <section className={styles.t16c1be}>
+          <h2 className={styles.te817d8}>Báo giá đã được Customer xác nhận</h2>
+          <p className={styles.ta7b499}>
             Tổng tiền:{" "}
-            <span className="font-bold text-ink">
+            <span className={styles.t34b81e}>
               {formatQuotationAmount(detail.quotation.totalAmount)}
             </span>
           </p>
           {detail.quotation.quotationNote ? (
-            <p className="text-sm text-muted">Ghi chú: {detail.quotation.quotationNote}</p>
+            <p className={styles.ta7b499}>Ghi chú: {detail.quotation.quotationNote}</p>
           ) : null}
         </section>
       ) : null}
 
       {canCreatePurchaseOrder ? (
-        <section className="rounded-xl border border-primary/30 bg-primary/5 p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <section className={styles.t2cf5f2}>
           <div>
-            <h2 className="text-lg font-bold text-ink">Tạo đơn mua hàng</h2>
-            <p className="text-sm text-muted mt-1">
+            <h2 className={styles.te817d8}>Tạo đơn mua hàng</h2>
+            <p className={styles.tfbeb38}>
               Customer đã xác nhận báo giá — ghi nhận bắt đầu mua hàng với nhà cung cấp.
             </p>
           </div>
           <Link
             href={ROUTES.sales.purchaseRequestPurchaseOrder(id)}
-            className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-lg bg-primary text-white text-sm font-bold hover:bg-primary/90 shrink-0"
+            className={styles.t17259a}
           >
-            <Icon icon="lucide:shopping-cart" className="w-4 h-4" />
+            <Icon icon="lucide:shopping-cart" className={styles.t0bfbea} />
             Tạo đơn mua hàng
           </Link>
         </section>
       ) : null}
 
       {detail.purchaseOrder ? (
-        <section className="rounded-xl border border-primary/30 bg-primary/5 p-6 space-y-3">
-          <h2 className="text-lg font-bold text-ink">Đơn mua hàng</h2>
-          <p className="text-sm">
-            <span className="text-muted">Mã đơn:</span>{" "}
-            <span className="font-mono font-semibold text-ink">
+        <section className={styles.t17c58b}>
+          <h2 className={styles.te817d8}>Đơn mua hàng</h2>
+          <p className={styles.tfc7473}>
+            <span className={styles.t9a12f0}>Mã đơn:</span>{" "}
+            <span className={styles.tcaaeaf}>
               {detail.purchaseOrder.purchaseOrderCode}
             </span>
           </p>
           {detail.purchaseOrder.status ? (
-            <p className="text-sm flex items-center gap-2">
-              <span className="text-muted">Trạng thái mua hàng:</span>
+            <p className={styles.tadf401}>
+              <span className={styles.t9a12f0}>Trạng thái mua hàng:</span>
               <span
-                className={`inline-block px-3 py-1 rounded-full text-[11px] font-bold ${
+                className={`${styles.t5f03d3}  ${
                   PURCHASE_ORDER_STATUS_STYLES[detail.purchaseOrder.status] ||
-                  "bg-surface text-muted"
+                  "status-badge--surface"
                 }`}
               >
                 {PURCHASE_ORDER_STATUS_LABELS[detail.purchaseOrder.status] ||
@@ -362,42 +363,42 @@ export default function PurchaseRequestDetailPanel({
             </p>
           ) : null}
           {detail.purchaseOrder.supplier ? (
-            <p className="text-sm text-muted">Nhà cung cấp: {detail.purchaseOrder.supplier}</p>
+            <p className={styles.ta7b499}>Nhà cung cấp: {detail.purchaseOrder.supplier}</p>
           ) : null}
           {detail.purchaseOrder.purchaseNote ? (
-            <p className="text-sm text-muted">Ghi chú: {detail.purchaseOrder.purchaseNote}</p>
+            <p className={styles.ta7b499}>Ghi chú: {detail.purchaseOrder.purchaseNote}</p>
           ) : null}
           {detail.purchaseOrder.processingNote ? (
-            <p className="text-sm text-muted">
+            <p className={styles.ta7b499}>
               Ghi chú xử lý: {detail.purchaseOrder.processingNote}
             </p>
           ) : null}
-          <p className="text-sm text-muted">
+          <p className={styles.ta7b499}>
             Ngày tạo: {formatPurchaseRequestDate(detail.purchaseOrder.createdAt)}
           </p>
-          <div className="flex flex-wrap gap-3 pt-1">
+          <div className={styles.t5aee4c}>
             <Link
               href={ROUTES.sales.purchaseOrderStatus(detail.purchaseOrder.id)}
-              className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline"
+              className={styles.t1a0e64}
             >
               {canUpdatePurchaseOrderStatus(detail.purchaseOrder.status ?? "CREATED")
                 ? "Cập nhật trạng thái mua hàng"
                 : "Xem trạng thái mua hàng"}
-              <Icon icon="lucide:arrow-right" className="w-4 h-4" />
+              <Icon icon="lucide:arrow-right" className={styles.t0bfbea} />
             </Link>
           </div>
         </section>
       ) : null}
 
       {canProcess ? (
-        <section className="rounded-xl border border-border-muted bg-surface-elevated p-6 space-y-4">
-          <h2 className="text-lg font-bold text-ink">Xử lý yêu cầu</h2>
-          <p className="text-sm text-muted">
+        <section className={styles.tbe759f}>
+          <h2 className={styles.te817d8}>Xử lý yêu cầu</h2>
+          <p className={styles.ta7b499}>
             Kiểm tra link sản phẩm và thông tin khách cung cấp trước khi cập nhật trạng thái.
           </p>
 
-          <div className="space-y-2">
-            <label htmlFor="actionReason" className="text-sm font-semibold text-ink">
+          <div className={styles.t6f7e01}>
+            <label htmlFor="actionReason" className={styles.tae03fc}>
               Lý do (bắt buộc khi yêu cầu bổ sung hoặc từ chối)
             </label>
             <textarea
@@ -409,25 +410,25 @@ export default function PurchaseRequestDetailPanel({
                 setReasonValidation("");
               }}
               placeholder="Nhập lý do để Customer biết cần bổ sung gì hoặc vì sao bị từ chối..."
-              className="w-full px-4 py-3 rounded-lg border border-border-muted text-sm resize-y input-focus-ring min-h-[88px]"
+              className={`${styles.t060f71} input-focus-ring`}
             />
             {reasonValidation ? (
-              <p className="text-sm text-danger">{reasonValidation}</p>
+              <p className={styles.ta012de}>{reasonValidation}</p>
             ) : null}
           </div>
 
-          <div className="flex flex-col sm:flex-row flex-wrap gap-3 pt-2">
+          <div className={styles.t985955}>
             {canAccept ? (
               <button
                 type="button"
                 disabled={Boolean(pendingAction)}
                 onClick={() => handleStatusUpdate("IN_REVIEW")}
-                className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-lg bg-primary text-white text-sm font-bold hover:bg-primary/90 disabled:opacity-50"
+                className={styles.t32fc76}
               >
                 {pendingAction === "IN_REVIEW" ? (
-                  <Icon icon="lucide:loader-2" className="w-4 h-4 animate-spin" />
+                  <Icon icon="lucide:loader-2" className={styles.tc11061} />
                 ) : (
-                  <Icon icon="lucide:play" className="w-4 h-4" />
+                  <Icon icon="lucide:play" className={styles.t0bfbea} />
                 )}
                 Nhận xử lý
               </button>
@@ -436,12 +437,12 @@ export default function PurchaseRequestDetailPanel({
               type="button"
               disabled={Boolean(pendingAction)}
               onClick={() => handleStatusUpdate("NEED_MORE_INFO")}
-              className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-lg border border-warning/40 bg-warning-bg text-warning-text text-sm font-bold hover:bg-warning-bg/80 disabled:opacity-50"
+              className={styles.t96ea56}
             >
               {pendingAction === "NEED_MORE_INFO" ? (
-                <Icon icon="lucide:loader-2" className="w-4 h-4 animate-spin" />
+                <Icon icon="lucide:loader-2" className={styles.tc11061} />
               ) : (
-                <Icon icon="lucide:message-circle-question" className="w-4 h-4" />
+                <Icon icon="lucide:message-circle-question" className={styles.t0bfbea} />
               )}
               Yêu cầu bổ sung thông tin
             </button>
@@ -449,19 +450,19 @@ export default function PurchaseRequestDetailPanel({
               type="button"
               disabled={Boolean(pendingAction)}
               onClick={() => handleStatusUpdate("REJECTED")}
-              className="btn-destructive disabled:opacity-50"
+              className={`${styles.tdf5daf} btn-destructive`}
             >
               {pendingAction === "REJECTED" ? (
-                <Icon icon="lucide:loader-2" className="w-4 h-4 animate-spin" />
+                <Icon icon="lucide:loader-2" className={styles.tc11061} />
               ) : (
-                <Icon icon="lucide:x-circle" className="w-4 h-4" />
+                <Icon icon="lucide:x-circle" className={styles.t0bfbea} />
               )}
               Từ chối yêu cầu
             </button>
           </div>
         </section>
       ) : (
-        <section className="rounded-xl border border-border-muted bg-surface/50 px-6 py-4 text-sm text-muted">
+        <section className={styles.t9f221d}>
           {detail.status === "QUOTED" ? (
             <p>Báo giá đã được gửi cho khách hàng. Chờ Customer xác nhận.</p>
           ) : detail.status === "CONFIRMED" ? (

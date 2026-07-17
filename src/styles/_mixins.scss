@@ -1,0 +1,41 @@
+@mixin focus-ring {
+  transition: all 0.2s ease-in-out;
+
+  &:focus {
+    outline: none;
+    border-color: var(--theme-secondary);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--theme-secondary) 20%, transparent);
+  }
+}
+
+@mixin truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@mixin media-lg {
+  @media (min-width: 1024px) {
+    @content;
+  }
+}
+
+@mixin media-sm {
+  @media (min-width: 640px) {
+    @content;
+  }
+}
+
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin button-reset {
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+}

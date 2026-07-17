@@ -2,6 +2,7 @@
 
 import { Icon } from "@iconify/react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import styles from "./DataTable.module.scss";
 
 /**
  * Bảng dữ liệu kiểu Ant Design (client-side): search tổng + sort theo cột +
@@ -32,18 +33,12 @@ function OptionRow({ label, selected, onClick }) {
       <button
         type="button"
         onClick={onClick}
-        className={`flex w-full items-center gap-2.5 px-3 py-1.5 text-left text-sm transition-colors ${
-          selected ? "text-primary font-semibold" : "text-ink hover:bg-surface-muted"
-        }`}
+        className={`${styles.optionBtn} ${selected ? styles.selected : ""}`}
       >
-        <span
-          className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors ${
-            selected ? "border-primary bg-primary text-white" : "border-border-muted"
-          }`}
-        >
-          {selected ? <Icon icon="lucide:check" className="w-3 h-3" /> : null}
+        <span className={styles.optionCheck}>
+          {selected ? <Icon icon="lucide:check" className={styles.iconXs} /> : null}
         </span>
-        <span className="truncate">{label}</span>
+        <span className={styles.optionLabel}>{label}</span>
       </button>
     </li>
   );
@@ -51,25 +46,20 @@ function OptionRow({ label, selected, onClick }) {
 
 function SortCarets({ direction, active }) {
   return (
-    <span
-      className={`inline-flex flex-col items-center justify-center leading-0 -space-y-0.5 ${
-        active ? "text-primary" : "text-muted/50"
-      }`}
-    >
+    <span className={`${styles.sortCarets} ${active ? styles.active : ""}`}>
       <Icon
         icon="lucide:chevron-up"
-        className={`w-3.5 h-3.5 ${direction === "asc" ? "text-primary opacity-100" : "opacity-40"}`}
+        className={`${styles.sortCaretIcon} ${direction === "asc" ? styles.highlight : ""}`}
       />
       <Icon
         icon="lucide:chevron-down"
-        className={`w-3.5 h-3.5 ${direction === "desc" ? "text-primary opacity-100" : "opacity-40"}`}
+        className={`${styles.sortCaretIcon} ${direction === "desc" ? styles.highlight : ""}`}
       />
     </span>
   );
 }
 
-const POPOVER_INPUT_CLASS =
-  "w-full h-9 px-2.5 rounded-md border border-border-muted bg-surface text-sm text-ink input-focus-ring";
+const POPOVER_INPUT_CLASS = `${styles.popoverInput} input-focus-ring`;
 
 function defaultSortAccessor(column) {
   return (row) => {
@@ -288,39 +278,34 @@ export default function DataTable({
   const showFilteredCount = filtersActive && !loading;
 
   return (
-    <div className="bg-surface-elevated rounded-xl shadow-sm overflow-hidden border border-border-muted ring-1 ring-black/[0.03]">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 sm:px-5 py-3 border-b border-border-muted">
-        <div className="flex items-center gap-2.5 min-w-0">
-          {title ? (
-            <h3 className="text-base font-bold text-ink truncate">{title}</h3>
-          ) : null}
+    <div className={styles.root}>
+      <div className={styles.header}>
+        <div className={styles.headerLeft}>
+          {title ? <h3 className={styles.title}>{title}</h3> : null}
           {!loading ? (
-            <span className="text-sm text-muted font-medium whitespace-nowrap">
+            <span className={styles.count}>
               {showFilteredCount
                 ? `${totalCount} / ${sourceCount} ${countLabel}`
                 : `${totalCount} ${countLabel}`}
             </span>
           ) : null}
         </div>
-        <div className="flex items-center gap-2">
+        <div className={styles.headerRight}>
           {hasSearch ? (
-            <div className="relative flex-1 sm:w-80">
-              <Icon
-                icon="lucide:search"
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted pointer-events-none"
-              />
+            <div className={styles.searchWrap}>
+              <Icon icon="lucide:search" className={styles.searchIcon} />
               <input
                 ref={searchRef}
                 type="search"
                 value={searchInput}
                 onChange={(event) => setSearchInput(event.target.value)}
                 placeholder={searchPlaceholder}
-                className="w-full h-10 pl-10 pr-16 rounded-lg border border-border-muted bg-surface text-sm text-ink placeholder:text-muted/70 input-focus-ring"
+                className={`${styles.searchInput} input-focus-ring`}
                 aria-label={searchPlaceholder}
               />
-              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
+              <div className={styles.searchActions}>
                 {searchPending ? (
-                  <Icon icon="lucide:loader-2" className="w-4 h-4 text-muted animate-spin" />
+                  <Icon icon="lucide:loader-2" className={`${styles.iconMd} ${styles.spin}`} />
                 ) : null}
                 {searchInput ? (
                   <button
@@ -330,16 +315,14 @@ export default function DataTable({
                       setSearch("");
                       searchRef.current?.focus();
                     }}
-                    className="flex h-7 w-7 items-center justify-center rounded-md text-muted hover:text-ink hover:bg-surface-muted"
+                    className={styles.clearSearchBtn}
                     title="Xóa tìm kiếm"
                     aria-label="Xóa tìm kiếm"
                   >
-                    <Icon icon="lucide:x" className="w-3.5 h-3.5" />
+                    <Icon icon="lucide:x" className={styles.iconSm} />
                   </button>
                 ) : (
-                  <kbd className="hidden sm:inline-flex h-6 min-w-6 items-center justify-center rounded border border-border-muted bg-surface-muted px-1.5 text-[10px] font-semibold text-muted">
-                    /
-                  </kbd>
+                  <kbd className={styles.kbd}>/</kbd>
                 )}
               </div>
             </div>
@@ -348,10 +331,10 @@ export default function DataTable({
             <button
               type="button"
               onClick={clearAll}
-              className="inline-flex items-center gap-1.5 h-10 px-3 rounded-lg border border-border-muted text-xs font-semibold text-muted hover:text-ink hover:bg-surface-muted whitespace-nowrap"
+              className={styles.resetFiltersBtn}
               title="Xóa bộ lọc"
             >
-              <Icon icon="lucide:filter-x" className="w-3.5 h-3.5" />
+              <Icon icon="lucide:filter-x" className={styles.iconSm} />
               Đặt lại
             </button>
           ) : null}
@@ -359,10 +342,10 @@ export default function DataTable({
         </div>
       </div>
 
-      <div className="overflow-x-auto custom-scrollbar max-h-[min(70vh,720px)] overflow-y-auto">
-        <table className="w-full text-left border-collapse" style={{ minWidth }}>
-          <thead className="sticky top-0 z-10">
-            <tr className="border-b border-border bg-surface-muted/90 backdrop-blur-sm">
+      <div className={`${styles.tableScroll} custom-scrollbar`}>
+        <table className={styles.table} style={{ minWidth }}>
+          <thead className={styles.thead}>
+            <tr className={styles.headerRow}>
               {columns.map((col) => {
                 const isSorted = col.sortable && sort.by === col.key;
                 const isOpen = openFilter === col.key;
@@ -370,22 +353,20 @@ export default function DataTable({
                 return (
                   <th
                     key={col.key}
-                    className={`px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-muted select-none ${
-                      col.align === "right" ? "text-right" : ""
-                    } ${isSorted ? "text-primary" : ""} ${col.headerClassName ?? ""}`}
+                    className={`${styles.th} ${col.align === "right" ? styles.alignRight : ""} ${
+                      isSorted ? styles.sorted : ""
+                    } ${col.headerClassName ?? ""}`}
                   >
                     <div
-                      className={`flex items-center gap-0.5 ${
-                        col.align === "right" ? "justify-end" : ""
+                      className={`${styles.thInner} ${
+                        col.align === "right" ? styles.alignRight : ""
                       }`}
                     >
                       {col.sortable ? (
                         <button
                           type="button"
                           onClick={() => handleSort(col.key)}
-                          className={`group inline-flex items-center gap-1 min-h-8 -mx-1 px-1.5 rounded-md transition-colors hover:bg-surface-elevated ${
-                            isSorted ? "text-primary" : "text-ink"
-                          }`}
+                          className={`${styles.sortBtn} ${isSorted ? styles.active : ""}`}
                           title={
                             isSorted
                               ? sort.dir === "asc"
@@ -394,16 +375,12 @@ export default function DataTable({
                               : "Sắp xếp"
                           }
                         >
-                          <span className="truncate normal-case tracking-normal text-sm">
-                            {col.title}
-                          </span>
+                          <span className={styles.thTitle}>{col.title}</span>
                           <SortCarets direction={isSorted ? sort.dir : null} active={isSorted} />
                         </button>
                       ) : (
-                        <span className="inline-flex items-center min-h-8 px-1.5">
-                          <span className="truncate normal-case tracking-normal text-sm text-ink">
-                            {col.title}
-                          </span>
+                        <span className={styles.thTitleStatic}>
+                          <span className={styles.thTitleText}>{col.title}</span>
                         </span>
                       )}
 
@@ -411,23 +388,17 @@ export default function DataTable({
                         <button
                           type="button"
                           onClick={(event) => toggleFilter(col.key, event.currentTarget)}
-                          className={`relative shrink-0 flex items-center justify-center w-8 h-8 rounded-md transition-colors ${
-                            isFilterActive
-                              ? "text-primary bg-primary/15"
-                              : isOpen
-                                ? "text-ink bg-surface-elevated"
-                                : "text-muted hover:text-ink hover:bg-surface-elevated"
+                          className={`${styles.filterBtn} ${
+                            isFilterActive ? styles.active : isOpen ? styles.open : ""
                           }`}
                           title={isFilterActive ? "Đang lọc — nhấn để chỉnh" : "Lọc"}
                         >
                           <Icon
                             icon="lucide:filter"
-                            className="w-4 h-4"
+                            className={styles.iconMd}
                             fill={isFilterActive ? "currentColor" : "none"}
                           />
-                          {isFilterActive ? (
-                            <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-primary" />
-                          ) : null}
+                          {isFilterActive ? <span className={styles.filterDot} /> : null}
                         </button>
                       ) : null}
                     </div>
@@ -436,21 +407,21 @@ export default function DataTable({
               })}
             </tr>
           </thead>
-          <tbody className="divide-y divide-border-muted">
+          <tbody className={styles.tbody}>
             {loading ? (
               <tr>
-                <td colSpan={columns.length} className="px-4 py-12 text-center">
-                  <div className="inline-flex items-center gap-2 text-sm text-muted">
-                    <Icon icon="lucide:loader-2" className="w-5 h-5 animate-spin" />
+                <td colSpan={columns.length} className={styles.emptyCell}>
+                  <div className={styles.loadingInner}>
+                    <Icon icon="lucide:loader-2" className={`${styles.iconLg} ${styles.spin}`} />
                     Đang tải dữ liệu...
                   </div>
                 </td>
               </tr>
             ) : pageRows.length === 0 ? (
               <tr>
-                <td colSpan={columns.length} className="px-4 py-12 text-center">
-                  <Icon icon="lucide:inbox" className="w-10 h-10 text-muted mx-auto mb-3" />
-                  <p className="text-sm text-muted">
+                <td colSpan={columns.length} className={styles.emptyCell}>
+                  <Icon icon="lucide:inbox" className={styles.emptyIcon} />
+                  <p className={styles.emptyText}>
                     {filtersActive ? emptyFilteredText : emptyText}
                   </p>
                 </td>
@@ -459,21 +430,17 @@ export default function DataTable({
               pageRows.map((row, index) => (
                 <tr
                   key={rowKey(row, index)}
-                  className={`transition-colors ${
-                    index % 2 === 1 ? "bg-surface/40" : "bg-surface-elevated"
-                  } ${
-                    onRowClick
-                      ? "hover:bg-primary/6 cursor-pointer"
-                      : "hover:bg-primary/5"
-                  }`}
+                  className={`${styles.dataRow} ${
+                    index % 2 === 1 ? styles.striped : styles.plain
+                  } ${onRowClick ? styles.clickable : ""}`}
                   onClick={onRowClick ? () => onRowClick(row) : undefined}
                 >
                   {columns.map((col) => (
                     <td
                       key={col.key}
-                      className={`px-4 py-2.5 text-sm text-ink/90 ${
-                        col.align === "right" ? "text-right" : ""
-                      } ${col.className ?? ""}`}
+                      className={`${styles.td} ${col.align === "right" ? styles.alignRight : ""} ${
+                        col.className ?? ""
+                      }`}
                     >
                       {col.render ? col.render(row) : row[col.key]}
                     </td>
@@ -486,8 +453,8 @@ export default function DataTable({
       </div>
 
       {!loading && totalCount > 0 ? (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 sm:px-5 py-3 border-t border-border-muted bg-surface/30">
-          <p className="text-sm text-muted">
+        <div className={styles.footer}>
+          <p className={styles.footerText}>
             {totalCount <= pageSize
               ? `Hiển thị ${totalCount} ${countLabel}`
               : `Hiển thị ${(safePage - 1) * pageSize + 1}–${Math.min(
@@ -496,27 +463,27 @@ export default function DataTable({
                 )} / ${totalCount} ${countLabel}`}
           </p>
           {totalCount > pageSize ? (
-            <div className="flex items-center gap-2">
+            <div className={styles.pagination}>
               <button
                 type="button"
                 disabled={safePage <= 1}
                 onClick={() => setPage((current) => Math.max(1, current - 1))}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-border-muted text-sm font-semibold disabled:opacity-40 hover:bg-surface-muted"
+                className={styles.pageBtn}
               >
-                <Icon icon="lucide:chevron-left" className="w-4 h-4" />
+                <Icon icon="lucide:chevron-left" className={styles.iconMd} />
                 Trước
               </button>
-              <span className="text-sm text-muted tabular-nums px-1">
+              <span className={styles.pageInfo}>
                 {safePage} / {totalPages}
               </span>
               <button
                 type="button"
                 disabled={safePage >= totalPages}
                 onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-border-muted text-sm font-semibold disabled:opacity-40 hover:bg-surface-muted"
+                className={styles.pageBtn}
               >
                 Sau
-                <Icon icon="lucide:chevron-right" className="w-4 h-4" />
+                <Icon icon="lucide:chevron-right" className={styles.iconMd} />
               </button>
             </div>
           ) : null}
@@ -527,18 +494,18 @@ export default function DataTable({
         <div
           ref={popoverRef}
           style={{ position: "fixed", top: popoverPos.top, left: popoverPos.left, zIndex: 50 }}
-          className="w-60 rounded-lg border border-border-muted bg-surface-elevated shadow-xl overflow-hidden"
+          className={styles.popover}
         >
           {isDateRangeFilter(openColumn) ? (
-            <div className="space-y-2 p-3">
-              <label className="block text-[11px] font-semibold text-muted">Từ ngày</label>
+            <div className={styles.dateRangeForm}>
+              <label className={styles.dateLabel}>Từ ngày</label>
               <input
                 type="date"
                 value={filters[openColumn.key]?.from ?? ""}
                 onChange={(event) => setDateRange(openColumn.key, "from", event.target.value)}
                 className={POPOVER_INPUT_CLASS}
               />
-              <label className="block text-[11px] font-semibold text-muted">Đến ngày</label>
+              <label className={styles.dateLabel}>Đến ngày</label>
               <input
                 type="date"
                 value={filters[openColumn.key]?.to ?? ""}
@@ -547,7 +514,7 @@ export default function DataTable({
               />
             </div>
           ) : (
-            <ul className="max-h-64 overflow-y-auto custom-scrollbar py-1">
+            <ul className={`${styles.optionList} custom-scrollbar`}>
               {openColumn.filter.options.map((option) => (
                 <OptionRow
                   key={option.value}
@@ -558,19 +525,19 @@ export default function DataTable({
               ))}
             </ul>
           )}
-          <div className="flex items-center justify-between border-t border-border-muted px-2 py-2">
+          <div className={styles.popoverFooter}>
             <button
               type="button"
               disabled={!isFilterValueActive(openColumn, filters[openColumn.key])}
               onClick={() => resetColumnFilter(openColumn.key, openColumn)}
-              className="text-xs font-semibold text-muted hover:text-ink disabled:opacity-40 disabled:hover:text-muted"
+              className={styles.popoverResetBtn}
             >
               Đặt lại
             </button>
             <button
               type="button"
               onClick={() => setOpenFilter(null)}
-              className="h-7 px-4 rounded-md bg-primary text-white text-xs font-bold hover:opacity-90"
+              className={styles.popoverOkBtn}
             >
               OK
             </button>

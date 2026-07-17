@@ -1,0 +1,262 @@
+@use "mixins" as *;
+
+@mixin pageStack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+@mixin pageHeaderRow {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+
+  @include media-sm {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+}
+
+@mixin pageTitle {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--theme-ink);
+  letter-spacing: -0.025em;
+
+  @include media-lg {
+    font-size: 1.5rem;
+  }
+}
+
+@mixin pageSubtitle {
+  font-size: 0.875rem;
+  color: var(--theme-muted);
+  margin-top: 0.25rem;
+  line-height: 1.625;
+}
+
+@mixin alertDanger {
+  border-radius: 0.5rem;
+  border: 1px solid color-mix(in srgb, var(--theme-danger) 30%, transparent);
+  background-color: color-mix(in srgb, var(--theme-danger) 5%, transparent);
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  color: var(--theme-danger);
+}
+
+@mixin alertSuccess {
+  border-radius: 0.5rem;
+  border: 1px solid color-mix(in srgb, var(--theme-success) 30%, transparent);
+  background-color: var(--theme-success-bg);
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  color: var(--theme-success-text);
+}
+
+@mixin primaryActionBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 2.5rem;
+  padding-inline: 1rem;
+  background-color: var(--theme-insight);
+  color: var(--theme-on-solid);
+  font-size: 0.875rem;
+  font-weight: 700;
+  border-radius: 0.5rem;
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.2s;
+
+  &:hover:not(:disabled) {
+    background-color: var(--theme-secondary);
+  }
+}
+
+@mixin textField {
+  width: 100%;
+  height: 2.75rem;
+  padding-inline: 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--theme-border-muted);
+  font-size: 0.875rem;
+  color: var(--theme-ink);
+  background-color: var(--theme-surface-elevated);
+}
+
+@mixin textArea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--theme-border-muted);
+  font-size: 0.875rem;
+  resize: vertical;
+  color: var(--theme-ink);
+  background-color: var(--theme-surface-elevated);
+}
+
+@mixin modalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+@mixin modalBackdrop {
+  position: absolute;
+  inset: 0;
+  background-color: color-mix(in srgb, var(--theme-background) 70%, transparent);
+  backdrop-filter: blur(4px);
+  border: none;
+  cursor: pointer;
+}
+
+@mixin modalPanel {
+  position: relative;
+  width: 100%;
+  max-width: 32rem;
+  background-color: var(--theme-surface);
+  border-radius: 0.75rem;
+  border: 1px solid var(--theme-border);
+  box-shadow: 0 25px 50px -12px color-mix(in srgb, var(--theme-secondary) 25%, transparent);
+}
+
+@mixin modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--theme-border-muted);
+}
+
+@mixin modalTitle {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--theme-ink);
+}
+
+@mixin modalCloseBtn {
+  padding: 0.5rem;
+  color: var(--theme-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--theme-ink);
+  }
+}
+
+@mixin modalForm {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+@mixin fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+@mixin fieldLabel {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--theme-ink);
+}
+
+@mixin requiredMark {
+  color: var(--theme-danger);
+}
+
+@mixin checkboxRow {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  cursor: pointer;
+}
+
+@mixin checkbox {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 0.25rem;
+  border: 1px solid var(--theme-border-muted);
+  accent-color: var(--theme-primary);
+}
+
+@mixin formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
+}
+
+@mixin cancelBtn {
+  height: 2.75rem;
+  padding-inline: 1.25rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--theme-border-muted);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--theme-muted);
+  background: none;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background-color: var(--theme-surface);
+  }
+}
+
+@mixin submitBtn {
+  height: 2.75rem;
+  padding-inline: 1.25rem;
+  border-radius: 0.5rem;
+  background-color: var(--theme-insight);
+  color: var(--theme-on-solid);
+  font-size: 0.875rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background-color: var(--theme-secondary);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+@mixin iconActionBtn {
+  padding: 0.5rem;
+  color: var(--theme-muted);
+  background: none;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background-color: var(--theme-surface);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+@mixin badgePill {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+}

@@ -17,9 +17,9 @@ export const CUSTOMER_STATUS_LABELS = {
 };
 
 export const CUSTOMER_STATUS_STYLES = {
-  ACTIVE: "bg-success-bg text-success-text",
-  PENDING: "bg-warning-bg text-warning-text",
-  INACTIVE: "bg-surface text-muted",
+  ACTIVE: "status-badge--success",
+  PENDING: "status-badge--warning",
+  INACTIVE: "status-badge--surface",
 };
 
 function normalizePhone(phone) {

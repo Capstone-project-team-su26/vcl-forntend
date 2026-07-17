@@ -1,0 +1,24 @@
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--theme-border-muted);
+  background: none;
+  color: var(--theme-muted);
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s, background-color 0.2s;
+
+  &:hover {
+    color: var(--theme-primary);
+    border-color: color-mix(in srgb, var(--theme-primary) 30%, transparent);
+    background-color: color-mix(in srgb, var(--theme-primary) 5%, transparent);
+  }
+}
+
+.icon {
+  width: 1rem;
+  height: 1rem;
+}

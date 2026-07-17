@@ -1,4 +1,5 @@
 "use client";
+import styles from "./PurchaseRequestQuotationPanel.module.scss";
 
 import { Icon } from "@iconify/react";
 import Link from "next/link";
@@ -19,8 +20,8 @@ const {
 function StatusBadge({ status }) {
   return (
     <span
-      className={`inline-block px-3 py-1 rounded-full text-[12px] font-bold ${
-        PURCHASE_REQUEST_STATUS_STYLES[status] || "bg-surface text-muted"
+      className={`${styles.teb7554}  ${
+        PURCHASE_REQUEST_STATUS_STYLES[status] || "status-badge--surface"
       }`}
     >
       {PURCHASE_REQUEST_STATUS_LABELS[status] || status}
@@ -167,24 +168,24 @@ export default function PurchaseRequestQuotationPanel({
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 gap-3 text-muted">
-        <Icon icon="lucide:loader-2" className="w-8 h-8 animate-spin" />
-        <p className="text-sm font-medium">Đang tải yêu cầu mua hộ...</p>
+      <div className={styles.t9ad5d8}>
+        <Icon icon="lucide:loader-2" className={styles.t27b8b3} />
+        <p className={styles.taaa307}>Đang tải yêu cầu mua hộ...</p>
       </div>
     );
   }
 
   if (loadError && !detail) {
     return (
-      <div className="space-y-4">
+      <div className={styles.t3e7ce5}>
         <Link
           href={resolvedBackHref}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-muted hover:text-ink"
+          className={styles.t025913}
         >
-          <Icon icon="lucide:arrow-left" className="w-4 h-4" />
+          <Icon icon="lucide:arrow-left" className={styles.t0bfbea} />
           Quay lại
         </Link>
-        <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
+        <div className={styles.te12bff}>
           {loadError}
         </div>
       </div>
@@ -194,23 +195,23 @@ export default function PurchaseRequestQuotationPanel({
   if (!detail) return null;
 
   return (
-    <div className="space-y-8 max-w-4xl">
+    <div className={styles.t50a089}>
       <div>
         <Link
           href={resolvedBackHref}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-muted hover:text-ink mb-4"
+          className={styles.t197bd0}
         >
-          <Icon icon="lucide:arrow-left" className="w-4 h-4" />
+          <Icon icon="lucide:arrow-left" className={styles.t0bfbea} />
           Quay lại chi tiết yêu cầu
         </Link>
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div className={styles.tbccecd}>
           <div>
-            <h1 className="text-3xl lg:text-4xl font-black tracking-tight font-['Oswald'] text-ink">
+            <h1 className={styles.t4d16e2}>
               Tạo báo giá mua hộ
             </h1>
-            <p className="text-muted text-sm font-medium mt-2">
+            <p className={styles.t466889}>
               Mã yêu cầu:{" "}
-              <span className="font-mono text-ink">{detail.requestCode}</span>
+              <span className={styles.t971bb3}>{detail.requestCode}</span>
             </p>
           </div>
           <StatusBadge status={detail.status} />
@@ -218,46 +219,46 @@ export default function PurchaseRequestQuotationPanel({
       </div>
 
       {!canCreate && detail.status !== "QUOTED" ? (
-        <div className="rounded-lg border border-warning/30 bg-warning-bg/40 px-4 py-3 text-sm text-ink">
+        <div className={styles.tafd124}>
           Yêu cầu không ở trạng thái hợp lệ để tạo báo giá. Cần nhận xử lý yêu cầu (
-          <span className="font-semibold">IN_REVIEW</span>) trước khi báo giá.
+          <span className={styles.te83a70}>IN_REVIEW</span>) trước khi báo giá.
         </div>
       ) : null}
 
       {successMessage ? (
-        <div className="rounded-lg border border-success/30 bg-success-bg px-4 py-3 text-sm text-success-text">
+        <div className={styles.te918f5}>
           {successMessage}
         </div>
       ) : null}
 
       {submitError ? (
-        <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
+        <div className={styles.te12bff}>
           {submitError}
         </div>
       ) : null}
 
-      <section className="rounded-xl border border-border-muted bg-surface-elevated p-6">
-        <h2 className="text-lg font-bold text-ink mb-3">Thông tin khách hàng</h2>
-        <p className="text-sm">
-          <span className="text-muted">Khách hàng:</span>{" "}
-          <span className="font-semibold text-ink">{detail.customerName}</span>
+      <section className={styles.td78253}>
+        <h2 className={styles.tdc4033}>Thông tin khách hàng</h2>
+        <p className={styles.tfc7473}>
+          <span className={styles.t9a12f0}>Khách hàng:</span>{" "}
+          <span className={styles.t1d3e56}>{detail.customerName}</span>
         </p>
       </section>
 
-      <form onSubmit={handleSubmit} className="space-y-8">
-        <section className="rounded-xl border border-border-muted bg-surface-elevated overflow-hidden">
-          <div className="px-6 py-4 border-b border-border-muted">
-            <h2 className="text-lg font-bold text-ink">Chi phí sản phẩm</h2>
+      <form onSubmit={handleSubmit} className={styles.t793f9e}>
+        <section className={styles.t8ddf6c}>
+          <div className={styles.t962254}>
+            <h2 className={styles.te817d8}>Chi phí sản phẩm</h2>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className={styles.t1384f6}>
+            <table className={styles.t8af758}>
               <thead>
-                <tr className="text-left text-xs uppercase tracking-wide text-muted border-b border-border-muted bg-surface/50">
-                  <th className="px-6 py-3 font-bold">Sản phẩm</th>
-                  <th className="px-6 py-3 font-bold">Link</th>
-                  <th className="px-6 py-3 font-bold">SL</th>
-                  <th className="px-6 py-3 font-bold">Giá/SP (VND)</th>
-                  <th className="px-6 py-3 font-bold text-right">Thành tiền</th>
+                <tr className={styles.t25eccb}>
+                  <th className={styles.t4bbc2d}>Sản phẩm</th>
+                  <th className={styles.t4bbc2d}>Link</th>
+                  <th className={styles.t4bbc2d}>SL</th>
+                  <th className={styles.t4bbc2d}>Giá/SP (VND)</th>
+                  <th className={styles.tb2bb68}>Thành tiền</th>
                 </tr>
               </thead>
               <tbody>
@@ -268,21 +269,21 @@ export default function PurchaseRequestQuotationPanel({
                   return (
                     <tr
                       key={product.id}
-                      className="border-b border-border-muted/60 last:border-0"
+                      className={styles.t85eb24}
                     >
-                      <td className="px-6 py-4">
-                        <p className="font-semibold text-ink">{product.productName}</p>
+                      <td className={styles.t9bba71}>
+                        <p className={styles.t1d3e56}>{product.productName}</p>
                         {product.attributes ? (
-                          <p className="text-xs text-muted mt-0.5">{product.attributes}</p>
+                          <p className={styles.t5e4cbe}>{product.attributes}</p>
                         ) : null}
                       </td>
-                      <td className="px-6 py-4 max-w-xs">
+                      <td className={styles.t64604c}>
                         {product.productLink ? (
                           <a
                             href={product.productLink}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-primary hover:underline break-all text-xs"
+                            className={styles.t6b5bf7}
                           >
                             Link
                           </a>
@@ -290,18 +291,18 @@ export default function PurchaseRequestQuotationPanel({
                           "—"
                         )}
                       </td>
-                      <td className="px-6 py-4">{product.quantity}</td>
-                      <td className="px-6 py-4">
+                      <td className={styles.t9bba71}>{product.quantity}</td>
+                      <td className={styles.t9bba71}>
                         <VndMoneyInput
                           required
                           disabled={!canCreate || isSubmitting || detail.status === "QUOTED"}
                           value={itemPrices[product.id] ?? ""}
                           onChange={(value) => updateItemPrice(product.id, value)}
                           placeholder="0"
-                          className="w-28 h-10 px-3 rounded-lg border border-border-muted text-sm input-focus-ring disabled:opacity-60"
+                          className={`${styles.t5c08af} input-focus-ring`}
                         />
                       </td>
-                      <td className="px-6 py-4 text-right font-semibold">
+                      <td className={styles.t66299a}>
                         {formatQuotationAmount(lineTotal)}
                       </td>
                     </tr>
@@ -312,9 +313,9 @@ export default function PurchaseRequestQuotationPanel({
           </div>
         </section>
 
-        <section className="rounded-xl border border-border-muted bg-surface-elevated p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <label htmlFor="purchaseServiceFee" className="text-sm font-semibold text-ink">
+        <section className={styles.tac7f04}>
+          <div className={styles.t6f7e01}>
+            <label htmlFor="purchaseServiceFee" className={styles.tae03fc}>
               Phí mua hộ (VND)
             </label>
             <VndMoneyInput
@@ -330,8 +331,8 @@ export default function PurchaseRequestQuotationPanel({
               placeholder="VD: 150.000"
             />
           </div>
-          <div className="space-y-2">
-            <label htmlFor="estimatedShippingFee" className="text-sm font-semibold text-ink">
+          <div className={styles.t6f7e01}>
+            <label htmlFor="estimatedShippingFee" className={styles.tae03fc}>
               Phí vận chuyển dự kiến (VND)
             </label>
             <VndMoneyInput
@@ -348,8 +349,8 @@ export default function PurchaseRequestQuotationPanel({
           </div>
         </section>
 
-        <section className="rounded-xl border border-border-muted bg-surface-elevated p-6 space-y-3">
-          <label htmlFor="quotationNote" className="text-sm font-semibold text-ink">
+        <section className={styles.tbe29b7}>
+          <label htmlFor="quotationNote" className={styles.tae03fc}>
             Ghi chú báo giá
           </label>
           <textarea
@@ -363,30 +364,30 @@ export default function PurchaseRequestQuotationPanel({
               setSuccessMessage("");
             }}
             placeholder="Ghi chú gửi kèm báo giá cho Customer..."
-            className="w-full px-4 py-3 rounded-lg border border-border-muted text-sm resize-y input-focus-ring min-h-[88px] disabled:opacity-60"
+            className={`${styles.tbf51c0} input-focus-ring`}
           />
         </section>
 
-        <section className="rounded-xl border border-primary/30 bg-primary/5 p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <section className={styles.t2cf5f2}>
           <div>
-            <p className="text-sm text-muted">Tổng tiền báo giá</p>
-            <p className="text-3xl font-black text-ink font-['Oswald']">
+            <p className={styles.ta7b499}>Tổng tiền báo giá</p>
+            <p className={styles.t334ead}>
               {formatQuotationAmount(totalAmount)}
             </p>
           </div>
           <button
             type="submit"
             disabled={!canCreate || isSubmitting || detail.status === "QUOTED"}
-            className="inline-flex items-center justify-center gap-2 h-11 px-6 rounded-lg bg-primary text-white text-sm font-bold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+            className={styles.tdb7e95}
           >
             {isSubmitting ? (
               <>
-                <Icon icon="lucide:loader-2" className="w-4 h-4 animate-spin" />
+                <Icon icon="lucide:loader-2" className={styles.tc11061} />
                 Đang gửi báo giá...
               </>
             ) : (
               <>
-                <Icon icon="lucide:send" className="w-4 h-4" />
+                <Icon icon="lucide:send" className={styles.t0bfbea} />
                 Gửi báo giá
               </>
             )}
