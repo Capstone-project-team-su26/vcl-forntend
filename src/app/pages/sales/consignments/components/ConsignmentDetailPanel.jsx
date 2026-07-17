@@ -737,6 +737,20 @@ export default function ConsignmentDetailPanel({
             </NoticeBanner>
           ) : null}
 
+          {detail.status === "WAITING_DEPOSIT" || detail.status === "WAITING_PAYMENT" ? (
+            <NoticeBanner variant="warning" icon="lucide:wallet">
+              Khách đã xác nhận báo giá và đang <strong>thanh toán đặt cọc</strong>. Chờ PayOS
+              xác nhận — sau khi thanh toán thành công đơn sẽ chuyển sang{" "}
+              <strong>Đã thanh toán đặt cọc</strong>.
+            </NoticeBanner>
+          ) : null}
+
+          {detail.status === "DEPOSIT_PAID" ? (
+            <NoticeBanner variant="success" icon="lucide:badge-check">
+              Khách đã thanh toán đặt cọc. Bạn có thể duyệt yêu cầu và tạo phiếu nhập kho.
+            </NoticeBanner>
+          ) : null}
+
           {detail.items?.length ? (
             <ConsignmentProductsTable
               items={detail.items}
@@ -882,7 +896,10 @@ export default function ConsignmentDetailPanel({
             </div>
           ) : (
             !readOnly &&
-            !canSendQuotation && (
+            !canSendQuotation &&
+            detail.status !== "WAITING_DEPOSIT" &&
+            detail.status !== "WAITING_PAYMENT" &&
+            detail.status !== "QUOTATION_SENT" && (
               <div className="rounded-lg border border-border-muted bg-surface-muted px-4 py-3 text-sm text-subtle">
                 Yêu cầu này không thể cập nhật vì đã hủy, đã nhập kho hoặc đã được xử lý.
               </div>

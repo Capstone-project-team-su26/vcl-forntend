@@ -44,7 +44,13 @@ export const CONSIGNMENT_STATUS_LABELS = {
   QUOTATION_SENT: "Đã gửi báo giá",
   QUOTATION_CONFIRMED: "Khách đã xác nhận báo giá",
   QUOTATION_REJECTED: "Khách từ chối báo giá",
-  WAITING_DEPOSIT: "Chờ đặt cọc",
+  // BE origin/dev (ConsignmentPaymentService): confirm+pay → WAITING_DEPOSIT; webhook cọc → DEPOSIT_PAID.
+  WAITING_DEPOSIT: "Chờ thanh toán đặt cọc",
+  WAITING_PAYMENT: "Chờ thanh toán đặt cọc", // alias cũ
+  DEPOSIT_PAID: "Đã thanh toán đặt cọc",
+  WAITING_FINAL_PAYMENT: "Chờ thanh toán cuối",
+  PAYMENT_CONFIRMED: "Đã xác nhận thanh toán",
+  PAID: "Đã thanh toán đủ",
   APPROVED: "Đã duyệt",
   REJECTED: "Từ chối",
   IN_PROGRESS: "Đang xử lý",
@@ -60,6 +66,11 @@ export const CONSIGNMENT_STATUS_STYLES = {
   QUOTATION_CONFIRMED: "bg-success-bg text-success-text border-2 border-primary",
   QUOTATION_REJECTED: "bg-danger-bg text-danger border-2 border-danger-border",
   WAITING_DEPOSIT: "bg-warning-bg text-warning-text border-2 border-primary",
+  WAITING_PAYMENT: "bg-warning-bg text-warning-text border-2 border-primary",
+  DEPOSIT_PAID: "bg-success-bg text-success-text border-2 border-primary",
+  WAITING_FINAL_PAYMENT: "bg-warning-bg text-warning-text border-2 border-primary",
+  PAYMENT_CONFIRMED: "bg-success-bg text-success-text border-2 border-primary",
+  PAID: "bg-success-bg text-success-text border-2 border-primary",
   APPROVED: "bg-success-bg text-success-text border-2 border-primary",
   REJECTED: "bg-danger-bg text-danger border-2 border-danger-border",
   IN_PROGRESS: "bg-info-bg text-info-text border-2 border-primary",
@@ -75,6 +86,11 @@ export const CONSIGNMENT_STATUS_ICONS = {
   QUOTATION_CONFIRMED: "lucide:check-circle",
   QUOTATION_REJECTED: "lucide:x-circle",
   WAITING_DEPOSIT: "lucide:wallet",
+  WAITING_PAYMENT: "lucide:wallet",
+  DEPOSIT_PAID: "lucide:badge-check",
+  WAITING_FINAL_PAYMENT: "lucide:wallet",
+  PAYMENT_CONFIRMED: "lucide:badge-check",
+  PAID: "lucide:circle-dollar-sign",
   APPROVED: "lucide:package-check",
   REJECTED: "lucide:ban",
   IN_PROGRESS: "lucide:truck",
@@ -84,7 +100,13 @@ export const CONSIGNMENT_STATUS_ICONS = {
   COMPLETED: "lucide:circle-check",
 };
 
-/** Sales chỉ duyệt sau khi khách xác nhận báo giá. */
+/**
+ * Sales được duyệt khi:
+ * - Khách xác nhận báo giá (không qua PayOS): QUOTATION_CONFIRMED
+ * - Khách đã trả cọc (PayOS webhook): DEPOSIT_PAID
+ */
+export const CONSIGNMENT_APPROVABLE_STATUSES = ["QUOTATION_CONFIRMED", "DEPOSIT_PAID"];
+/** @deprecated Dùng CONSIGNMENT_APPROVABLE_STATUSES */
 export const CONSIGNMENT_APPROVABLE_STATUS = "QUOTATION_CONFIRMED";
 
 export function canStaffSendConsignmentQuotation(detail) {
@@ -107,7 +129,7 @@ export function canCustomerRejectConsignmentQuotation(detail) {
 }
 
 export function canStaffUpdateConsignmentStatus(status) {
-  return status === CONSIGNMENT_APPROVABLE_STATUS;
+  return CONSIGNMENT_APPROVABLE_STATUSES.includes(status);
 }
 
 /** Sales chỉ từ chối yêu cầu trước khi gửi báo giá. */
@@ -120,6 +142,12 @@ const STATUS_SORT_ORDER = {
   QUOTATION_SENT: 0,
   QUOTATION_CONFIRMED: 0,
   QUOTATION_REJECTED: 0,
+  WAITING_DEPOSIT: 0,
+  WAITING_PAYMENT: 0,
+  DEPOSIT_PAID: 0,
+  WAITING_FINAL_PAYMENT: 1,
+  PAYMENT_CONFIRMED: 1,
+  PAID: 1,
   IN_PROGRESS: 1,
   IN_WAREHOUSE: 1,
   WAREHOUSE_RECEIVED: 1,
@@ -375,7 +403,8 @@ async function updateStaffConsignmentStatusMock(orderId, { status, rejectionReas
   if (status === "APPROVED") {
     if (!canStaffUpdateConsignmentStatus(item.status)) {
       throw new ApiError(400, {
-        message: "Chỉ duyệt yêu cầu sau khi khách đã xác nhận báo giá.",
+        message:
+          "Chỉ duyệt yêu cầu sau khi khách đã xác nhận báo giá hoặc đã thanh toán đặt cọc.",
       });
     }
     const trackingCode = generateMockTrackingCode();
@@ -450,11 +479,41 @@ export async function listStaffConsignments(params = {}) {
   return normalizeConsignmentListResponse(raw, { page, pageSize });
 }
 
+function needsCustomerHydration(detail) {
+  if (!detail?.customerId) return false;
+  const hasCustomerName =
+    detail.customerName && detail.customerName !== "—";
+  const hasSenderName = Boolean(detail.senderName);
+  return !hasCustomerName && !hasSenderName;
+}
+
+async function hydrateConsignmentCustomer(detail) {
+  if (!needsCustomerHydration(detail)) return detail;
+
+  try {
+    const { getCustomer } = await import("@/utils/customerService");
+    const customer = await getCustomer(detail.customerId);
+    if (!customer?.fullName || customer.fullName === "—") return detail;
+
+    return {
+      ...detail,
+      customer,
+      customerName: customer.fullName,
+      senderName: detail.senderName ?? customer.fullName,
+      senderPhone: detail.senderPhone ?? customer.phone ?? null,
+      senderAddress: detail.senderAddress ?? customer.address ?? null,
+    };
+  } catch {
+    // ponytail: BE detail thiếu customer — hydrate best-effort, không chặn xem đơn
+    return detail;
+  }
+}
+
 export async function getStaffConsignment(id) {
   if (isMockMode()) return getStaffConsignmentMock(id);
 
   const raw = await apiRequest(`/api/orders/consignments/${id}`);
-  return normalizeConsignmentDetail(raw);
+  return hydrateConsignmentCustomer(normalizeConsignmentDetail(raw));
 }
 
 /**

@@ -2,6 +2,7 @@
 
 import { Icon } from "@iconify/react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import * as orderConsignmentService from "@/utils/orderConsignmentService";
 import * as consignmentQuotationService from "@/utils/consignmentQuotationService";
@@ -12,10 +13,12 @@ import { getErrorMessage } from "@/utils/apiError";
 import { isMockMode } from "@/utils/mocks/dataSource";
 import { ROUTES } from "@/utils/appRoutes";
 import VndMoneyInput from "@/app/components/VndMoneyInput";
-import { resolveConsignmentPackageCount } from "@/utils/apiMappers";
+import {
+  mergeConsignmentDetail,
+  resolveConsignmentPackageCount,
+} from "@/utils/apiMappers";
 
 const {
-  CONSIGNMENT_STATUS_LABELS,
   canStaffSendConsignmentQuotation,
   formatConsignmentDate,
   formatConsignmentDisplayCode,
@@ -214,6 +217,7 @@ function StatusBadge({ status }) {
 }
 
 export default function ConsignmentQuotationPanel({ id, backHref, readOnly = false }) {
+  const router = useRouter();
   const [detail, setDetail] = useState(null);
   const [warehouses, setWarehouses] = useState([]);
   const [servicePricings, setServicePricings] = useState([]);
@@ -814,25 +818,22 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
 
       const response = await orderConsignmentService.sendConsignmentQuotation(detail.id, sendParams);
 
-      const updated = response.consignment
-        ? {
-            ...detail,
+      // Merge giữ party cũ nếu BE trả payload thưa; rồi về chi tiết (tránh kẹt trang chỉ-xem).
+      if (response.consignment) {
+        setDetail(
+          mergeConsignmentDetail(detail, {
             ...response.consignment,
-            items: response.consignment.items?.length ? response.consignment.items : detail.items,
-            quotation: detail.quotation ?? quotation,
-          }
-        : {
-            ...detail,
-            status: response.status ?? "QUOTATION_SENT",
-            quotation,
-          };
-
-      setDetail(updated);
-      setSuccessMessage(
-        `${response.message || "Đã gửi báo giá cho khách hàng."} Trạng thái: ${
-          CONSIGNMENT_STATUS_LABELS[response.status] || response.status
-        }.`
-      );
+            quotation: response.consignment.quotation ?? quotation,
+          })
+        );
+      } else {
+        setDetail({
+          ...detail,
+          status: response.status ?? "QUOTATION_SENT",
+          quotation,
+        });
+      }
+      router.replace(ROUTES.sales.consignment(detail.id));
     } catch (err) {
       setSubmitError(getErrorMessage(err));
     } finally {
@@ -938,7 +939,11 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
             ? "Báo giá đã gửi — đang chờ khách xác nhận hoặc từ chối."
             : detail.status === "QUOTATION_CONFIRMED"
               ? "Khách đã xác nhận báo giá."
-              : "Yêu cầu này không ở trạng thái gửi báo giá — chỉ xem lại nội dung báo giá."}
+              : detail.status === "WAITING_DEPOSIT" || detail.status === "WAITING_PAYMENT"
+                ? "Khách đang thanh toán đặt cọc — chờ PayOS xác nhận."
+                : detail.status === "DEPOSIT_PAID"
+                  ? "Khách đã thanh toán đặt cọc. Vào chi tiết yêu cầu để duyệt."
+                  : "Yêu cầu này không ở trạng thái gửi báo giá — chỉ xem lại nội dung báo giá."}
         </div>
       ) : null}
 

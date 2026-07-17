@@ -76,7 +76,8 @@ export function mergeSummaryWithDetail(summary, detail) {
       detail.requiresInspection === true || summary.requiresInspection === true,
     productNames,
     consignmentType: detail.consignmentType ?? summary.consignmentType,
-    status: detail.status ?? summary.status,
+    // List API là nguồn status mới hơn; cache detail (TTL 5’) không được ghi đè.
+    status: summary.status ?? detail.status,
     totalWeight: detail.totalWeight ?? summary.totalWeight,
     totalVolume: detail.totalVolume ?? summary.totalVolume,
     packageCount: detail.packageCount ?? summary.packageCount,

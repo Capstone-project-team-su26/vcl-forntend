@@ -25,6 +25,12 @@ function getInitials(name) {
     .join("");
 }
 
+/** Chuẩn hóa status ký gửi từ BE (giữ code production; chỉ fold case). */
+export function normalizeConsignmentStatus(status) {
+  if (status == null || status === "") return status;
+  return String(status).trim().toUpperCase();
+}
+
 function formatUserDate(iso) {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString("vi-VN", {
@@ -34,8 +40,73 @@ function formatUserDate(iso) {
   });
 }
 
+/** Tên hiển thị từ vài key BE thường dùng; bỏ "—" giả. */
+function pickDisplayName(...candidates) {
+  for (const value of candidates) {
+    if (value == null) continue;
+    const text = String(value).trim();
+    if (text && text !== "—") return text;
+  }
+  return null;
+}
+
+function resolveCustomerDisplayName(item) {
+  const customer = item?.customer;
+  return pickDisplayName(
+    customer?.fullName,
+    customer?.name,
+    item?.customerName,
+    item?.customerFullName
+  );
+}
+
+function resolvePartyFromApi(item, role) {
+  const nested = item?.[role];
+  const prefix = role; // sender | receiver
+  return {
+    name: pickDisplayName(
+      item?.[`${prefix}Name`],
+      nested?.fullName,
+      nested?.name,
+      nested?.customerName
+    ),
+    phone: pickDisplayName(
+      item?.[`${prefix}Phone`],
+      nested?.phone,
+      nested?.phoneNumber
+    ),
+    address: pickDisplayName(item?.[`${prefix}Address`], nested?.address),
+  };
+}
+
+/** Giữ field cũ khi response gửi báo giá/status thiếu party. */
+export function preferFilledField(next, prev) {
+  return pickDisplayName(next) ?? pickDisplayName(prev) ?? next ?? prev ?? null;
+}
+
+export function mergeConsignmentDetail(prev, next) {
+  if (!prev) return next;
+  if (!next) return prev;
+  return {
+    ...prev,
+    ...next,
+    customerName: preferFilledField(next.customerName, prev.customerName) ?? "—",
+    senderName: preferFilledField(next.senderName, prev.senderName),
+    senderPhone: preferFilledField(next.senderPhone, prev.senderPhone),
+    senderAddress: preferFilledField(next.senderAddress, prev.senderAddress),
+    receiverName: preferFilledField(next.receiverName, prev.receiverName),
+    receiverPhone: preferFilledField(next.receiverPhone, prev.receiverPhone),
+    receiverAddress: preferFilledField(next.receiverAddress, prev.receiverAddress),
+    customer: next.customer ?? prev.customer ?? null,
+    customerId: next.customerId ?? prev.customerId ?? null,
+    items: next.items?.length ? next.items : prev.items,
+    quotation: next.quotation ?? prev.quotation,
+  };
+}
+
 export function normalizeConsignmentSummary(item) {
   const orderId = item.orderId ?? item.id;
+  const receiver = resolvePartyFromApi(item, "receiver");
 
   const productNames = (() => {
     if (Array.isArray(item.productNames) && item.productNames.length) {
@@ -51,15 +122,15 @@ export function normalizeConsignmentSummary(item) {
   return {
     id: orderId,
     consignmentCode: item.consignmentCode || null,
-    customerName: item.customerName ?? item.customer?.fullName ?? "—",
-    receiverName: item.receiverName ?? null,
-    receiverPhone: item.receiverPhone ?? item.phone ?? null,
-    receiverAddress: item.receiverAddress ?? item.address ?? null,
+    customerName: resolveCustomerDisplayName(item) ?? "—",
+    receiverName: receiver.name,
+    receiverPhone: receiver.phone ?? pickDisplayName(item.phone) ?? null,
+    receiverAddress: receiver.address ?? pickDisplayName(item.address) ?? null,
     requiresInspection: item.requiresInspection === true,
     productNames,
     consignmentType:
       item.orderType ?? item.consignmentType ?? item.shippingOption ?? "—",
-    status: item.status,
+    status: normalizeConsignmentStatus(item.status),
     totalWeight: item.totalWeight ?? null,
     totalVolume: item.totalVolume ?? null,
     createdAt: item.createdAt,
@@ -190,26 +261,34 @@ export function normalizeConsignmentDetail(raw) {
     items,
     quantity: item.quantity ?? firstItem?.quantity,
   });
+  const customerName = resolveCustomerDisplayName(item);
+  const sender = resolvePartyFromApi(item, "sender");
+  const receiver = resolvePartyFromApi(item, "receiver");
+  const customerPhone = pickDisplayName(
+    item.customer?.phone,
+    item.customer?.phoneNumber
+  );
+  const customerAddress = pickDisplayName(item.customer?.address);
 
   return {
     id: item.orderId ?? item.id,
     consignmentCode: item.consignmentCode ?? null,
-    customerName: item.customer?.fullName ?? item.customerName ?? "—",
+    customerName: customerName ?? "—",
     orderType: item.orderType ?? null,
     consignmentType: item.consignmentType ?? item.shippingOption ?? item.orderType ?? "—",
     shippingOption: item.consignmentType ?? item.shippingOption ?? null,
-    status: item.status,
+    status: normalizeConsignmentStatus(item.status),
     createdAt: item.createdAt,
     productName: firstItem?.productName,
     quantity: firstItem?.quantity,
     destination: item.route ?? item.shippingOption ?? item.destination,
     route: item.route ?? null,
-    senderName: item.senderName ?? item.customer?.fullName ?? item.customerName ?? null,
-    senderPhone: item.senderPhone ?? item.customer?.phone ?? item.customer?.phoneNumber ?? null,
-    senderAddress: item.senderAddress ?? item.customer?.address ?? null,
-    receiverName: item.receiverName ?? null,
-    receiverPhone: item.receiverPhone ?? null,
-    receiverAddress: item.receiverAddress ?? null,
+    senderName: sender.name ?? customerName,
+    senderPhone: sender.phone ?? customerPhone,
+    senderAddress: sender.address ?? customerAddress,
+    receiverName: receiver.name,
+    receiverPhone: receiver.phone,
+    receiverAddress: receiver.address,
     requiresInspection: item.requiresInspection === true,
     notes: item.note ?? item.notes,
     trackingCode: item.consignmentCode ?? item.trackingCode,
@@ -226,7 +305,8 @@ export function normalizeConsignmentDetail(raw) {
       return quotation;
     })(),
     customer: item.customer ?? null,
-    customerId: item.customer?.customerId ?? item.customerId ?? null,
+    customerId:
+      item.customer?.customerId ?? item.customer?.id ?? item.customerId ?? null,
     warehouseId: item.warehouseId ?? null,
     warehouseName: item.warehouseName ?? null,
     totalWeight: item.totalWeight ?? null,
@@ -240,7 +320,7 @@ export function normalizeConsignmentStatusUpdate(raw) {
 
   return {
     message: payload.message ?? raw?.message,
-    status: payload.status ?? raw?.status,
+    status: normalizeConsignmentStatus(payload.status ?? raw?.status),
     trackingCode:
       payload.consignmentCode ?? payload.trackingCode ?? payload.shipmentCode,
     rejectionReason: payload.rejectionReason ?? raw?.rejectionReason,
