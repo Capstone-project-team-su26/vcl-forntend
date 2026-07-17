@@ -10,6 +10,7 @@ import { SITE_NAME } from "@/utils/site";
 import { isMockMode } from "@/utils/mocks/dataSource";
 import { useAuth } from "@/hooks/useAuth";
 import { resolvePostLoginPath } from "@/utils/routeAccess";
+import { clearSession } from "@/utils/authSession";
 import { ROUTES } from "@/utils/appRoutes";
 import {
   MOCK_TEST_ACCOUNTS,
@@ -47,6 +48,12 @@ function LoginPage() {
 
   useEffect(() => {
     if (!isReady || !isLoggedIn || !session?.role) return;
+    // Bị middleware/AuthGuard đẩy về đây (?next=...) dù client tưởng đã đăng nhập
+    // ⇒ cookie phiên đã ký thiếu/hết hạn/đổi secret. Xóa session cũ để cắt vòng lặp redirect.
+    if (redirectTo) {
+      clearSession();
+      return;
+    }
     const target = resolvePostLoginPath(session.role, redirectTo);
     window.location.replace(target);
   }, [isReady, isLoggedIn, session?.role, redirectTo]);
