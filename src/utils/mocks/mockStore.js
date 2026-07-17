@@ -1063,6 +1063,7 @@ const seed = {
       unit: "VND/lần",
       description: "Kiểm tra số lượng và tình trạng hàng trước khi đóng gói.",
       isActive: true,
+      isRequired: true,
     },
     {
       id: "ASF-STORAGE",

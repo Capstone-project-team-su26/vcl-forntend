@@ -18,6 +18,12 @@ const navItems = [
     href: ROUTES.admin.consignments,
   },
   {
+    id: "payments",
+    label: "Lịch sử thanh toán",
+    icon: "lucide:wallet",
+    href: ROUTES.admin.payments,
+  },
+  {
     id: "restricted-items",
     label: "Hàng cấm",
     icon: "lucide:shield-alert",

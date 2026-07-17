@@ -71,6 +71,7 @@ export default function AdditionalServiceFeeFormModal({
       unit: readFormValue(form, "unit").trim(),
       description: readFormValue(form, "description").trim(),
       isActive: readFormChecked(form, "isActive"),
+      isRequired: readFormChecked(form, "isRequired"),
     };
 
     setIsSubmitting(true);
@@ -255,6 +256,23 @@ export default function AdditionalServiceFeeFormModal({
             />
             <span className="text-sm text-ink font-medium">Đang hoạt động</span>
           </label>
+
+          {!isDivisorRule && !isVatConfigRule ? (
+            <label className="flex items-start gap-2.5 cursor-pointer">
+              <input
+                type="checkbox"
+                name="isRequired"
+                defaultChecked={fee?.isRequired === true}
+                className="w-4 h-4 mt-0.5 rounded border-border-muted accent-primary"
+              />
+              <span>
+                <span className="text-sm text-ink font-medium block">Phí bắt buộc</span>
+                <span className="text-xs text-muted">
+                  Sales không được tắt khi lập báo giá.
+                </span>
+              </span>
+            </label>
+          ) : null}
 
           <div className="flex justify-end gap-3 pt-2">
             <button
