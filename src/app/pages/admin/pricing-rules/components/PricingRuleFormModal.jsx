@@ -379,7 +379,7 @@ export default function ServicePricingFormModal({ open, mode, item, onClose, onS
             {showCbm ? (
               <div className="space-y-2">
                 <label htmlFor="pricePerCbm" className="text-sm font-semibold text-ink">
-                  Giá/cm³ {unitType === "KG_OR_CBM" ? <span className="text-danger">*</span> : null}
+                  Giá/m³ {unitType === "KG_OR_CBM" ? <span className="text-danger">*</span> : null}
                 </label>
                 <VndMoneyInput
                   id="pricePerCbm"

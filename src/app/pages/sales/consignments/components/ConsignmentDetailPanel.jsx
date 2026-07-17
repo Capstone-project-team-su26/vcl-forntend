@@ -446,7 +446,7 @@ function QuotationSummary({
       <div className="rounded-lg border border-border-muted bg-surface/40 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 text-sm">
         <p className="font-semibold text-ink">Hệ số quy đổi thể tích</p>
         <p className="text-muted">
-          DIM = thể tích (cm³) ÷{" "}
+          DIM = (Dài × Rộng × Cao cm) ÷{" "}
           <span className="font-mono font-bold text-ink">
             {Number(volumetricDivisor).toLocaleString("vi-VN")}
           </span>
@@ -461,6 +461,7 @@ function QuotationSummary({
               · mặc định IATA {VOLUMETRIC_DIVISOR_CM3.toLocaleString("vi-VN")}
             </span>
           )}
+          . Cước theo MAX(cân thực, DIM).
         </p>
       </div>
 
@@ -663,14 +664,14 @@ export default function ConsignmentDetailPanel({
             <PartySection
               title="Người gửi"
               name={detail.senderName || detail.customerName}
-              phone={detail.senderPhone}
-              address={detail.senderAddress}
+              phone={detail.senderPhone || detail.customer?.phone}
+              address={detail.senderAddress || detail.customer?.address}
             />
             <PartySection
               title="Người nhận"
-              name={detail.receiverName}
-              phone={detail.receiverPhone}
-              address={detail.receiverAddress}
+              name={detail.receiverName || detail.customerName}
+              phone={detail.receiverPhone || detail.customer?.phone}
+              address={detail.receiverAddress || detail.customer?.address}
             />
           </div>
 
@@ -778,7 +779,7 @@ export default function ConsignmentDetailPanel({
               {(() => {
                 const volumeCm3 = resolveConsignmentTotalVolumeCm3({
                   totalVolume: detail.totalVolume,
-                  weightKg: detail.totalWeight,
+                  totalVolumeM3: detail.totalVolumeM3,
                 });
                 return volumeCm3 != null ? (
                   <DetailRow label="Tổng thể tích" value={formatVolumeCm3(volumeCm3)} />

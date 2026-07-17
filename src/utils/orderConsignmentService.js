@@ -484,7 +484,9 @@ function needsCustomerHydration(detail) {
   const hasCustomerName =
     detail.customerName && detail.customerName !== "—";
   const hasSenderName = Boolean(detail.senderName);
-  return !hasCustomerName && !hasSenderName;
+  const hasSenderPhone = Boolean(detail.senderPhone);
+  const hasSenderAddress = Boolean(detail.senderAddress);
+  return !hasCustomerName || !hasSenderName || !hasSenderPhone || !hasSenderAddress;
 }
 
 async function hydrateConsignmentCustomer(detail) {
@@ -493,13 +495,18 @@ async function hydrateConsignmentCustomer(detail) {
   try {
     const { getCustomer } = await import("@/utils/customerService");
     const customer = await getCustomer(detail.customerId);
-    if (!customer?.fullName || customer.fullName === "—") return detail;
+    const customerName =
+      customer?.fullName && customer.fullName !== "—" ? customer.fullName : null;
+    if (!customerName && !customer?.phone && !customer?.address) return detail;
 
     return {
       ...detail,
       customer,
-      customerName: customer.fullName,
-      senderName: detail.senderName ?? customer.fullName,
+      customerName:
+        detail.customerName && detail.customerName !== "—"
+          ? detail.customerName
+          : customerName ?? detail.customerName,
+      senderName: detail.senderName ?? customerName ?? detail.customerName,
       senderPhone: detail.senderPhone ?? customer.phone ?? null,
       senderAddress: detail.senderAddress ?? customer.address ?? null,
     };
@@ -684,7 +691,7 @@ async function createStaffConsignmentMock(payload) {
       payload.serviceType ?? warehouse?.code ?? shippingMethod?.code ?? "STANDARD",
     status: "PENDING_REVIEW",
     totalWeight: Number(payload.weightKg ?? firstItem.estimatedWeight) || 0,
-    totalVolume: Number(payload.volumeM3) || 0,
+    totalVolume: Number(payload.volumeCm3 ?? payload.volumeM3) || 0,
     packageCount: Number(payload.packageCount ?? firstItem.quantity) || 1,
     createdAt: new Date().toISOString(),
     productName,
@@ -753,7 +760,9 @@ async function sendConsignmentQuotationMock(orderId, payload) {
   }
 
   if (payload.weightKg != null) item.totalWeight = Number(payload.weightKg) || 0;
-  if (payload.volumeM3 != null) item.totalVolume = Number(payload.volumeM3) || 0;
+  if (payload.volumeCm3 != null || payload.volumeM3 != null) {
+    item.totalVolume = Number(payload.volumeCm3 ?? payload.volumeM3) || 0;
+  }
   if (payload.packageCount != null) {
     item.packageCount = Number(payload.packageCount) || 1;
   }

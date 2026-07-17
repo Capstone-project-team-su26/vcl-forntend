@@ -15,6 +15,7 @@ const { ITEM_VALIDATION_LABELS, ITEM_VALIDATION_STYLES } = orderConsignmentServi
 const {
   formatInternationalWarehouseLabel,
   formatServiceTypeLabel,
+  formatVolumeCm3,
   isConfiguredServicePricing,
   listServicePricings,
   listServicePricingRouteOptions,
@@ -247,7 +248,7 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
         originCountry: selectedPricing.originCountry,
         destinationCountry: selectedPricing.destinationCountry,
         weightKg: Number(weightKg),
-        volumeM3: Number(volumeCm3),
+        volumeCm3: Number(volumeCm3),
         packageCount: Number(packageCount),
         salesNote: notes,
         items: [
@@ -479,8 +480,14 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
                 step="1"
                 value={volumeCm3}
                 onChange={(event) => setVolumeCm3(event.target.value)}
+                placeholder="vd. 12000"
                 className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
               />
+              {volumeCm3 && Number(volumeCm3) >= 1000 ? (
+                <p className="text-xs text-muted">
+                  ≈ {formatVolumeCm3(Number(volumeCm3))}
+                </p>
+              ) : null}
             </div>
             <div className="space-y-2">
               <FieldLabel htmlFor="packageCount" required>

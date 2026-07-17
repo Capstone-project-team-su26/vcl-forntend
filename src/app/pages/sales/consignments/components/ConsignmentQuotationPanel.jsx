@@ -95,12 +95,12 @@ function formatMainServiceUnitPrice(servicePricing) {
     return { unit: "VND/kg", rate: `${consignmentQuotationService.formatMoney(price)}/kg` };
   }
   if (unitType === "CBM") {
-    return { unit: "VND/cm³", rate: `${consignmentQuotationService.formatMoney(price)}/cm³` };
+    return { unit: "VND/m³", rate: `${consignmentQuotationService.formatMoney(price)}/m³` };
   }
   if (unitType === "KG_OR_CBM") {
     return {
-      unit: "VND/kg · cm³",
-      rate: `${consignmentQuotationService.formatMoney(pricePerKg)}/kg · ${consignmentQuotationService.formatMoney(pricePerCbm)}/cm³`,
+      unit: "VND/kg · m³",
+      rate: `${consignmentQuotationService.formatMoney(pricePerKg)}/kg · ${consignmentQuotationService.formatMoney(pricePerCbm)}/m³`,
     };
   }
   return { unit: "—", rate: price > 0 ? consignmentQuotationService.formatMoney(price) : "—" };
@@ -259,11 +259,6 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
     [warehouses, resolvedWarehouseId]
   );
 
-  const displayRouteLabel = useMemo(
-    () => formatConsignmentRouteLabel(detail),
-    [detail]
-  );
-
   const quotationPricingContext = useMemo(
     () => ({ warehouse: selectedWarehouse, consignment: detail }),
     [selectedWarehouse, detail]
@@ -284,6 +279,11 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
         detail
       ),
     [servicePricings, quotationPricingContext, serviceType, detail]
+  );
+
+  const displayRouteLabel = useMemo(
+    () => formatConsignmentRouteLabel(detail, selectedServicePricing),
+    [detail, selectedServicePricing]
   );
 
   const hasConfiguredPricing = Boolean(
@@ -321,6 +321,8 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
     [additionalFeeLines, customFees]
   );
 
+  const vatRate = useMemo(() => resolveVatRate(feeCatalog), [feeCatalog]);
+
   const totals = useMemo(
     () =>
       calculateQuotationTotal({
@@ -338,8 +340,6 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
     [feeCatalog]
   );
 
-  const vatRate = useMemo(() => resolveVatRate(feeCatalog), [feeCatalog]);
-
   const surchargeFeeCatalog = useMemo(
     () => feeCatalog.filter((fee) => !isPricingConfigRule(fee)),
     [feeCatalog]
@@ -355,6 +355,7 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
       buildMainServicePricingBreakdown(selectedServicePricing, {
         weightKg,
         volumeCm3,
+        items: detail?.items,
         volumetricDivisor,
         estimate:
           estimateSnapshot ??
@@ -374,6 +375,7 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
       volumetricDivisor,
       estimateSnapshot,
       detail?.quotation,
+      detail?.items,
     ]
   );
 
@@ -426,7 +428,7 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
           : null;
         const weight = consignment.totalWeight != null ? String(consignment.totalWeight) : "";
         const volumeCm3FromApi = normalizeVolumeCm3FromApi(consignment.totalVolume, {
-          weightKg: consignment.totalWeight,
+          totalVolumeM3: consignment.totalVolumeM3,
         });
         const volume = volumeCm3FromApi != null ? String(volumeCm3FromApi) : "";
         const packages = String(
@@ -487,8 +489,8 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
               servicePricingId: pricing.id,
               serviceType: pricing.serviceType ?? initialServiceType,
               weightKg: weight ? Number(weight) : undefined,
-              // ponytail: swagger field còn tên volumeM3 nhưng BE nhận cm³.
-              volumeM3: volumeCm3FromApi ?? (volume ? Number(volume) : undefined),
+              // FE giữ cm³; toApiCreateQuotationRequest đổi sang m³ thật cho BE.
+              volumeCm3: volumeCm3FromApi ?? (volume ? Number(volume) : undefined),
               packageCount: packages ? Number(packages) : undefined,
               declaredValue: declared !== "" ? Number(declared) : undefined,
               salesNote: estimateSalesNote,
@@ -823,7 +825,7 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
       servicePricingId: selectedServicePricing.id,
       serviceType,
       weightKg: Number(weightKg),
-      volumeM3: resolvedVolumeCm3,
+      volumeCm3: resolvedVolumeCm3,
       packageCount: Number(packageCount),
       declaredValue: declaredValue === "" ? null : Number(declaredValue),
       salesNote,
@@ -944,7 +946,9 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
               </div>
               <div className="rounded-lg border border-primary bg-surface-elevated px-3 py-2.5">
                 <p className="text-xs font-bold uppercase tracking-wide text-secondary">Người nhận</p>
-                <p className="text-sm font-bold text-ink mt-0.5">{detail.receiverName || "—"}</p>
+                <p className="text-sm font-bold text-ink mt-0.5">
+                  {detail.receiverName || detail.customerName || "—"}
+                </p>
               </div>
             </div>
             <p className="text-sm text-subtle mt-2">{formatConsignmentDate(detail.createdAt)}</p>
@@ -1028,16 +1032,19 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
                 />
               </div>
               <div className="space-y-2">
-                <FieldLabel htmlFor="volumeCm3" required>Thể tích (cm³)</FieldLabel>
+                <FieldLabel htmlFor="volumeCm3" required>Thể tích</FieldLabel>
                 <input
                   id="volumeCm3"
-                  type="number"
-                  min="1"
-                  step="1"
-                  value={volumeCm3}
+                  type="text"
+                  value={volumeCm3 ? formatVolumeCm3(Number(volumeCm3)) : ""}
                   readOnly
                   className={LOCKED_FIELD_CLASS}
                 />
+                {volumeCm3 && Number(volumeCm3) >= 1000 ? (
+                  <p className="text-xs text-muted">
+                    {Number(volumeCm3).toLocaleString("vi-VN")} cm³
+                  </p>
+                ) : null}
               </div>
               <div className="space-y-2">
                 <FieldLabel htmlFor="packageCount" required>Số kiện</FieldLabel>
@@ -1086,10 +1093,12 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
                       </>
                     ) : null}
                   </p>
-                  {pricingBreakdown.volumeCm3 != null ? (
+                  {pricingBreakdown.volumeCm3 != null || pricingBreakdown.volumetricWeight > 0 ? (
                     <p className="text-xs text-muted mt-1">
-                      DIM = {formatVolumeCm3(pricingBreakdown.volumeCm3)} ÷{" "}
-                      {volumetricDivisor.toLocaleString("vi-VN")}
+                      DIM = (Dài × Rộng × Cao) / {volumetricDivisor.toLocaleString("vi-VN")}
+                      {pricingBreakdown.volumetricWeight > 0
+                        ? ` = ${pricingBreakdown.volumetricWeight} kg`
+                        : null}
                     </p>
                   ) : null}
                 </div>
@@ -1161,7 +1170,7 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
               <div className="px-6 py-3 border-t border-border-muted bg-surface/40 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 text-sm">
                 <p className="font-semibold text-ink">Hệ số quy đổi thể tích</p>
                 <p className="text-muted">
-                  DIM = thể tích (cm³) ÷{" "}
+                  DIM = (Dài × Rộng × Cao cm) ÷{" "}
                   <span className="font-mono font-bold text-ink">
                     {volumetricDivisor.toLocaleString("vi-VN")}
                   </span>
@@ -1170,6 +1179,7 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
                   ) : (
                     <span className="text-xs"> · mặc định IATA {VOLUMETRIC_DIVISOR_CM3.toLocaleString("vi-VN")}</span>
                   )}
+                  . Cước theo MAX(cân thực, DIM).
                 </p>
               </div>
             </section>
