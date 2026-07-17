@@ -228,11 +228,12 @@ export function listActiveAdditionalFees() {
 }
 
 export function recalculateAdditionalFeeLine(fee, line, context = {}) {
-  const enabled = line.enabled !== false;
+  const isRequired = line.isRequired === true || fee?.isRequired === true;
+  const enabled = isRequired ? true : line.enabled !== false;
   return buildFeeLine(fee, {
     enabled,
     quantity: line.quantity,
-    isRequired: line.isRequired === true,
+    isRequired,
     context,
   });
 }
@@ -251,11 +252,13 @@ export function buildDefaultAdditionalFeeLines({
   return fees
     .filter((fee) => !isMainServiceFee(fee) && !isPricingConfigRule(fee))
     .map((fee) => {
-      const enabled = enabledFeeIds
-        ? enabledFeeIds[fee.id] !== false
-        : shouldDefaultEnableFee(fee, { requiresInspection, declaredValue });
       const isRequired =
         fee.isRequired === true || (isInspectionFee(fee) && requiresInspection);
+      const enabled = isRequired
+        ? true
+        : enabledFeeIds
+          ? enabledFeeIds[fee.id] !== false
+          : shouldDefaultEnableFee(fee, { requiresInspection, declaredValue });
       const quantity =
         quantityByFeeId && quantityByFeeId[fee.id] != null
           ? quantityByFeeId[fee.id]
@@ -592,11 +595,13 @@ export function buildAdditionalFeeLinesFromQuotation(
   if (apiFees.length) {
     return apiFees.map((fee) => {
       const catalogFee = findCatalogFee(catalogFees, fee);
-      const enabled = fee.enabled !== false;
       const isRequired =
         fee.isRequired === true ||
+        catalogFee?.isRequired === true ||
         (catalogFee && isInspectionFee(catalogFee) && requiresInspection) ||
         (isInspectionFee({ code: fee.code }) && requiresInspection);
+      // Phí bắt buộc luôn bật — không cho Sales tắt qua API/UI.
+      const enabled = isRequired ? true : fee.enabled !== false;
 
       if (catalogFee) {
         const line = buildFeeLine(catalogFee, {
@@ -893,6 +898,28 @@ if (typeof process !== "undefined" && process.env?.NODE_ENV !== "production") {
   console.assert(
     _tax.vat === 12000 && _tax.total === 182000,
     "calculateQuotationGrandTotal mismatch"
+  );
+
+  const _requiredLines = buildDefaultAdditionalFeeLines({
+    fees: [
+      {
+        id: "req-1",
+        code: "DOMESTIC",
+        name: "Phí nội địa",
+        feeCalculationType: "FIXED",
+        fixedAmount: 10000,
+        isRequired: true,
+      },
+    ],
+    packageCount: 1,
+    declaredValue: 0,
+    mainServiceAmount: 0,
+  });
+  console.assert(
+    _requiredLines[0]?.enabled === true &&
+      _requiredLines[0]?.isRequired === true &&
+      _requiredLines[0]?.amount === 10000,
+    "isRequired fee must stay enabled"
   );
 
   const _vatFromRules = resolveVatRate([

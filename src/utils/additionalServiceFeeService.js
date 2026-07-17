@@ -95,6 +95,7 @@ function validateFeePayload(payload, { requireAll = false } = {}) {
     unit: payload.unit?.trim() || null,
     description: payload.description?.trim() || null,
     isActive: payload.isActive !== false,
+    isRequired: payload.isRequired === true,
   };
 }
 

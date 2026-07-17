@@ -40,6 +40,8 @@ function LoginPage() {
   const [error, setError] = useState("");
   const [selectedTestEmail, setSelectedTestEmail] = useState("");
   const formRef = useRef(null);
+  // Tránh clearSession khi vừa login thành công mà URL còn ?next= (race với middleware).
+  const justLoggedInRef = useRef(false);
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("next");
   const { loginWithCredentials, isLoggedIn, isReady, session } = useAuth();
@@ -48,9 +50,9 @@ function LoginPage() {
 
   useEffect(() => {
     if (!isReady || !isLoggedIn || !session?.role) return;
-    // Bị middleware/AuthGuard đẩy về đây (?next=...) dù client tưởng đã đăng nhập
-    // ⇒ cookie phiên đã ký thiếu/hết hạn/đổi secret. Xóa session cũ để cắt vòng lặp redirect.
-    if (redirectTo) {
+    // Middleware đẩy về login?next= với localStorage cũ (cookie HttpOnly thiếu) → xóa để cắt loop.
+    // Không clear khi vừa login — cookie mới vừa set, clear sẽ logout ngay.
+    if (redirectTo && !justLoggedInRef.current) {
       clearSession();
       return;
     }
@@ -76,9 +78,11 @@ function LoginPage() {
     }
     fillForm(email, password);
     setIsSubmitting(true);
+    justLoggedInRef.current = true;
     try {
       await loginWithCredentials({ email, password, redirectTo });
     } catch (err) {
+      justLoggedInRef.current = false;
       if (err instanceof ApiError && err.status === 401) {
         setError("Email hoặc mật khẩu không đúng.");
       } else if (err instanceof ApiError && err.status === 403) {

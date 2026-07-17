@@ -21,6 +21,12 @@ export const SALES_NAV = [
     icon: "lucide:package-search",
   },
   {
+    id: "payments",
+    label: "Lịch sử thanh toán",
+    href: ROUTES.sales.payments,
+    icon: "lucide:wallet",
+  },
+  {
     id: "purchase-requests",
     label: "Mua hộ",
     href: ROUTES.sales.purchaseRequests,
