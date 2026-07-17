@@ -18,11 +18,13 @@ export const ROUTES = {
     shippingMethods: `${PAGES}/admin/shipping-methods`,
     carriers: `${PAGES}/admin/carriers`,
     additionalServiceFees: `${PAGES}/admin/additional-service-fees`,
+    payments: `${PAGES}/admin/payments`,
   },
   sales: {
     home: `${PAGES}/sales`,
     customers: `${PAGES}/sales/customers`,
     customer: (id) => `${PAGES}/sales/customers/${id}`,
+    payments: `${PAGES}/sales/payments`,
     consignments: `${PAGES}/sales/consignments`,
     createConsignment: `${PAGES}/sales/consignments/create`,
     consignment: (id) => `${PAGES}/sales/consignments/${id}`,

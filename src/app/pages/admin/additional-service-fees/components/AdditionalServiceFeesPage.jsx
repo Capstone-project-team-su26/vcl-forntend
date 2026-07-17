@@ -134,6 +134,32 @@ export default function AdditionalServiceFeesPage() {
     }
   }
 
+  async function handleToggleRequired(item) {
+    if (isVolumetricDivisorRule(item) || isVatRule(item)) return;
+
+    setPendingId(item.id);
+    setActionError("");
+    setActionMessage("");
+
+    try {
+      const response = await feeService.updateAdditionalServiceFee(item.id, {
+        isRequired: !item.isRequired,
+      });
+      setItems((current) =>
+        current.map((entry) => (entry.id === item.id ? response.fee : entry))
+      );
+      setActionMessage(
+        response.fee.isRequired
+          ? "Đã đặt phí bắt buộc (Sales không tắt được)."
+          : "Đã bỏ bắt buộc — Sales có thể bật/tắt."
+      );
+    } catch (err) {
+      setActionError(getErrorMessage(err));
+    } finally {
+      setPendingId(null);
+    }
+  }
+
   async function handleDelete(item) {
     const confirmed = window.confirm(
       `Xóa loại phí "${item.name}"? Hành động này không thể hoàn tác.`
@@ -211,6 +237,38 @@ export default function AdditionalServiceFeesPage() {
         headerClassName: "hidden md:table-cell",
         className: "text-muted hidden md:table-cell",
         render: (item) => item.unit || "—",
+      },
+      {
+        key: "isRequired",
+        title: "Bắt buộc",
+        headerClassName: "hidden sm:table-cell",
+        className: "hidden sm:table-cell",
+        sortAccessor: (item) => (item.isRequired ? 1 : 0),
+        render: (item) => {
+          const locked = isVolumetricDivisorRule(item) || isVatRule(item);
+          if (locked) {
+            return <span className="text-muted text-xs">—</span>;
+          }
+          return (
+            <button
+              type="button"
+              disabled={pendingId === item.id}
+              onClick={() => handleToggleRequired(item)}
+              title={
+                item.isRequired
+                  ? "Bỏ bắt buộc (Sales có thể tắt)"
+                  : "Đặt bắt buộc (Sales không tắt được)"
+              }
+              className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold transition-colors disabled:opacity-50 ${
+                item.isRequired
+                  ? "bg-primary/10 text-primary hover:bg-primary/20"
+                  : "bg-surface text-muted hover:bg-border-muted hover:text-ink"
+              }`}
+            >
+              {item.isRequired ? "Bắt buộc" : "Tùy chọn"}
+            </button>
+          );
+        },
       },
       {
         key: "description",

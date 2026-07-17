@@ -630,6 +630,7 @@ function toApiAdditionalFeeDto(fee) {
     label: fee.label ?? null,
     amount: Number(fee.amount) || 0,
     enabled: fee.enabled !== false,
+    isRequired: fee.isRequired === true,
   };
 }
 
@@ -1029,6 +1030,7 @@ export function normalizeAdditionalServiceFeeFromApi(item) {
     unit: item.unit ?? item.billingUnit ?? null,
     description: item.description ?? item.notes ?? null,
     isActive: item.isActive !== false,
+    isRequired: item.isRequired === true,
   };
 }
 
