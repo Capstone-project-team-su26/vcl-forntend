@@ -116,6 +116,9 @@ export default function ReceivingNotePage({ consignmentId }) {
   const expectedQuantity = consignment
     ? receivingNoteService.getExpectedTotalQuantity(consignment)
     : 0;
+  const expectedPackages = consignment
+    ? receivingNoteService.getExpectedPackageCount(consignment)
+    : 0;
   const consignmentCode =
     consignment?.consignmentCode || consignment?.id?.slice(0, 8) || "—";
   const shippingCode = consignment?.trackingCode || consignment?.consignmentCode || "—";
@@ -209,6 +212,9 @@ export default function ReceivingNotePage({ consignmentId }) {
                   }
                 />
                 <DetailRow label="Ngày tạo" value={formatConsignmentDate(consignment.createdAt)} />
+                {expectedPackages > 0 ? (
+                  <DetailRow label="Số kiện" value={String(expectedPackages)} />
+                ) : null}
                 <DetailRow
                   label="Mã gửi hàng"
                   value={shippingCode !== "—" ? shippingCode : "Chưa có"}
@@ -244,7 +250,7 @@ export default function ReceivingNotePage({ consignmentId }) {
                   </tbody>
                   <tfoot>
                     <tr className="border-t border-border-muted bg-surface-soft">
-                      <td className="px-4 py-3 text-sm font-bold">Tổng số lượng dự kiến</td>
+                      <td className="px-4 py-3 text-sm font-bold">Tổng số kiện dự kiến</td>
                       <td className="px-4 py-3 text-right text-sm font-bold">
                         {expectedQuantity}
                       </td>

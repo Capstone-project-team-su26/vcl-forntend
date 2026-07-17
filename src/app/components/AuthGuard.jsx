@@ -22,6 +22,8 @@ export default function AuthGuard({ allowedRoles, children }) {
 
   const role = session?.role;
   const isAuthed = Boolean(session?.token);
+  const notExpired =
+    !session?.expiresAt || new Date(session.expiresAt).getTime() > Date.now();
   const roleAllowed =
     !allowedRoles || allowedRoles.length === 0
       ? true
@@ -31,7 +33,7 @@ export default function AuthGuard({ allowedRoles, children }) {
   useEffect(() => {
     if (!isReady) return;
 
-    if (!isAuthed) {
+    if (!isAuthed || !notExpired) {
       router.replace(buildLoginUrl(pathname));
       return;
     }
@@ -39,9 +41,9 @@ export default function AuthGuard({ allowedRoles, children }) {
     if (!roleAllowed || !pathAllowed) {
       router.replace(`${getForbiddenRedirect(role)}?error=forbidden`);
     }
-  }, [isReady, isAuthed, role, roleAllowed, pathAllowed, pathname, router]);
+  }, [isReady, isAuthed, notExpired, role, roleAllowed, pathAllowed, pathname, router]);
 
-  if (!isReady || !isAuthed || !roleAllowed || !pathAllowed) {
+  if (!isReady || !isAuthed || !notExpired || !roleAllowed || !pathAllowed) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-surface text-muted text-sm">
         Đang kiểm tra quyền truy cập...

@@ -2,6 +2,7 @@
 
 import { Icon } from "@iconify/react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import * as orderConsignmentService from "@/utils/orderConsignmentService";
 import * as consignmentQuotationService from "@/utils/consignmentQuotationService";
@@ -12,9 +13,12 @@ import { getErrorMessage } from "@/utils/apiError";
 import { isMockMode } from "@/utils/mocks/dataSource";
 import { ROUTES } from "@/utils/appRoutes";
 import VndMoneyInput from "@/app/components/VndMoneyInput";
+import {
+  mergeConsignmentDetail,
+  resolveConsignmentPackageCount,
+} from "@/utils/apiMappers";
 
 const {
-  CONSIGNMENT_STATUS_LABELS,
   canStaffSendConsignmentQuotation,
   formatConsignmentDate,
   formatConsignmentDisplayCode,
@@ -33,6 +37,7 @@ const {
   resolveConsignmentServiceType,
   resolveInitialSalesNote,
   resolveServicePricingForConsignment,
+  formatVatRatePercent,
 } = consignmentQuotationService;
 
 const {
@@ -45,7 +50,11 @@ const {
   formatConsignmentRouteLabel,
   formatVolumeCm3,
   isConfiguredServicePricing,
+  isPricingConfigRule,
+  isVolumetricDivisorRule,
   normalizeVolumeCm3FromApi,
+  resolveVatRate,
+  resolveVolumetricDivisor,
   UNIT_TYPE_LABELS,
   VOLUMETRIC_DIVISOR_CM3,
 } = servicePricingService;
@@ -210,6 +219,7 @@ function StatusBadge({ status }) {
 }
 
 export default function ConsignmentQuotationPanel({ id, backHref, readOnly = false }) {
+  const router = useRouter();
   const [detail, setDetail] = useState(null);
   const [warehouses, setWarehouses] = useState([]);
   const [servicePricings, setServicePricings] = useState([]);
@@ -231,6 +241,7 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
   const [feesFromApi, setFeesFromApi] = useState(false);
   const [salesNote, setSalesNote] = useState("");
   const [estimateSnapshot, setEstimateSnapshot] = useState(null);
+  const [taxSnapshot, setTaxSnapshot] = useState({ importTax: 0, vat: null });
   const [customFees, setCustomFees] = useState([]);
 
   const canSend = detail && !readOnly ? canStaffSendConsignmentQuotation(detail) : false;
@@ -316,8 +327,27 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
         mainServiceAmount: mainServiceAmount === "" ? 0 : Number(mainServiceAmount),
         additionalFees: allAdditionalFeeLines,
         discountPercent,
+        importTax: taxSnapshot.importTax,
+        vatRate,
       }),
-    [mainServiceAmount, allAdditionalFeeLines, discountPercent]
+    [mainServiceAmount, allAdditionalFeeLines, discountPercent, taxSnapshot.importTax, vatRate]
+  );
+
+  const volumetricDivisor = useMemo(
+    () => resolveVolumetricDivisor(feeCatalog),
+    [feeCatalog]
+  );
+
+  const vatRate = useMemo(() => resolveVatRate(feeCatalog), [feeCatalog]);
+
+  const surchargeFeeCatalog = useMemo(
+    () => feeCatalog.filter((fee) => !isPricingConfigRule(fee)),
+    [feeCatalog]
+  );
+
+  const volumetricDivisorRule = useMemo(
+    () => feeCatalog.find(isVolumetricDivisorRule) ?? null,
+    [feeCatalog]
   );
 
   const pricingBreakdown = useMemo(
@@ -325,6 +355,7 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
       buildMainServicePricingBreakdown(selectedServicePricing, {
         weightKg,
         volumeCm3,
+        volumetricDivisor,
         estimate:
           estimateSnapshot ??
           (detail?.quotation
@@ -336,7 +367,14 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
               }
             : null),
       }),
-    [selectedServicePricing, weightKg, volumeCm3, estimateSnapshot, detail?.quotation]
+    [
+      selectedServicePricing,
+      weightKg,
+      volumeCm3,
+      volumetricDivisor,
+      estimateSnapshot,
+      detail?.quotation,
+    ]
   );
 
   const resolvedBackHref =
@@ -391,12 +429,13 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
           weightKg: consignment.totalWeight,
         });
         const volume = volumeCm3FromApi != null ? String(volumeCm3FromApi) : "";
-        const packages =
-          consignment.packageCount != null
-            ? String(consignment.packageCount)
-            : consignment.quantity != null
-              ? String(consignment.quantity)
-              : "1";
+        const packages = String(
+          resolveConsignmentPackageCount({
+            packageCount: consignment.packageCount,
+            items: consignment.items,
+            quantity: consignment.quantity,
+          }) ?? 1
+        );
         const firstItem = consignment.items?.[0];
         const declared =
           firstItem?.declaredValue != null ? String(firstItem.declaredValue) : "";
@@ -425,6 +464,7 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
         const estimateSalesNote =
           resolveInitialSalesNote(consignment) || "Báo giá tạm tính";
         const resolvedVolumeCm3 = volumeCm3FromApi ?? (volume ? Number(volume) : 0);
+        const divisor = resolveVolumetricDivisor(activeFees);
 
         const preliminaryDraft = buildConsignmentQuotationDraft({
           servicePricing: pricing,
@@ -435,6 +475,8 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
           discountPercent: consignment.quotation?.discountPercent ?? 0,
           mainServiceAmountOverride: draftMainAmount,
           salesNote: estimateSalesNote,
+          volumetricDivisor: divisor,
+          pricingRules: activeFees,
         });
 
         let estimateResult = null;
@@ -465,6 +507,8 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
           declaredValue: declared,
           discountPercent: consignment.quotation?.discountPercent ?? 0,
           salesNote: estimateSalesNote,
+          volumetricDivisor: divisor,
+          pricingRules: activeFees,
         });
 
         const apiFreight =
@@ -490,6 +534,8 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
           declaredValue: declared,
           discountPercent: consignment.quotation?.discountPercent ?? 0,
           mainServiceAmountOverride: draftMainAmountResolved,
+          volumetricDivisor: divisor,
+          pricingRules: activeFees,
         });
 
         const { lines: feeLines, fromApi } = resolveQuotationAdditionalFees({
@@ -531,6 +577,18 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
               }
             : null
         );
+        setTaxSnapshot({
+          importTax:
+            estimateResult?.importTax ??
+            estimateResult?.quotation?.importTax ??
+            consignment.quotation?.importTax ??
+            0,
+          vat:
+            estimateResult?.vat ??
+            estimateResult?.quotation?.vat ??
+            consignment.quotation?.vat ??
+            null,
+        });
       } catch (err) {
         if (active) setLoadError(getErrorMessage(err));
       } finally {
@@ -545,6 +603,16 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
   }, [id]);
 
   useEffect(() => {
+    if (!detail) return;
+    const packages = resolveConsignmentPackageCount({
+      packageCount: detail.packageCount,
+      items: detail.items,
+      quantity: detail.quantity,
+    });
+    if (packages != null) setPackageCount(String(packages));
+  }, [detail?.id, detail?.packageCount, detail?.items, detail?.quantity]);
+
+  useEffect(() => {
     if (!selectedServicePricing || !weightKg || !volumeCm3 || !feeCatalog.length) {
       return;
     }
@@ -556,6 +624,8 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
       packageCount,
       declaredValue,
       discountPercent,
+      volumetricDivisor,
+      pricingRules: feeCatalog,
     });
 
     setMainServiceAmount(String(draft.mainServiceAmount));
@@ -582,6 +652,7 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
     declaredValue,
     discountPercent,
     feeCatalog,
+    volumetricDivisor,
     detail?.requiresInspection,
   ]);
 
@@ -720,18 +791,24 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
 
     const resolvedVolumeCm3 = volumeCm3 ? Number(volumeCm3) : 0;
 
-    const quotation = {
-      ...buildConsignmentQuotationDraft({
-        servicePricing: selectedServicePricing,
-        weightKg,
-        volumeCm3: resolvedVolumeCm3,
-        packageCount,
-        declaredValue,
-        discountPercent,
-        mainServiceAmountOverride: mainServiceAmount,
-        additionalFees: allAdditionalFeeLines,
-        salesNote,
-      }),
+    const quotation = buildConsignmentQuotationDraft({
+      servicePricing: selectedServicePricing,
+      weightKg,
+      volumeCm3: resolvedVolumeCm3,
+      packageCount,
+      declaredValue,
+      discountPercent,
+      mainServiceAmountOverride: mainServiceAmount,
+      additionalFees: allAdditionalFeeLines,
+      salesNote,
+      volumetricDivisor,
+      pricingRules: feeCatalog,
+      importTax: taxSnapshot.importTax,
+      vat: totals.vat,
+    });
+
+    const quotationPayload = {
+      ...quotation,
       customFees: customFees.map((fee) => ({
         id: fee.id,
         label: fee.label,
@@ -750,13 +827,19 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
       packageCount: Number(packageCount),
       declaredValue: declaredValue === "" ? null : Number(declaredValue),
       salesNote,
-      quotation,
+      quotation: quotationPayload,
     };
 
     try {
       if (!isMockMode()) {
         try {
-          await estimateConsignmentQuotation(detail.id, sendParams);
+          const estimate = await estimateConsignmentQuotation(detail.id, sendParams);
+          if (estimate) {
+            setTaxSnapshot({
+              importTax: estimate.importTax ?? estimate.quotation?.importTax ?? taxSnapshot.importTax,
+              vat: estimate.vat ?? estimate.quotation?.vat ?? null,
+            });
+          }
         } catch {
           // Estimate thất bại không chặn gửi báo giá chính thức.
         }
@@ -764,18 +847,22 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
 
       const response = await orderConsignmentService.sendConsignmentQuotation(detail.id, sendParams);
 
-      const updated = response.consignment ?? {
-        ...detail,
-        status: response.status ?? "QUOTATION_SENT",
-        quotation,
-      };
-
-      setDetail(updated);
-      setSuccessMessage(
-        `${response.message || "Đã gửi báo giá cho khách hàng."} Trạng thái: ${
-          CONSIGNMENT_STATUS_LABELS[response.status] || response.status
-        }.`
-      );
+      // Merge giữ party cũ nếu BE trả payload thưa; rồi về chi tiết (tránh kẹt trang chỉ-xem).
+      if (response.consignment) {
+        setDetail(
+          mergeConsignmentDetail(detail, {
+            ...response.consignment,
+            quotation: response.consignment.quotation ?? quotationPayload,
+          })
+        );
+      } else {
+        setDetail({
+          ...detail,
+          status: response.status ?? "QUOTATION_SENT",
+          quotation: quotationPayload,
+        });
+      }
+      router.replace(ROUTES.sales.consignment(detail.id));
     } catch (err) {
       setSubmitError(getErrorMessage(err));
     } finally {
@@ -881,7 +968,11 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
             ? "Báo giá đã gửi — đang chờ khách xác nhận hoặc từ chối."
             : detail.status === "QUOTATION_CONFIRMED"
               ? "Khách đã xác nhận báo giá."
-              : "Yêu cầu này không ở trạng thái gửi báo giá — chỉ xem lại nội dung báo giá."}
+              : detail.status === "WAITING_DEPOSIT" || detail.status === "WAITING_PAYMENT"
+                ? "Khách đang thanh toán đặt cọc — chờ PayOS xác nhận."
+                : detail.status === "DEPOSIT_PAID"
+                  ? "Khách đã thanh toán đặt cọc. Vào chi tiết yêu cầu để duyệt."
+                  : "Yêu cầu này không ở trạng thái gửi báo giá — chỉ xem lại nội dung báo giá."}
         </div>
       ) : null}
 
@@ -998,7 +1089,7 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
                   {pricingBreakdown.volumeCm3 != null ? (
                     <p className="text-xs text-muted mt-1">
                       DIM = {formatVolumeCm3(pricingBreakdown.volumeCm3)} ÷{" "}
-                      {VOLUMETRIC_DIVISOR_CM3.toLocaleString("vi-VN")}
+                      {volumetricDivisor.toLocaleString("vi-VN")}
                     </p>
                   ) : null}
                 </div>
@@ -1027,7 +1118,7 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
             {pricingBreakdown.show ? <PricingFormulaBreakdown breakdown={pricingBreakdown} /> : null}
           </section>
 
-          {hasConfiguredPricing || feeCatalog.length ? (
+          {hasConfiguredPricing || surchargeFeeCatalog.length || volumetricDivisor ? (
             <section className="rounded-xl border border-border-muted bg-surface-elevated overflow-hidden">
               <div className="px-6 py-4 border-b border-border-muted">
                 <h2 className="text-lg font-bold text-ink">Bảng giá tham chiếu (VND)</h2>
@@ -1057,7 +1148,7 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
                         );
                       })()
                     ) : null}
-                    {feeCatalog.map((fee) => (
+                    {surchargeFeeCatalog.map((fee) => (
                       <tr key={fee.id} className="border-b border-border-muted/60 last:border-0">
                         <td className="px-6 py-3 font-medium text-ink">{fee.name}</td>
                         <td className="px-6 py-3 text-muted">{fee.unit || "—"}</td>
@@ -1066,6 +1157,20 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
                     ))}
                   </tbody>
                 </table>
+              </div>
+              <div className="px-6 py-3 border-t border-border-muted bg-surface/40 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 text-sm">
+                <p className="font-semibold text-ink">Hệ số quy đổi thể tích</p>
+                <p className="text-muted">
+                  DIM = thể tích (cm³) ÷{" "}
+                  <span className="font-mono font-bold text-ink">
+                    {volumetricDivisor.toLocaleString("vi-VN")}
+                  </span>
+                  {volumetricDivisorRule ? (
+                    <span className="text-xs"> · từ quy tắc {volumetricDivisorRule.code || "VOLUMETRIC_DIVISOR"}</span>
+                  ) : (
+                    <span className="text-xs"> · mặc định IATA {VOLUMETRIC_DIVISOR_CM3.toLocaleString("vi-VN")}</span>
+                  )}
+                </p>
               </div>
             </section>
           ) : null}
@@ -1242,13 +1347,27 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
                 </tbody>
                 <tfoot>
                   <tr className="border-t border-border-muted bg-surface/50">
-                    <td colSpan={4} className="px-4 py-3 text-sm font-semibold text-muted">Tạm tính</td>
+                    <td colSpan={4} className="px-4 py-3 text-sm font-semibold text-muted">Tạm tính (cước + phí dịch vụ)</td>
                     <td className="px-4 py-3 text-right font-bold text-ink">{formatMoney(totals.subtotal)}</td>
                   </tr>
                   {totals.discount > 0 ? (
                     <tr className="bg-surface/50">
                       <td colSpan={4} className="px-4 py-3 text-sm font-semibold text-muted">Chiết khấu ({discountPercent}%)</td>
                       <td className="px-4 py-3 text-right font-bold text-danger">-{formatMoney(totals.discount)}</td>
+                    </tr>
+                  ) : null}
+                  {totals.importTax > 0 ? (
+                    <tr className="bg-surface/50">
+                      <td colSpan={4} className="px-4 py-3 text-sm font-semibold text-muted">Thuế nhập khẩu</td>
+                      <td className="px-4 py-3 text-right font-bold text-ink">{formatMoney(totals.importTax)}</td>
+                    </tr>
+                  ) : null}
+                  {totals.vat > 0 ? (
+                    <tr className="bg-surface/50">
+                      <td colSpan={4} className="px-4 py-3 text-sm font-semibold text-muted">
+                        VAT ({formatVatRatePercent(totals.vatRate ?? vatRate)})
+                      </td>
+                      <td className="px-4 py-3 text-right font-bold text-ink">{formatMoney(totals.vat)}</td>
                     </tr>
                   ) : null}
                   <tr className="bg-primary/5">

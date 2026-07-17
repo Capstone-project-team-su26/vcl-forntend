@@ -11,7 +11,10 @@ import { isMockMode } from "@/utils/mocks/dataSource";
 import { useAuth } from "@/hooks/useAuth";
 import { resolvePostLoginPath } from "@/utils/routeAccess";
 import { ROUTES } from "@/utils/appRoutes";
-import { MOCK_TEST_ACCOUNTS, API_TEST_ACCOUNTS } from "@/utils/mocks/mockAccounts";
+import {
+  MOCK_TEST_ACCOUNTS,
+  API_TEST_ACCOUNTS,
+} from "@/utils/mocks/mockAccounts";
 import { ApiError } from "@/utils/apiError";
 import { getErrorMessage } from "@/utils/apiError";
 const features = [
@@ -21,10 +24,20 @@ const features = [
   { icon: "lucide:shield-check", title: "Phân quyền", desc: "Truy cập theo role nhân viên" }
 ];
 const avatarColors = [colors.primary, colors.secondary, colors.accent, colors.primaryHover];
+
+function testAccountButtonClass(selected) {
+  return `inline-flex flex-col items-start px-3 py-2 rounded-lg border text-left transition-colors ${
+    selected
+      ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+      : "border-surface-muted bg-white hover:bg-surface"
+  }`;
+}
+
 function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [selectedTestEmail, setSelectedTestEmail] = useState("");
   const formRef = useRef(null);
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("next");
@@ -37,49 +50,54 @@ function LoginPage() {
     const target = resolvePostLoginPath(session.role, redirectTo);
     window.location.replace(target);
   }, [isReady, isLoggedIn, session?.role, redirectTo]);
-  function fillMockAccount(email) {
+
+  function fillForm(email, password) {
     const form = formRef.current;
     if (!form) return;
     const emailInput = form.elements.namedItem("email");
     const passwordInput = form.elements.namedItem("password");
     if (emailInput) emailInput.value = email;
-    if (passwordInput) passwordInput.value = "mock123";
-    setError("");
+    if (passwordInput) passwordInput.value = password;
+    setSelectedTestEmail(email);
   }
-  function fillApiAccount(account) {
-    const form = formRef.current;
-    if (!form) return;
-    const emailInput = form.elements.namedItem("email");
-    const passwordInput = form.elements.namedItem("password");
-    if (emailInput) emailInput.value = account.email;
-    // ponytail: không autofill mật khẩu API — tránh commit/leak credential.
-    if (passwordInput) passwordInput.value = "";
+
+  async function loginAs(email, password) {
     setError("");
-  }
-  async function handleSubmit(e) {
-    e.preventDefault();
-    setError("");
-    const form = e.currentTarget;
-    const email = form.email?.value?.trim();
-    const password = form.password?.value;
     if (!email || !password) {
-      setError("Vui l\xF2ng nh\u1EADp email v\xE0 m\u1EADt kh\u1EA9u.");
+      setError("Vui lòng nhập email và mật khẩu.");
       return;
     }
+    fillForm(email, password);
     setIsSubmitting(true);
     try {
       await loginWithCredentials({ email, password, redirectTo });
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
-        setError("Email ho\u1EB7c m\u1EADt kh\u1EA9u kh\xF4ng \u0111\xFAng.");
+        setError("Email hoặc mật khẩu không đúng.");
       } else if (err instanceof ApiError && err.status === 403) {
-        setError("B\u1EA1n kh\xF4ng c\xF3 quy\u1EC1n truy c\u1EADp.");
+        setError("Bạn không có quyền truy cập.");
       } else {
-        setError(getErrorMessage(err, "\u0110\u0103ng nh\u1EADp th\u1EA5t b\u1EA1i. Vui l\xF2ng th\u1EED l\u1EA1i."));
+        setError(getErrorMessage(err, "Đăng nhập thất bại. Vui lòng thử lại."));
       }
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  function handleMockAccount(account) {
+    void loginAs(account.email, "mock123");
+  }
+
+  function handleApiAccount(account) {
+    void loginAs(account.email, account.password);
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const email = form.email?.value?.trim();
+    const password = form.password?.value;
+    await loginAs(email, password);
   }
   return /* @__PURE__ */ jsxs("div", { className: "min-h-screen w-full flex flex-col lg:flex-row bg-white font-sans", children: [
     /* @__PURE__ */ jsxs("aside", { className: "relative hidden lg:flex lg:w-[58%] bg-surface-soft flex-col justify-between p-10 xl:p-14 overflow-hidden", children: [
@@ -139,13 +157,14 @@ function LoginPage() {
       ] }),
       error ? /* @__PURE__ */ jsx("div", { className: "mb-5 rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger", children: error }) : null,
       isDev && mockMode ? /* @__PURE__ */ jsxs("div", { className: "mb-5 rounded-lg border border-warning-bg bg-warning-bg/40 px-4 py-3 text-sm text-ink space-y-3", children: [
-        /* @__PURE__ */ jsx("p", { className: "font-semibold", children: "Ch\u1EBF \u0111\u1ED9 Mock \u2014 m\u1EADt kh\u1EA9u b\u1EA5t k\u1EF3" }),
+        /* @__PURE__ */ jsx("p", { className: "font-semibold", children: "Chế độ Mock — bấm acc để đăng nhập ngay" }),
         /* @__PURE__ */ jsx("div", { className: "flex flex-wrap gap-2", children: MOCK_TEST_ACCOUNTS.map((account) => /* @__PURE__ */ jsxs(
           "button",
           {
             type: "button",
-            onClick: () => fillMockAccount(account.email),
-            className: "inline-flex flex-col items-start px-3 py-2 rounded-lg border border-surface-muted bg-white hover:bg-surface text-left transition-colors",
+            disabled: isSubmitting,
+            onClick: () => handleMockAccount(account),
+            className: testAccountButtonClass(selectedTestEmail === account.email),
             children: [
               /* @__PURE__ */ jsx("span", { className: "text-xs font-bold text-primary", children: account.label }),
               /* @__PURE__ */ jsx("span", { className: "text-[11px] text-muted", children: account.email })
@@ -154,19 +173,20 @@ function LoginPage() {
           account.email
         )) }),
         /* @__PURE__ */ jsxs("p", { className: "text-xs text-muted", children: [
-          "Test k\xFD g\u1EEDi: ch\u1ECDn ",
+          "Test ký gửi: chọn ",
           /* @__PURE__ */ jsx("strong", { children: "Sale" }),
-          " \u2192 sidebar ",
-          /* @__PURE__ */ jsx("strong", { children: "Qu\u1EA3n l\xFD k\xFD g\u1EEDi" })
+          " → sidebar ",
+          /* @__PURE__ */ jsx("strong", { children: "Quản lý ký gửi" })
         ] })
       ] }) : isDev && !mockMode ? /* @__PURE__ */ jsxs("div", { className: "mb-5 rounded-lg border border-info-bg bg-info-bg/30 px-4 py-3 text-sm text-ink space-y-3", children: [
-        /* @__PURE__ */ jsx("p", { className: "font-semibold", children: "Ch\u1EBF \u0111\u1ED9 API \u2014 t\u00E0i kho\u1EA3n test tr\u00EAn server" }),
+        /* @__PURE__ */ jsx("p", { className: "font-semibold", children: "Chế độ API — bấm acc để đăng nhập ngay" }),
         /* @__PURE__ */ jsx("div", { className: "flex flex-wrap gap-2", children: API_TEST_ACCOUNTS.map((account) => /* @__PURE__ */ jsxs(
           "button",
           {
             type: "button",
-            onClick: () => fillApiAccount(account),
-            className: "inline-flex flex-col items-start px-3 py-2 rounded-lg border border-surface-muted bg-white hover:bg-surface text-left transition-colors",
+            disabled: isSubmitting,
+            onClick: () => handleApiAccount(account),
+            className: testAccountButtonClass(selectedTestEmail === account.email),
             children: [
               /* @__PURE__ */ jsx("span", { className: "text-xs font-bold text-primary", children: account.label }),
               /* @__PURE__ */ jsx("span", { className: "text-[11px] text-muted", children: account.email })
@@ -174,9 +194,7 @@ function LoginPage() {
           },
           account.email
         )) }),
-        /* @__PURE__ */ jsxs("p", { className: "text-xs text-muted", children: [
-          "Ch\u1ECDn email \u0111\u1EC3 \u0111i\u1EC1n s\u1EB5n \u2014 nh\u1EADp m\u1EADt kh\u1EA9u t\u1EEB t\xE0i kho\u1EA3n n\u1ED9i b\u1ED9 (kh\xF4ng l\u01B0u trong repo)."
-        ] })
+        /* @__PURE__ */ jsx("p", { className: "text-xs text-muted", children: "Bấm acc → điền email/mật khẩu seed và đăng nhập ngay (chỉ hiện khi dev)." })
       ] }) : null,
       /* @__PURE__ */ jsxs(
         "form",

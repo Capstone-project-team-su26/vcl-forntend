@@ -2,7 +2,7 @@
 
 import { Icon } from "@iconify/react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import * as orderConsignmentService from "@/utils/orderConsignmentService";
 import * as consignmentQuotationService from "@/utils/consignmentQuotationService";
 import { getErrorMessage } from "@/utils/apiError";
@@ -10,11 +10,14 @@ import { ROUTES } from "@/utils/appRoutes";
 import ConsignmentStatusBadge from "@/app/pages/sales/consignments/components/ConsignmentStatusBadge";
 import {
   formatVolumeCm3,
-  normalizeVolumeCm3FromApi,
+  resolveConsignmentTotalVolumeCm3,
   formatItemDimensions,
   calculateItemDimWeightKg,
+  resolveVolumetricDivisor,
+  isVolumetricDivisorRule,
   VOLUMETRIC_DIVISOR_CM3,
 } from "@/utils/servicePricingService";
+import { formatProductTypeLabel } from "@/utils/productTypeService";
 
 const {
   CONSIGNMENT_TYPE_LABELS,
@@ -33,6 +36,7 @@ const {
   getConsignmentQuotationHeading,
   isDraftConsignmentQuotation,
   formatMoney,
+  fetchActiveAdditionalFees,
 } = consignmentQuotationService;
 
 function formatConsignmentTypeLabel(detail) {
@@ -173,17 +177,18 @@ function formatDeclaredValue(value) {
   return formatMoney(Number(value));
 }
 
-function formatDimDisplay(length, width, height) {
-  const dimKg = calculateItemDimWeightKg(length, width, height);
+function formatDimDisplay(length, width, height, divisor = VOLUMETRIC_DIVISOR_CM3) {
+  const dimKg = calculateItemDimWeightKg(length, width, height, divisor);
   if (dimKg == null) return null;
 
   const l = Number(length);
   const w = Number(width);
   const h = Number(height);
+  const dim = Number(divisor) > 0 ? Number(divisor) : VOLUMETRIC_DIVISOR_CM3;
   const value = `${dimKg.toLocaleString("vi-VN", {
     maximumFractionDigits: 6,
   })} kg`;
-  const formula = `(${l}×${w}×${h}) / ${VOLUMETRIC_DIVISOR_CM3.toLocaleString("vi-VN")}`;
+  const formula = `(${l}×${w}×${h}) / ${dim.toLocaleString("vi-VN")}`;
 
   return { value, formula };
 }
@@ -213,7 +218,7 @@ function formatItemWeightDisplay(weight, quantity) {
   };
 }
 
-function ConsignmentProductsTable({ items }) {
+function ConsignmentProductsTable({ items, volumetricDivisor = VOLUMETRIC_DIVISOR_CM3 }) {
   if (!items?.length) return null;
 
   return (
@@ -225,7 +230,8 @@ function ConsignmentProductsTable({ items }) {
         </div>
         <p className="text-sm text-subtle mt-1">
           Có {items.length} dòng sản phẩm trong lô hàng. Trọng lượng là <strong className="text-ink">tổng dòng</strong>;
-          kích thước và DIM tính theo <strong className="text-ink">từng kiện</strong>.
+          kích thước và DIM tính theo <strong className="text-ink">từng kiện</strong>
+          {" "}(÷ {Number(volumetricDivisor).toLocaleString("vi-VN")}).
         </p>
       </div>
 
@@ -248,15 +254,21 @@ function ConsignmentProductsTable({ items }) {
               const thumbUrl =
                 item.imageUrls?.[0] ?? (isImageReferenceUrl(item.referenceUrl) ? item.referenceUrl : null);
               const dimensions = formatItemDimensions(item.length, item.width, item.height);
-              const dimDisplay = formatDimDisplay(item.length, item.width, item.height);
+              const dimDisplay = formatDimDisplay(
+                item.length,
+                item.width,
+                item.height,
+                volumetricDivisor
+              );
               const weightDisplay = formatItemWeightDisplay(item.weight, item.quantity);
               const productLink =
                 item.referenceUrl && !isImageReferenceUrl(item.referenceUrl) ? item.referenceUrl : null;
-              const skuLabel = shortenReferenceId(item.domesticTrackingCode || item.id);
-              const showProductType =
-                item.productType &&
-                item.productType !== "GENERAL" &&
-                item.productType !== "—";
+              // ponytail: chỉ hiện mã vận đơn nội địa — không fallback sang GUID item.id.
+              const skuLabel = item.domesticTrackingCode
+                ? shortenReferenceId(item.domesticTrackingCode)
+                : null;
+              const productTypeLabel = formatProductTypeLabel(item.productType);
+              const showProductType = Boolean(productTypeLabel);
 
               return (
                 <tr
@@ -288,13 +300,16 @@ function ConsignmentProductsTable({ items }) {
                   <td className="px-4 py-4 min-w-[180px]">
                     <p className="font-semibold text-ink">{item.productName || "—"}</p>
                     {skuLabel ? (
-                      <p className="mt-1 text-xs font-mono text-faint" title={item.domesticTrackingCode || item.id}>
+                      <p
+                        className="mt-1 text-xs font-mono text-faint"
+                        title={item.domesticTrackingCode}
+                      >
                         Mã: {skuLabel}
                       </p>
                     ) : null}
                     {showProductType ? (
                       <span className="inline-block mt-1.5 px-2 py-0.5 rounded text-xs font-semibold bg-surface-tint text-secondary border border-primary">
-                        {item.productType}
+                        {productTypeLabel}
                       </span>
                     ) : null}
                     {productLink ? (
@@ -354,12 +369,26 @@ function ConsignmentProductsTable({ items }) {
   );
 }
 
-function QuotationSummary({ quotation }) {
+function QuotationSummary({
+  quotation,
+  volumetricDivisor = VOLUMETRIC_DIVISOR_CM3,
+  volumetricDivisorRule = null,
+}) {
   if (!quotation) return null;
 
   const lines = getQuotationDisplayLines(quotation);
   const heading = getConsignmentQuotationHeading(quotation);
   const isDraft = isDraftConsignmentQuotation(quotation);
+  const actualWeight = Number(quotation.totalWeight);
+  const volumetricWeight = Number(quotation.volumetricWeight);
+  const chargeableWeight = Number(quotation.chargeableWeight);
+  const hasWeightSummary =
+    (Number.isFinite(actualWeight) && actualWeight > 0) ||
+    (Number.isFinite(volumetricWeight) && volumetricWeight > 0) ||
+    (Number.isFinite(chargeableWeight) && chargeableWeight > 0);
+
+  const formatKg = (value) =>
+    `${Number(value).toLocaleString("vi-VN", { maximumFractionDigits: 6 })} kg`;
 
   return (
     <div className="bg-surface-elevated rounded-xl p-6 border border-border space-y-4">
@@ -376,6 +405,30 @@ function QuotationSummary({ quotation }) {
           {formatQuotationMoney(quotation)}
         </p>
       </div>
+
+      {hasWeightSummary ? (
+        <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm">
+          <p className="text-muted text-xs font-semibold uppercase tracking-wide mb-1">
+            Cân thực → DIM → Tính phí
+          </p>
+          <p className="font-semibold text-ink leading-snug">
+            {Number.isFinite(actualWeight) && actualWeight > 0 ? `${formatKg(actualWeight)} thực` : "— thực"}
+            {Number.isFinite(volumetricWeight) && volumetricWeight >= 0 ? (
+              <>
+                {" · "}
+                <span className="text-muted font-normal">DIM {formatKg(volumetricWeight)}</span>
+              </>
+            ) : null}
+            {Number.isFinite(chargeableWeight) && chargeableWeight > 0 ? (
+              <>
+                {" → "}
+                <span className="text-primary">{formatKg(chargeableWeight)}</span> tính phí
+              </>
+            ) : null}
+          </p>
+        </div>
+      ) : null}
+
       {lines.length ? (
         <ul className="space-y-2 text-sm">
           {lines.map((line, index) => (
@@ -389,6 +442,28 @@ function QuotationSummary({ quotation }) {
           ))}
         </ul>
       ) : null}
+
+      <div className="rounded-lg border border-border-muted bg-surface/40 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 text-sm">
+        <p className="font-semibold text-ink">Hệ số quy đổi thể tích</p>
+        <p className="text-muted">
+          DIM = thể tích (cm³) ÷{" "}
+          <span className="font-mono font-bold text-ink">
+            {Number(volumetricDivisor).toLocaleString("vi-VN")}
+          </span>
+          {volumetricDivisorRule ? (
+            <span className="text-xs">
+              {" "}
+              · từ quy tắc {volumetricDivisorRule.code || "VOLUMETRIC_DIVISOR"}
+            </span>
+          ) : (
+            <span className="text-xs">
+              {" "}
+              · mặc định IATA {VOLUMETRIC_DIVISOR_CM3.toLocaleString("vi-VN")}
+            </span>
+          )}
+        </p>
+      </div>
+
       {quotation.salesNote ? (
         <p className="text-sm text-subtle">
           <span className="font-semibold text-ink">Ghi chú tư vấn:</span> {quotation.salesNote}
@@ -410,6 +485,7 @@ export default function ConsignmentDetailPanel({
   quotationHref,
 }) {
   const [detail, setDetail] = useState(null);
+  const [feeCatalog, setFeeCatalog] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [actionError, setActionError] = useState("");
@@ -428,6 +504,15 @@ export default function ConsignmentDetailPanel({
   const trackingCode = approvedTrackingCode || detail?.trackingCode;
   const displayCode = detail ? formatConsignmentDisplayCode(detail) : null;
 
+  const volumetricDivisor = useMemo(
+    () => resolveVolumetricDivisor(feeCatalog),
+    [feeCatalog]
+  );
+  const volumetricDivisorRule = useMemo(
+    () => feeCatalog.find(isVolumetricDivisorRule) ?? null,
+    [feeCatalog]
+  );
+
   useEffect(() => {
     if (!id) return;
 
@@ -443,8 +528,13 @@ export default function ConsignmentDetailPanel({
       setRejectValidation("");
 
       try {
-        const data = await orderConsignmentService.getStaffConsignment(id);
-        if (active) setDetail(data);
+        const [data, fees] = await Promise.all([
+          orderConsignmentService.getStaffConsignment(id),
+          fetchActiveAdditionalFees().catch(() => []),
+        ]);
+        if (!active) return;
+        setDetail(data);
+        setFeeCatalog(Array.isArray(fees) ? fees : []);
       } catch (err) {
         if (active) setError(getErrorMessage(err));
       } finally {
@@ -647,8 +737,25 @@ export default function ConsignmentDetailPanel({
             </NoticeBanner>
           ) : null}
 
+          {detail.status === "WAITING_DEPOSIT" || detail.status === "WAITING_PAYMENT" ? (
+            <NoticeBanner variant="warning" icon="lucide:wallet">
+              Khách đã xác nhận báo giá và đang <strong>thanh toán đặt cọc</strong>. Chờ PayOS
+              xác nhận — sau khi thanh toán thành công đơn sẽ chuyển sang{" "}
+              <strong>Đã thanh toán đặt cọc</strong>.
+            </NoticeBanner>
+          ) : null}
+
+          {detail.status === "DEPOSIT_PAID" ? (
+            <NoticeBanner variant="success" icon="lucide:badge-check">
+              Khách đã thanh toán đặt cọc. Bạn có thể duyệt yêu cầu và tạo phiếu nhập kho.
+            </NoticeBanner>
+          ) : null}
+
           {detail.items?.length ? (
-            <ConsignmentProductsTable items={detail.items} />
+            <ConsignmentProductsTable
+              items={detail.items}
+              volumetricDivisor={volumetricDivisor}
+            />
           ) : null}
 
           <div className="bg-surface-elevated rounded-xl p-6 border border-border space-y-4">
@@ -668,19 +775,18 @@ export default function ConsignmentDetailPanel({
               {detail.totalWeight != null ? (
                 <DetailRow label="Tổng khối lượng" value={`${detail.totalWeight} kg`} />
               ) : null}
-              {detail.totalVolume != null ? (
-                <DetailRow
-                  label="Tổng thể tích"
-                  value={formatVolumeCm3(
-                    normalizeVolumeCm3FromApi(detail.totalVolume, {
-                      weightKg: detail.totalWeight,
-                    })
-                  )}
-                />
-              ) : null}
-              {detail.packageCount != null ? (
-                <DetailRow label="Số kiện" value={String(detail.packageCount)} />
-              ) : null}
+              {(() => {
+                const volumeCm3 = resolveConsignmentTotalVolumeCm3({
+                  totalVolume: detail.totalVolume,
+                  weightKg: detail.totalWeight,
+                });
+                return volumeCm3 != null ? (
+                  <DetailRow label="Tổng thể tích" value={formatVolumeCm3(volumeCm3)} />
+                ) : null;
+              })()}
+          {detail.packageCount != null ? (
+            <DetailRow label="Số kiện" value={String(detail.packageCount)} />
+          ) : null}
               {!detail.items?.length && detail.productName ? (
                 <DetailRow label="Sản phẩm" value={detail.productName} />
               ) : null}
@@ -701,7 +807,13 @@ export default function ConsignmentDetailPanel({
             </dl>
           </div>
 
-          {detail.quotation ? <QuotationSummary quotation={detail.quotation} /> : null}
+          {detail.quotation ? (
+            <QuotationSummary
+              quotation={detail.quotation}
+              volumetricDivisor={volumetricDivisor}
+              volumetricDivisorRule={volumetricDivisorRule}
+            />
+          ) : null}
 
           {!readOnly && detail.status === "APPROVED" ? (
             <div className="bg-surface-elevated rounded-xl border border-secondary p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -784,7 +896,10 @@ export default function ConsignmentDetailPanel({
             </div>
           ) : (
             !readOnly &&
-            !canSendQuotation && (
+            !canSendQuotation &&
+            detail.status !== "WAITING_DEPOSIT" &&
+            detail.status !== "WAITING_PAYMENT" &&
+            detail.status !== "QUOTATION_SENT" && (
               <div className="rounded-lg border border-border-muted bg-surface-muted px-4 py-3 text-sm text-subtle">
                 Yêu cầu này không thể cập nhật vì đã hủy, đã nhập kho hoặc đã được xử lý.
               </div>

@@ -88,7 +88,7 @@ API_URL=https://api-vcl.purintech.id.vn
 NEXT_PUBLIC_DATA_SOURCE=api
 ```
 
-Tài khoản test trên server: seed qua backend (`GET /api/Test/seed-admin`, `GET /api/Test/seed-staff`) — mật khẩu lấy từ team/BE, **không** commit vào repo.
+Tài khoản test trên server (dev buttons): `sales@test.com` / `Sales123`, `admin@test.com` / `Admin123`, `ops@test.com` / `Ops123`. Nút chỉ hiện khi `NODE_ENV=development`.
 
 Swagger: xem host API trong `.env.local` (vd. `{API_URL}/swagger`).
 

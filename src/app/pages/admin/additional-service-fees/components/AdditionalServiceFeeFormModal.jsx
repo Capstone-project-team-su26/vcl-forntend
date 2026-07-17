@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import * as feeService from "@/utils/additionalServiceFeeService";
 import { getErrorMessage } from "@/utils/apiError";
 import VndMoneyInput from "@/app/components/VndMoneyInput";
+import { isVatRule, isVolumetricDivisorRule } from "@/utils/servicePricingService";
 
 const { FEE_CALCULATION_TYPE_LABELS } = feeService;
 
@@ -46,17 +47,25 @@ export default function AdditionalServiceFeeFormModal({
 
   if (!open) return null;
 
+  const isDivisorRule = Boolean(fee && isVolumetricDivisorRule(fee));
+  const isVatConfigRule = Boolean(fee && isVatRule(fee));
+  const lockSystemCode = isDivisorRule || isVatConfigRule;
+
   async function handleSubmit(event) {
     event.preventDefault();
     setError("");
 
     const form = event.currentTarget;
-    const feeCalculationType = readFormValue(form, "feeCalculationType") || "FIXED";
+    const feeCalculationType = isVatConfigRule
+      ? "PERCENTAGE"
+      : readFormValue(form, "feeCalculationType") || "FIXED";
     const payload = {
       name: readFormValue(form, "name").trim(),
       code: readFormValue(form, "code").trim(),
+      ruleCode: fee?.ruleCode ?? readFormValue(form, "code").trim(),
+      ruleType: fee?.ruleType ?? undefined,
       feeCalculationType,
-      fixedAmount: feeCalculationType === "FIXED" ? readFormValue(form, "fixedAmount") : "",
+      fixedAmount: feeCalculationType === "FIXED" ? fixedAmount : "",
       percentageRate:
         feeCalculationType === "PERCENTAGE" ? readFormValue(form, "percentageRate") : "",
       unit: readFormValue(form, "unit").trim(),
@@ -92,7 +101,13 @@ export default function AdditionalServiceFeeFormModal({
       <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto bg-surface rounded-xl border border-border shadow-xl">
         <div className="flex items-center justify-between px-6 py-4 border-b border-border-muted sticky top-0 bg-surface-elevated">
           <h2 className="text-lg font-bold text-ink">
-            {mode === "create" ? "Thêm phí dịch vụ bổ sung" : "Chỉnh sửa loại phí"}
+            {isVatConfigRule
+              ? mode === "create"
+                ? "Tạo quy tắc VAT"
+                : "Chỉnh sửa VAT"
+              : mode === "create"
+                ? "Thêm phí dịch vụ bổ sung"
+                : "Chỉnh sửa loại phí"}
           </h2>
           <button type="button" onClick={onClose} className="p-2 text-muted hover:text-ink">
             <Icon icon="lucide:x" className="w-5 h-5" />
@@ -128,10 +143,18 @@ export default function AdditionalServiceFeeFormModal({
               id="code"
               name="code"
               required
+              readOnly={lockSystemCode}
               defaultValue={fee?.code ?? ""}
               placeholder="VD: INSURANCE"
-              className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring font-mono"
+              className={`w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring font-mono ${
+                lockSystemCode ? "bg-surface text-muted cursor-not-allowed" : ""
+              }`}
             />
+            {isVatConfigRule ? (
+              <p className="text-xs text-muted">
+                Mã hệ thống <span className="font-mono">VAT</span> — Sales không bật/tắt như phụ phí.
+              </p>
+            ) : null}
           </div>
 
           <div className="space-y-2">
@@ -142,9 +165,10 @@ export default function AdditionalServiceFeeFormModal({
               id="feeCalculationType"
               name="feeCalculationType"
               required
-              value={calculationType}
+              value={isVatConfigRule ? "PERCENTAGE" : calculationType}
+              disabled={isVatConfigRule}
               onChange={(event) => setCalculationType(event.target.value)}
-              className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
+              className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring disabled:opacity-90 disabled:cursor-not-allowed disabled:bg-surface"
             >
               {calculationOptions.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -154,10 +178,11 @@ export default function AdditionalServiceFeeFormModal({
             </select>
           </div>
 
-          {calculationType === "FIXED" ? (
+          {calculationType === "FIXED" && !isVatConfigRule ? (
             <div className="space-y-2">
               <label htmlFor="fixedAmount" className="text-sm font-semibold text-ink">
-                Giá cố định (VND) <span className="text-danger">*</span>
+                {isDivisorRule ? "Hệ số quy đổi thể tích" : "Giá cố định (VND)"}{" "}
+                <span className="text-danger">*</span>
               </label>
               <VndMoneyInput
                 id="fixedAmount"
@@ -165,12 +190,14 @@ export default function AdditionalServiceFeeFormModal({
                 value={fixedAmount}
                 onChange={setFixedAmount}
                 required
+                placeholder={isDivisorRule ? "VD: 5.000" : undefined}
               />
             </div>
           ) : (
             <div className="space-y-2">
               <label htmlFor="percentageRate" className="text-sm font-semibold text-ink">
-                Phần trăm phí (%) <span className="text-danger">*</span>
+                {isVatConfigRule ? "Tỷ lệ VAT (%)" : "Phần trăm phí (%)"}{" "}
+                <span className="text-danger">*</span>
               </label>
               <input
                 id="percentageRate"
@@ -181,9 +208,14 @@ export default function AdditionalServiceFeeFormModal({
                 step="0.01"
                 required
                 defaultValue={fee?.percentageRate ?? ""}
-                placeholder="VD: 2.5"
+                placeholder="VD: 8"
                 className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
               />
+              {isVatConfigRule ? (
+                <p className="text-xs text-muted">
+                  Áp dụng trên tổng cước vận chuyển + phí dịch vụ.
+                </p>
+              ) : null}
             </div>
           )}
 
@@ -235,9 +267,9 @@ export default function AdditionalServiceFeeFormModal({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="h-11 px-5 rounded-lg bg-insight hover:bg-secondary text-white text-sm font-bold disabled:opacity-60"
+              className="h-11 px-5 rounded-lg bg-primary text-white text-sm font-bold hover:bg-primary/90 disabled:opacity-50"
             >
-              {isSubmitting ? "Đang lưu..." : mode === "create" ? "Thêm loại phí" : "Lưu thay đổi"}
+              {isSubmitting ? "Đang lưu..." : mode === "create" ? "Thêm mới" : "Lưu thay đổi"}
             </button>
           </div>
         </form>

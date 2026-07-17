@@ -23,7 +23,11 @@ export function isPublicPath(pathname) {
   return false;
 }
 
-/** null = không giới hạn role (chỉ cần public). Mảng rỗng = cần login, mọi role. */
+/**
+ * null = không bảo vệ (static/public ngoài /pages).
+ * [] = cần login, mọi role đã đăng nhập.
+ * ["Admin"]… = cần đúng role.
+ */
 export function getRequiredRoles(pathname) {
   if (!pathname || isPublicPath(pathname)) return null;
 
@@ -39,6 +43,9 @@ export function getRequiredRoles(pathname) {
   }
   if (pathname.startsWith(OPERATIONS_PATH_PREFIX)) return ROLE_GROUPS.OPS;
 
+  // Deny-by-default: mọi /pages/* còn lại vẫn cần đăng nhập.
+  if (pathname.startsWith("/pages")) return [];
+
   return null;
 }
 
@@ -46,6 +53,7 @@ export function canRoleAccessRoute(role, pathname) {
   const required = getRequiredRoles(pathname);
   if (!required) return true;
   if (!role) return false;
+  if (required.length === 0) return true;
   return required.includes(role);
 }
 

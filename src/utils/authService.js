@@ -2,18 +2,22 @@ import { isMockMode } from "@/utils/mocks/dataSource";
 import {
   mockAdminRegisterEmployee,
   mockForgotPassword,
-  mockLogin,
   mockResetPassword,
 } from "@/utils/mocks/authMocks";
 import { apiRequest } from "@/utils/apiClient";
 
+/** Login qua Route Handler — server set cookie HttpOnly đã ký. */
 export function login(payload) {
-  if (isMockMode()) return mockLogin(payload);
+  const headers =
+    isMockMode() && process.env.NODE_ENV === "development"
+      ? { "x-vcl-data-source": "mock" }
+      : undefined;
 
-  return apiRequest("/api/Auth/login", {
+  return apiRequest("/api/auth/login", {
     method: "POST",
     body: JSON.stringify(payload),
     skipAuth: true,
+    headers,
   });
 }
 

@@ -7,6 +7,7 @@ import {
   normalizeReceivingNoteCreateResponse,
   normalizeReceivingNoteFromApi,
   normalizeWarehouseListResponse,
+  resolveConsignmentPackageCount,
   toApiReceivingNotePayload,
 } from "@/utils/apiMappers";
 import { getStaffConsignment } from "@/utils/orderConsignmentService";
@@ -56,7 +57,21 @@ export function getExpectedItems(consignment) {
   return [];
 }
 
+/** Số kiện dự kiến — khớp chi tiết đơn / báo giá. */
+export function getExpectedPackageCount(consignment) {
+  return (
+    resolveConsignmentPackageCount({
+      packageCount: consignment?.packageCount,
+      items: consignment?.items,
+      quantity: consignment?.quantity,
+    }) ?? 0
+  );
+}
+
 export function getExpectedTotalQuantity(consignment) {
+  const packages = getExpectedPackageCount(consignment);
+  if (packages > 0) return packages;
+
   const items = getExpectedItems(consignment);
   return items.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
 }

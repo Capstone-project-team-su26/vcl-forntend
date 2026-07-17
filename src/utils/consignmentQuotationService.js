@@ -1,4 +1,5 @@
 import { listAdditionalServiceFees } from "@/utils/additionalServiceFeeService";
+import { resolveConsignmentPackageCount } from "@/utils/apiMappers";
 import { isMockMode } from "@/utils/mocks/dataSource";
 import { mockDelay } from "@/utils/mocks/mockDelay";
 import { getMockStore } from "@/utils/mocks/mockStore";
@@ -9,16 +10,24 @@ import {
   calculateMainServiceAmount,
   calculateVolumetricWeight,
   DEFAULT_CURRENCY,
+  DEFAULT_QUOTATION_VAT_RATE,
   findServicePricingForWarehouse,
   formatMoney,
+  formatVatRatePercent,
+  isPricingConfigRule,
   parseConsignmentRoute,
+  resolveVatRate,
+  resolveVolumetricDivisor,
 } from "@/utils/servicePricingService";
 
 function roundMoney(value) {
   return Math.round((Number(value) || 0) * 100) / 100;
 }
 
-export { formatMoney, DEFAULT_CURRENCY };
+/** @deprecated dùng resolveVatRate(pricingRules) — VAT lấy từ PricingRule. */
+export const QUOTATION_VAT_RATE = DEFAULT_QUOTATION_VAT_RATE;
+
+export { formatMoney, DEFAULT_CURRENCY, formatVatRatePercent, resolveVatRate };
 
 export function formatQuotationMoney(quotation, amount) {
   const value =
@@ -73,12 +82,21 @@ function isPerPackageFee(fee) {
   );
 }
 
+function isDomesticFee(fee) {
+  const key = String(fee?.ruleType ?? fee?.code ?? fee?.ruleCode ?? "")
+    .trim()
+    .toUpperCase();
+  return key === "DOMESTIC_FEE" || key.includes("DOMESTIC_FEE");
+}
+
 function shouldDefaultEnableFee(
   fee,
   { requiresInspection = false, declaredValue = 0 } = {}
 ) {
   if (fee.isRequired === true) return true;
   if (isInspectionFee(fee)) return requiresInspection;
+  // BE luôn cộng DOMESTIC_FEE vào serviceFee — mặc định bật cho khớp.
+  if (isDomesticFee(fee)) return true;
 
   const ruleType = String(fee.ruleType ?? fee.code ?? "").toUpperCase();
   if (ruleType === "INSURANCE" || ruleType.includes("INSURANCE")) {
@@ -229,39 +247,103 @@ export function buildDefaultAdditionalFeeLines({
   requiresInspection = false,
 }) {
   const context = { packageCount, declaredValue, mainServiceAmount };
-  return fees.map((fee) => {
-    const enabled = enabledFeeIds
-      ? enabledFeeIds[fee.id] !== false
-      : shouldDefaultEnableFee(fee, { requiresInspection, declaredValue });
-    const isRequired =
-      fee.isRequired === true || (isInspectionFee(fee) && requiresInspection);
-    const quantity =
-      quantityByFeeId && quantityByFeeId[fee.id] != null ? quantityByFeeId[fee.id] : undefined;
-    return buildFeeLine(fee, { enabled, quantity, isRequired, context });
-  });
+  // ponytail: VOLUMETRIC_DIVISOR / MIN_WEIGHT là config, không phải dòng phụ phí.
+  return fees
+    .filter((fee) => !isMainServiceFee(fee) && !isPricingConfigRule(fee))
+    .map((fee) => {
+      const enabled = enabledFeeIds
+        ? enabledFeeIds[fee.id] !== false
+        : shouldDefaultEnableFee(fee, { requiresInspection, declaredValue });
+      const isRequired =
+        fee.isRequired === true || (isInspectionFee(fee) && requiresInspection);
+      const quantity =
+        quantityByFeeId && quantityByFeeId[fee.id] != null
+          ? quantityByFeeId[fee.id]
+          : undefined;
+      return buildFeeLine(fee, { enabled, quantity, isRequired, context });
+    });
+}
+
+export function calculateQuotationVat(
+  freightCharge = 0,
+  serviceFee = 0,
+  vatRate = DEFAULT_QUOTATION_VAT_RATE
+) {
+  const freight = Number(freightCharge) || 0;
+  const service = Number(serviceFee) || 0;
+  const rate = Number(vatRate);
+  const resolved =
+    Number.isFinite(rate) && rate >= 0 ? rate : DEFAULT_QUOTATION_VAT_RATE;
+  return roundMoney((freight + service) * resolved);
+}
+
+/**
+ * Tổng báo giá ký gửi — khớp QuotationService:
+ * TotalEstimatedCost = FreightCharge + ServiceFee + ImportTax + VAT
+ * VAT = (FreightCharge + ServiceFee) × vatRate (PricingRule VAT, mặc định 8%)
+ * ImportTax lấy từ BE estimate (PricingRule / ProductType trên BE).
+ */
+export function calculateQuotationGrandTotal({
+  freightCharge = 0,
+  serviceFee = 0,
+  importTax = 0,
+  vat,
+  vatRate = DEFAULT_QUOTATION_VAT_RATE,
+  discountPercent = 0,
+}) {
+  const freight = roundMoney(freightCharge);
+  const service = roundMoney(serviceFee);
+  const subtotal = roundMoney(freight + service);
+  const discount = roundMoney(subtotal * (Math.max(0, Number(discountPercent) || 0) / 100));
+  const importTaxAmount = roundMoney(importTax);
+  const resolvedVatRate =
+    Number.isFinite(Number(vatRate)) && Number(vatRate) >= 0
+      ? Number(vatRate)
+      : DEFAULT_QUOTATION_VAT_RATE;
+  const vatAmount =
+    vat != null ? roundMoney(vat) : calculateQuotationVat(freight, service, resolvedVatRate);
+  const total = roundMoney(subtotal - discount + importTaxAmount + vatAmount);
+
+  return {
+    freightCharge: freight,
+    serviceFee: service,
+    mainServiceAmount: freight,
+    additionalTotal: service,
+    subtotal,
+    discount,
+    importTax: importTaxAmount,
+    vat: vatAmount,
+    vatRate: resolvedVatRate,
+    total,
+    totalEstimatedCost: total,
+  };
 }
 
 export function calculateQuotationTotal({
   mainServiceAmount = 0,
   additionalFees = [],
   discountPercent = 0,
+  importTax = 0,
+  vat,
+  vatRate,
+  pricingRules,
 }) {
   const activeFees = additionalFees.filter((line) => line.enabled !== false);
   const additionalTotal = activeFees.reduce(
     (sum, line) => sum + (Number(line.amount) || 0),
     0
   );
-  const subtotal = roundMoney((Number(mainServiceAmount) || 0) + additionalTotal);
-  const discount = roundMoney(subtotal * (Math.max(0, Number(discountPercent) || 0) / 100));
-  const total = roundMoney(subtotal - discount);
+  const resolvedVatRate =
+    vatRate != null ? Number(vatRate) : resolveVatRate(pricingRules);
 
-  return {
-    mainServiceAmount: roundMoney(mainServiceAmount),
-    additionalTotal: roundMoney(additionalTotal),
-    subtotal,
-    discount,
-    total,
-  };
+  return calculateQuotationGrandTotal({
+    freightCharge: mainServiceAmount,
+    serviceFee: additionalTotal,
+    importTax,
+    vat,
+    vatRate: resolvedVatRate,
+    discountPercent,
+  });
 }
 
 export function resolveConsignmentServiceType(consignment) {
@@ -315,20 +397,29 @@ export function buildConsignmentQuotationDraft({
   mainServiceAmountOverride,
   additionalFees,
   salesNote,
+  volumetricDivisor,
+  pricingRules,
+  importTax,
+  vat,
 }) {
   const weight = Number(weightKg) || 0;
   const volume =
     volumeCm3 != null && volumeCm3 !== ""
       ? Number(volumeCm3) || 0
       : Number(volumeM3) || 0;
-  const volumetricWeight = calculateVolumetricWeight(volume);
-  const chargeableWeight = calculateChargeableWeight(weight, volume);
+  const divisor =
+    volumetricDivisor != null
+      ? Number(volumetricDivisor)
+      : resolveVolumetricDivisor(pricingRules);
+  const volumetricWeight = calculateVolumetricWeight(volume, divisor);
+  const chargeableWeight = calculateChargeableWeight(weight, volume, divisor);
   const mainServiceAmount =
     mainServiceAmountOverride != null && mainServiceAmountOverride !== ""
       ? roundMoney(mainServiceAmountOverride)
       : calculateMainServiceAmount(servicePricing, {
           weightKg: weight,
           volumeCm3: volume,
+          volumetricDivisor: divisor,
         });
 
   const feeLines =
@@ -344,6 +435,9 @@ export function buildConsignmentQuotationDraft({
     mainServiceAmount,
     additionalFees: feeLines,
     discountPercent,
+    importTax,
+    vat,
+    pricingRules,
   });
 
   return {
@@ -364,8 +458,10 @@ export function buildConsignmentQuotationDraft({
     salesNote: salesNote?.trim() || "",
     ...totals,
     estimatedFreightCharge: mainServiceAmount,
-    serviceFee: totals.additionalTotal,
-    totalEstimatedCost: totals.total,
+    serviceFee: totals.serviceFee,
+    importTax: totals.importTax,
+    vat: totals.vat,
+    totalEstimatedCost: totals.totalEstimatedCost,
   };
 }
 
@@ -393,7 +489,14 @@ async function estimateConsignmentQuotationMock(orderId, params) {
     servicePricing,
     weightKg: params.weightKg ?? order.totalWeight,
     volumeCm3: params.volumeCm3 ?? params.volumeM3 ?? order.totalVolume,
-    packageCount: params.packageCount ?? order.packageCount,
+    packageCount:
+      params.packageCount ??
+      resolveConsignmentPackageCount({
+        packageCount: order.packageCount,
+        items: order.items,
+        quantity: order.quantity,
+      }) ??
+      1,
     declaredValue: params.declaredValue,
     discountPercent: params.discountPercent,
     mainServiceAmountOverride: params.mainServiceAmount,
@@ -483,7 +586,9 @@ export function buildAdditionalFeeLinesFromQuotation(
   if (!quotation) return [];
 
   const context = { packageCount, declaredValue, mainServiceAmount };
-  const apiFees = (quotation.additionalFees ?? []).filter((fee) => !isMainServiceFee(fee));
+  const apiFees = (quotation.additionalFees ?? []).filter(
+    (fee) => !isMainServiceFee(fee) && !isPricingConfigRule(fee)
+  );
   if (apiFees.length) {
     return apiFees.map((fee) => {
       const catalogFee = findCatalogFee(catalogFees, fee);
@@ -548,6 +653,43 @@ export function buildAdditionalFeeLinesFromQuotation(
   return [];
 }
 
+/** Bổ sung phụ phí catalog còn thiếu trên dòng API (vd. DOMESTIC_FEE BE gộp vào serviceFee). */
+function mergeMissingCatalogFeeLines(apiLines, catalogFees, context) {
+  if (!catalogFees?.length) return apiLines;
+
+  const present = new Set();
+  for (const line of apiLines) {
+    if (line.feeId) present.add(String(line.feeId));
+    if (line.code) present.add(String(line.code).toUpperCase());
+  }
+
+  const missing = catalogFees.filter((fee) => {
+    if (isMainServiceFee(fee) || isPricingConfigRule(fee)) return false;
+    const id = fee.id != null ? String(fee.id) : null;
+    const code = fee.code != null ? String(fee.code).toUpperCase() : null;
+    return !((id && present.has(id)) || (code && present.has(code)));
+  });
+
+  if (!missing.length) return apiLines;
+
+  const catalogLines = buildDefaultAdditionalFeeLines({
+    fees: missing,
+    packageCount: context.packageCount,
+    declaredValue: context.declaredValue,
+    mainServiceAmount: context.mainServiceAmount,
+    requiresInspection: context.requiresInspection,
+  });
+
+  // Bỏ dòng gộp SERVICE_FEE nếu đã tách được phụ phí catalog (tránh cộng đôi).
+  const withoutAggregate = apiLines.filter(
+    (line) =>
+      line.feeId !== "service-fee" &&
+      String(line.code ?? "").toUpperCase() !== "SERVICE_FEE"
+  );
+
+  return [...withoutAggregate, ...catalogLines];
+}
+
 export function resolveQuotationAdditionalFees({
   consignment,
   estimate,
@@ -559,16 +701,23 @@ export function resolveQuotationAdditionalFees({
   const requiresInspection = consignment?.requiresInspection === true;
   const quotationSource = estimate?.quotation ?? estimate ?? consignment?.quotation;
   const itemizedFees = quotationSource?.additionalFees;
+  const feeContext = {
+    packageCount,
+    declaredValue,
+    mainServiceAmount,
+    requiresInspection,
+  };
 
-  if (Array.isArray(itemizedFees) && itemizedFees.some((fee) => !isMainServiceFee(fee))) {
+  if (Array.isArray(itemizedFees) && itemizedFees.some((fee) => !isMainServiceFee(fee) && !isPricingConfigRule(fee))) {
+    const apiLines = buildAdditionalFeeLinesFromQuotation(quotationSource, {
+      requiresInspection,
+      catalogFees,
+      packageCount,
+      declaredValue,
+      mainServiceAmount,
+    });
     return {
-      lines: buildAdditionalFeeLinesFromQuotation(quotationSource, {
-        requiresInspection,
-        catalogFees,
-        packageCount,
-        declaredValue,
-        mainServiceAmount,
-      }),
+      lines: mergeMissingCatalogFeeLines(apiLines, catalogFees, feeContext),
       fromApi: true,
     };
   }
@@ -623,7 +772,7 @@ export function getQuotationDisplayLines(quotation) {
   if (!quotation) return [];
 
   const additionalFees = (quotation.additionalFees ?? []).filter(
-    (fee) => !isMainServiceFee(fee)
+    (fee) => !isMainServiceFee(fee) && !isPricingConfigRule(fee)
   );
   const enabledFees = additionalFees.filter((fee) => fee.enabled !== false);
   const additionalTotal = enabledFees.reduce(
@@ -631,12 +780,17 @@ export function getQuotationDisplayLines(quotation) {
     0
   );
   const serviceFee = Number(quotation.serviceFee) || 0;
+  const importTax = Number(quotation.importTax) || 0;
+  const vat = Number(quotation.vat) || 0;
+  const taxAndDuty = Number(quotation.taxAndDuty) || 0;
 
   if (
     quotation.estimatedFreightCharge != null ||
     serviceFee > 0 ||
     additionalTotal > 0 ||
-    (quotation.taxAndDuty != null && Number(quotation.taxAndDuty) !== 0)
+    importTax !== 0 ||
+    vat !== 0 ||
+    taxAndDuty !== 0
   ) {
     const lines = [];
 
@@ -647,24 +801,39 @@ export function getQuotationDisplayLines(quotation) {
       });
     }
 
-    if (serviceFee > 0) {
-      lines.push({
-        label: "Phí dịch vụ",
-        amount: serviceFee,
-      });
-    } else if (enabledFees.length) {
+    if (enabledFees.length) {
       for (const fee of enabledFees) {
         lines.push({
           label: fee.label || fee.name || fee.code || "Phụ phí",
           amount: fee.amount,
         });
       }
+    } else if (serviceFee > 0) {
+      lines.push({
+        label: "Phí dịch vụ",
+        amount: serviceFee,
+      });
     }
 
-    if (quotation.taxAndDuty != null && Number(quotation.taxAndDuty) !== 0) {
+    if (importTax !== 0) {
+      lines.push({
+        label: "Thuế nhập khẩu",
+        amount: importTax,
+      });
+    }
+
+    if (vat !== 0) {
+      const rateLabel = quotation.vatRate != null
+        ? formatVatRatePercent(quotation.vatRate)
+        : "8%";
+      lines.push({
+        label: `VAT (${rateLabel})`,
+        amount: vat,
+      });
+    } else if (taxAndDuty !== 0 && importTax === 0) {
       lines.push({
         label: "Thuế & phí",
-        amount: quotation.taxAndDuty,
+        amount: taxAndDuty,
       });
     }
 
@@ -701,7 +870,7 @@ export function getQuotationDisplayLines(quotation) {
   ];
 }
 
-// ponytail: self-check — fail nếu công thức phụ phí lệch với calculateAdditionalFeeAmount
+// ponytail: self-check — fail nếu công thức phụ phí / thuế lệch
 if (typeof process !== "undefined" && process.env?.NODE_ENV !== "production") {
   const _fee = {
     feeCalculationType: "FIXED",
@@ -714,4 +883,20 @@ if (typeof process !== "undefined" && process.env?.NODE_ENV !== "production") {
       buildAdditionalFeeFormula(_fee, { packageCount: 2 })?.includes("70.000"),
     "buildAdditionalFeeFormula mismatch"
   );
+
+  const _tax = calculateQuotationGrandTotal({
+    freightCharge: 100000,
+    serviceFee: 50000,
+    importTax: 20000,
+    vatRate: 0.08,
+  });
+  console.assert(
+    _tax.vat === 12000 && _tax.total === 182000,
+    "calculateQuotationGrandTotal mismatch"
+  );
+
+  const _vatFromRules = resolveVatRate([
+    { ruleType: "VAT", feeCalculationType: "PERCENTAGE", percentageRate: 8 },
+  ]);
+  console.assert(_vatFromRules === 0.08, "resolveVatRate from PricingRule mismatch");
 }

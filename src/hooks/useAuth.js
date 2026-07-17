@@ -7,12 +7,11 @@ import {
   createSessionFromAuthResponse,
   getSession,
   setSession,
-  syncAuthCookies,
 } from "@/utils/authSession";
 import * as authService from "@/utils/authService";
 import { getErrorMessage } from "@/utils/apiError";
 import { ROUTES } from "@/utils/appRoutes";
-import { getHomeRouteByRole, isAdminRole, isSaleRole, isOpsRole, isStaffRole } from "@/utils/routing";
+import { isAdminRole, isSaleRole, isOpsRole, isStaffRole } from "@/utils/routing";
 import { isPublicPath, resolvePostLoginPath } from "@/utils/routeAccess";
 
 export function useAuth() {
@@ -21,9 +20,7 @@ export function useAuth() {
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    const current = getSession();
-    syncAuthCookies(current);
-    setSessionState(current);
+    setSessionState(getSession());
     setIsReady(true);
   }, []);
 

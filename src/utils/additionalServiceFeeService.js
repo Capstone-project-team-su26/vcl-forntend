@@ -8,7 +8,7 @@ import {
   toApiPricingRuleFromAdditionalFeePayload,
 } from "@/utils/apiMappers";
 import { ApiError } from "@/utils/apiError";
-import { formatMoney } from "@/utils/servicePricingService";
+import { formatMoney, isVatRule, isVolumetricDivisorRule } from "@/utils/servicePricingService";
 
 export const FEE_CALCULATION_TYPE_LABELS = {
   FIXED: "Giá cố định",
@@ -87,6 +87,8 @@ function validateFeePayload(payload, { requireAll = false } = {}) {
   return {
     name,
     code,
+    ruleCode: payload.ruleCode?.trim() || code,
+    ruleType: payload.ruleType ?? undefined,
     feeCalculationType,
     fixedAmount,
     percentageRate,
@@ -194,7 +196,9 @@ export async function updateAdditionalServiceFee(id, payload) {
     body: JSON.stringify(toApiPricingRuleFromAdditionalFeePayload(merged)),
   });
 
-  const fee = normalizeAdditionalServiceFeeFromApi(raw?.data ?? raw?.fee ?? { ...merged, id });
+  const fee = await getPricingRuleAsFee(id).catch(() =>
+    normalizeAdditionalServiceFeeFromApi(raw?.data ?? raw?.fee ?? { ...merged, id })
+  );
   return { message: raw?.message || "Cập nhật loại phí thành công.", fee };
 }
 
@@ -207,12 +211,20 @@ export async function deleteAdditionalServiceFee(id) {
 }
 
 export function formatFeeAmount(fee) {
+  if (isVolumetricDivisorRule(fee)) {
+    const value = Number(fee.fixedAmount ?? fee.value);
+    return Number.isFinite(value) && value > 0
+      ? `÷ ${value.toLocaleString("vi-VN")}`
+      : "—";
+  }
   if (fee.feeCalculationType === "PERCENTAGE") {
     return fee.percentageRate != null ? `${fee.percentageRate}%` : "—";
   }
   return fee.fixedAmount != null ? formatMoney(fee.fixedAmount) : "—";
 }
 
-export function formatFeeCalculationType(type) {
+export function formatFeeCalculationType(type, fee) {
+  if (fee && isVolumetricDivisorRule(fee)) return "Hệ số quy đổi thể tích";
+  if (fee && isVatRule(fee)) return "VAT báo giá";
   return FEE_CALCULATION_TYPE_LABELS[type] || type || "—";
 }
