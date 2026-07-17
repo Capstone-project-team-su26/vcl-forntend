@@ -10,10 +10,13 @@ import {
   calculateMainServiceAmount,
   calculateVolumetricWeight,
   DEFAULT_CURRENCY,
+  DEFAULT_QUOTATION_VAT_RATE,
   findServicePricingForWarehouse,
   formatMoney,
+  formatVatRatePercent,
   isPricingConfigRule,
   parseConsignmentRoute,
+  resolveVatRate,
   resolveVolumetricDivisor,
 } from "@/utils/servicePricingService";
 
@@ -21,7 +24,10 @@ function roundMoney(value) {
   return Math.round((Number(value) || 0) * 100) / 100;
 }
 
-export { formatMoney, DEFAULT_CURRENCY };
+/** @deprecated dùng resolveVatRate(pricingRules) — VAT lấy từ PricingRule. */
+export const QUOTATION_VAT_RATE = DEFAULT_QUOTATION_VAT_RATE;
+
+export { formatMoney, DEFAULT_CURRENCY, formatVatRatePercent, resolveVatRate };
 
 export function formatQuotationMoney(quotation, amount) {
   const value =
@@ -258,27 +264,86 @@ export function buildDefaultAdditionalFeeLines({
     });
 }
 
+export function calculateQuotationVat(
+  freightCharge = 0,
+  serviceFee = 0,
+  vatRate = DEFAULT_QUOTATION_VAT_RATE
+) {
+  const freight = Number(freightCharge) || 0;
+  const service = Number(serviceFee) || 0;
+  const rate = Number(vatRate);
+  const resolved =
+    Number.isFinite(rate) && rate >= 0 ? rate : DEFAULT_QUOTATION_VAT_RATE;
+  return roundMoney((freight + service) * resolved);
+}
+
+/**
+ * Tổng báo giá ký gửi — khớp QuotationService:
+ * TotalEstimatedCost = FreightCharge + ServiceFee + ImportTax + VAT
+ * VAT = (FreightCharge + ServiceFee) × vatRate (PricingRule VAT, mặc định 8%)
+ * ImportTax lấy từ BE estimate (PricingRule / ProductType trên BE).
+ */
+export function calculateQuotationGrandTotal({
+  freightCharge = 0,
+  serviceFee = 0,
+  importTax = 0,
+  vat,
+  vatRate = DEFAULT_QUOTATION_VAT_RATE,
+  discountPercent = 0,
+}) {
+  const freight = roundMoney(freightCharge);
+  const service = roundMoney(serviceFee);
+  const subtotal = roundMoney(freight + service);
+  const discount = roundMoney(subtotal * (Math.max(0, Number(discountPercent) || 0) / 100));
+  const importTaxAmount = roundMoney(importTax);
+  const resolvedVatRate =
+    Number.isFinite(Number(vatRate)) && Number(vatRate) >= 0
+      ? Number(vatRate)
+      : DEFAULT_QUOTATION_VAT_RATE;
+  const vatAmount =
+    vat != null ? roundMoney(vat) : calculateQuotationVat(freight, service, resolvedVatRate);
+  const total = roundMoney(subtotal - discount + importTaxAmount + vatAmount);
+
+  return {
+    freightCharge: freight,
+    serviceFee: service,
+    mainServiceAmount: freight,
+    additionalTotal: service,
+    subtotal,
+    discount,
+    importTax: importTaxAmount,
+    vat: vatAmount,
+    vatRate: resolvedVatRate,
+    total,
+    totalEstimatedCost: total,
+  };
+}
+
 export function calculateQuotationTotal({
   mainServiceAmount = 0,
   additionalFees = [],
   discountPercent = 0,
+  importTax = 0,
+  vat,
+  vatRate,
+  pricingRules,
 }) {
   const activeFees = additionalFees.filter((line) => line.enabled !== false);
   const additionalTotal = activeFees.reduce(
     (sum, line) => sum + (Number(line.amount) || 0),
     0
   );
-  const subtotal = roundMoney((Number(mainServiceAmount) || 0) + additionalTotal);
-  const discount = roundMoney(subtotal * (Math.max(0, Number(discountPercent) || 0) / 100));
-  const total = roundMoney(subtotal - discount);
+  const resolvedVatRate =
+    vatRate != null ? Number(vatRate) : resolveVatRate(pricingRules);
 
-  return {
-    mainServiceAmount: roundMoney(mainServiceAmount),
-    additionalTotal: roundMoney(additionalTotal),
-    subtotal,
-    discount,
-    total,
-  };
+  return calculateQuotationGrandTotal({
+    freightCharge: mainServiceAmount,
+    serviceFee: additionalTotal,
+    importTax,
+    vat,
+    vatRate: resolvedVatRate,
+    discountPercent,
+  });
 }
 
 export function resolveConsignmentServiceType(consignment) {
@@ -334,6 +399,8 @@ export function buildConsignmentQuotationDraft({
   salesNote,
   volumetricDivisor,
   pricingRules,
+  importTax,
+  vat,
 }) {
   const weight = Number(weightKg) || 0;
   const volume =
@@ -368,6 +435,9 @@ export function buildConsignmentQuotationDraft({
     mainServiceAmount,
     additionalFees: feeLines,
     discountPercent,
+    importTax,
+    vat,
+    pricingRules,
   });
 
   return {
@@ -388,8 +458,10 @@ export function buildConsignmentQuotationDraft({
     salesNote: salesNote?.trim() || "",
     ...totals,
     estimatedFreightCharge: mainServiceAmount,
-    serviceFee: totals.additionalTotal,
-    totalEstimatedCost: totals.total,
+    serviceFee: totals.serviceFee,
+    importTax: totals.importTax,
+    vat: totals.vat,
+    totalEstimatedCost: totals.totalEstimatedCost,
   };
 }
 
@@ -708,12 +780,17 @@ export function getQuotationDisplayLines(quotation) {
     0
   );
   const serviceFee = Number(quotation.serviceFee) || 0;
+  const importTax = Number(quotation.importTax) || 0;
+  const vat = Number(quotation.vat) || 0;
+  const taxAndDuty = Number(quotation.taxAndDuty) || 0;
 
   if (
     quotation.estimatedFreightCharge != null ||
     serviceFee > 0 ||
     additionalTotal > 0 ||
-    (quotation.taxAndDuty != null && Number(quotation.taxAndDuty) !== 0)
+    importTax !== 0 ||
+    vat !== 0 ||
+    taxAndDuty !== 0
   ) {
     const lines = [];
 
@@ -738,10 +815,25 @@ export function getQuotationDisplayLines(quotation) {
       });
     }
 
-    if (quotation.taxAndDuty != null && Number(quotation.taxAndDuty) !== 0) {
+    if (importTax !== 0) {
+      lines.push({
+        label: "Thuế nhập khẩu",
+        amount: importTax,
+      });
+    }
+
+    if (vat !== 0) {
+      const rateLabel = quotation.vatRate != null
+        ? formatVatRatePercent(quotation.vatRate)
+        : "8%";
+      lines.push({
+        label: `VAT (${rateLabel})`,
+        amount: vat,
+      });
+    } else if (taxAndDuty !== 0 && importTax === 0) {
       lines.push({
         label: "Thuế & phí",
-        amount: quotation.taxAndDuty,
+        amount: taxAndDuty,
       });
     }
 
@@ -778,7 +870,7 @@ export function getQuotationDisplayLines(quotation) {
   ];
 }
 
-// ponytail: self-check — fail nếu công thức phụ phí lệch với calculateAdditionalFeeAmount
+// ponytail: self-check — fail nếu công thức phụ phí / thuế lệch
 if (typeof process !== "undefined" && process.env?.NODE_ENV !== "production") {
   const _fee = {
     feeCalculationType: "FIXED",
@@ -791,4 +883,20 @@ if (typeof process !== "undefined" && process.env?.NODE_ENV !== "production") {
       buildAdditionalFeeFormula(_fee, { packageCount: 2 })?.includes("70.000"),
     "buildAdditionalFeeFormula mismatch"
   );
+
+  const _tax = calculateQuotationGrandTotal({
+    freightCharge: 100000,
+    serviceFee: 50000,
+    importTax: 20000,
+    vatRate: 0.08,
+  });
+  console.assert(
+    _tax.vat === 12000 && _tax.total === 182000,
+    "calculateQuotationGrandTotal mismatch"
+  );
+
+  const _vatFromRules = resolveVatRate([
+    { ruleType: "VAT", feeCalculationType: "PERCENTAGE", percentageRate: 8 },
+  ]);
+  console.assert(_vatFromRules === 0.08, "resolveVatRate from PricingRule mismatch");
 }

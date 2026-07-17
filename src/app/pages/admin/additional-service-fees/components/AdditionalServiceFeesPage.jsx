@@ -7,12 +7,33 @@ import AdditionalServiceFeeFormModal from "@/app/pages/admin/additional-service-
 import DataTable from "@/app/components/DataTable";
 import * as feeService from "@/utils/additionalServiceFeeService";
 import { getErrorMessage } from "@/utils/apiError";
-import { isVolumetricDivisorRule } from "@/utils/servicePricingService";
+import {
+  DEFAULT_QUOTATION_VAT_RATE,
+  formatVatRatePercent,
+  isVatRule,
+  isVolumetricDivisorRule,
+  resolveVatRate,
+  VAT_RULE,
+} from "@/utils/servicePricingService";
 
 const {
   formatFeeAmount,
   formatFeeCalculationType,
 } = feeService;
+
+const VAT_RULE_TEMPLATE = {
+  id: null,
+  code: VAT_RULE,
+  name: "VAT báo giá ký gửi",
+  feeCalculationType: "PERCENTAGE",
+  fixedAmount: null,
+  percentageRate: DEFAULT_QUOTATION_VAT_RATE * 100,
+  unit: "% (cước + phí dịch vụ)",
+  description: "VAT = (FreightCharge + ServiceFee) × tỷ lệ này.",
+  isActive: true,
+  ruleCode: VAT_RULE,
+  ruleType: VAT_RULE,
+};
 
 const STATUS_FILTER_OPTIONS = [
   { value: "true", label: "Hoạt động" },
@@ -138,6 +159,21 @@ export default function AdditionalServiceFeesPage() {
     () => items.find(isVolumetricDivisorRule) ?? null,
     [items]
   );
+
+  const vatRule = useMemo(() => items.find(isVatRule) ?? null, [items]);
+  const vatRateLabel = useMemo(
+    () => formatVatRatePercent(resolveVatRate(items)),
+    [items]
+  );
+
+  function openVatEditor() {
+    if (vatRule) {
+      openEdit(vatRule);
+      return;
+    }
+    setEditingItem({ ...VAT_RULE_TEMPLATE });
+    setModalMode("create");
+  }
 
   const columns = useMemo(
     () => [
@@ -308,6 +344,33 @@ export default function AdditionalServiceFeesPage() {
                 Chỉnh sửa
               </button>
             ) : null}
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-border-muted bg-surface-elevated px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <p className="text-sm font-bold text-ink">VAT báo giá ký gửi</p>
+            <p className="text-xs text-muted mt-0.5">
+              VAT = (cước + phí dịch vụ) × tỷ lệ. Quy tắc hệ thống mã{" "}
+              <span className="font-mono">VAT</span> / <span className="font-mono">IMPORT_TAX</span>{" "}
+              (không hiện như phụ phí bật/tắt trên Sales).
+            </p>
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            <p className="text-sm text-muted">
+              Đang áp dụng:{" "}
+              <span className="font-mono font-bold text-ink">
+                {vatRule ? vatRateLabel : `${vatRateLabel} (mặc định)`}
+              </span>
+            </p>
+            <button
+              type="button"
+              onClick={openVatEditor}
+              className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-border-muted text-sm font-semibold text-ink hover:bg-surface"
+            >
+              <Icon icon={vatRule ? "lucide:pencil" : "lucide:plus"} className="w-4 h-4" />
+              {vatRule ? "Chỉnh sửa" : "Tạo quy tắc"}
+            </button>
           </div>
         </div>
       </div>

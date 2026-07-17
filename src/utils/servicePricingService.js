@@ -33,13 +33,22 @@ export const UNIT_TYPE_LABELS = {
 export const VOLUMETRIC_DIVISOR_CM3 = 5000;
 export const VOLUMETRIC_DIVISOR_RULE = "VOLUMETRIC_DIVISOR";
 
+/** VAT mặc định khi chưa có PricingRule — khớp BE cũ / fallback. */
+export const DEFAULT_QUOTATION_VAT_RATE = 0.08;
+export const VAT_RULE = "VAT";
+export const IMPORT_TAX_RULE = "IMPORT_TAX";
+
 /** @deprecated dùng VOLUMETRIC_DIVISOR_CM3; giữ để tương thích chỗ còn nhắc m³. */
 export const VOLUMETRIC_FACTOR_M3 = 1_000_000 / VOLUMETRIC_DIVISOR_CM3;
 
-/** Quy tắc cấu hình (không phải phụ phí tính tiền). DOMESTIC_FEE là phụ phí — hiện trong bảng báo giá ký gửi. */
+/** Quy tắc cấu hình (không phải phụ phí bật/tắt trên báo giá). DOMESTIC_FEE vẫn là phụ phí. */
 const PRICING_CONFIG_RULES = new Set([
   VOLUMETRIC_DIVISOR_RULE,
   "MIN_WEIGHT",
+  VAT_RULE,
+  "VAT_RATE",
+  IMPORT_TAX_RULE,
+  "IMPORT_TAX_RATE",
 ]);
 
 function ruleKey(fee) {
@@ -48,17 +57,55 @@ function ruleKey(fee) {
     .toUpperCase();
 }
 
+function ruleMatches(fee, names) {
+  const key = ruleKey(fee);
+  const code = String(fee?.ruleCode ?? fee?.code ?? "").toUpperCase();
+  return names.some((name) => key === name || code === name || code.includes(name));
+}
+
 export function isPricingConfigRule(fee) {
   const key = ruleKey(fee);
   if (PRICING_CONFIG_RULES.has(key)) return true;
   const code = String(fee?.ruleCode ?? fee?.code ?? "").toUpperCase();
-  return PRICING_CONFIG_RULES.has(code) || code.includes(VOLUMETRIC_DIVISOR_RULE);
+  return (
+    PRICING_CONFIG_RULES.has(code) ||
+    code.includes(VOLUMETRIC_DIVISOR_RULE) ||
+    code.includes(VAT_RULE) ||
+    code.includes(IMPORT_TAX_RULE)
+  );
 }
 
 export function isVolumetricDivisorRule(fee) {
-  const key = ruleKey(fee);
-  const code = String(fee?.ruleCode ?? fee?.code ?? "").toUpperCase();
-  return key === VOLUMETRIC_DIVISOR_RULE || code.includes(VOLUMETRIC_DIVISOR_RULE);
+  return ruleMatches(fee, [VOLUMETRIC_DIVISOR_RULE]);
+}
+
+export function isVatRule(fee) {
+  return ruleMatches(fee, [VAT_RULE, "VAT_RATE"]);
+}
+
+export function isImportTaxRule(fee) {
+  return ruleMatches(fee, [IMPORT_TAX_RULE, "IMPORT_TAX_RATE"]);
+}
+
+/** Đọc % VAT từ PricingRule (value 8 → 0.08). Fallback DEFAULT_QUOTATION_VAT_RATE. */
+export function resolveVatRate(rules = []) {
+  const rule = (Array.isArray(rules) ? rules : []).find(isVatRule);
+  if (!rule) return DEFAULT_QUOTATION_VAT_RATE;
+
+  const raw =
+    rule.percentageRate ??
+    rule.value ??
+    rule.fixedAmount ??
+    rule.conditionValue;
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value < 0) return DEFAULT_QUOTATION_VAT_RATE;
+  // Admin thường nhập 8 (phần trăm); chấp nhận cả 0.08.
+  return value > 1 ? value / 100 : value;
+}
+
+export function formatVatRatePercent(rate = DEFAULT_QUOTATION_VAT_RATE) {
+  const pct = (Number(rate) || 0) * 100;
+  return `${pct.toLocaleString("vi-VN", { maximumFractionDigits: 2 })}%`;
 }
 
 /** Lấy hệ số quy đổi thể tích từ danh sách PricingRule / fee catalog. */

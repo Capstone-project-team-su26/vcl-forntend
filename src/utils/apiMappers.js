@@ -171,6 +171,8 @@ export function normalizeConsignmentQuotationFromApi(quotation) {
     status: quotation.status ?? null,
     estimatedFreightCharge: quotation.estimatedFreightCharge ?? null,
     serviceFee: quotation.serviceFee ?? null,
+    importTax: quotation.importTax ?? null,
+    vat: quotation.vat ?? null,
     taxAndDuty: quotation.taxAndDuty ?? null,
     totalEstimatedCost: quotation.totalEstimatedCost ?? quotation.total ?? null,
     total: quotation.totalEstimatedCost ?? quotation.total ?? null,
@@ -529,6 +531,8 @@ export function normalizeEstimateQuotationResponse(raw) {
     estimatedFreightCharge:
       item.estimatedFreightCharge ?? quotation?.estimatedFreightCharge ?? item.mainServiceAmount,
     serviceFee: item.serviceFee ?? quotation?.serviceFee ?? item.additionalTotal,
+    importTax: item.importTax ?? quotation?.importTax ?? 0,
+    vat: item.vat ?? quotation?.vat ?? 0,
     taxAndDuty: item.taxAndDuty ?? quotation?.taxAndDuty ?? 0,
     totalEstimatedCost:
       item.totalEstimatedCost ?? quotation?.totalEstimatedCost ?? item.total,
@@ -617,6 +621,8 @@ function toApiQuotationDetailsDto(quotation, fallbackSalesNote = "") {
         ? Number(quotation.estimatedFreightCharge)
         : null,
     serviceFee: quotation.serviceFee != null ? Number(quotation.serviceFee) : null,
+    importTax: quotation.importTax != null ? Number(quotation.importTax) : null,
+    vat: quotation.vat != null ? Number(quotation.vat) : null,
     totalEstimatedCost:
       quotation.totalEstimatedCost != null ? Number(quotation.totalEstimatedCost) : null,
     salesNote,

@@ -8,7 +8,7 @@ import {
   toApiPricingRuleFromAdditionalFeePayload,
 } from "@/utils/apiMappers";
 import { ApiError } from "@/utils/apiError";
-import { formatMoney, isVolumetricDivisorRule } from "@/utils/servicePricingService";
+import { formatMoney, isVatRule, isVolumetricDivisorRule } from "@/utils/servicePricingService";
 
 export const FEE_CALCULATION_TYPE_LABELS = {
   FIXED: "Giá cố định",
@@ -87,6 +87,8 @@ function validateFeePayload(payload, { requireAll = false } = {}) {
   return {
     name,
     code,
+    ruleCode: payload.ruleCode?.trim() || code,
+    ruleType: payload.ruleType ?? undefined,
     feeCalculationType,
     fixedAmount,
     percentageRate,
@@ -223,5 +225,6 @@ export function formatFeeAmount(fee) {
 
 export function formatFeeCalculationType(type, fee) {
   if (fee && isVolumetricDivisorRule(fee)) return "Hệ số quy đổi thể tích";
+  if (fee && isVatRule(fee)) return "VAT báo giá";
   return FEE_CALCULATION_TYPE_LABELS[type] || type || "—";
 }

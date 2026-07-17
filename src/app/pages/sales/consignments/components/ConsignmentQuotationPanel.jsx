@@ -37,6 +37,7 @@ const {
   resolveConsignmentServiceType,
   resolveInitialSalesNote,
   resolveServicePricingForConsignment,
+  formatVatRatePercent,
 } = consignmentQuotationService;
 
 const {
@@ -52,6 +53,7 @@ const {
   isPricingConfigRule,
   isVolumetricDivisorRule,
   normalizeVolumeCm3FromApi,
+  resolveVatRate,
   resolveVolumetricDivisor,
   UNIT_TYPE_LABELS,
   VOLUMETRIC_DIVISOR_CM3,
@@ -239,6 +241,7 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
   const [feesFromApi, setFeesFromApi] = useState(false);
   const [salesNote, setSalesNote] = useState("");
   const [estimateSnapshot, setEstimateSnapshot] = useState(null);
+  const [taxSnapshot, setTaxSnapshot] = useState({ importTax: 0, vat: null });
   const [customFees, setCustomFees] = useState([]);
 
   const canSend = detail && !readOnly ? canStaffSendConsignmentQuotation(detail) : false;
@@ -324,14 +327,18 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
         mainServiceAmount: mainServiceAmount === "" ? 0 : Number(mainServiceAmount),
         additionalFees: allAdditionalFeeLines,
         discountPercent,
+        importTax: taxSnapshot.importTax,
+        vatRate,
       }),
-    [mainServiceAmount, allAdditionalFeeLines, discountPercent]
+    [mainServiceAmount, allAdditionalFeeLines, discountPercent, taxSnapshot.importTax, vatRate]
   );
 
   const volumetricDivisor = useMemo(
     () => resolveVolumetricDivisor(feeCatalog),
     [feeCatalog]
   );
+
+  const vatRate = useMemo(() => resolveVatRate(feeCatalog), [feeCatalog]);
 
   const surchargeFeeCatalog = useMemo(
     () => feeCatalog.filter((fee) => !isPricingConfigRule(fee)),
@@ -570,6 +577,18 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
               }
             : null
         );
+        setTaxSnapshot({
+          importTax:
+            estimateResult?.importTax ??
+            estimateResult?.quotation?.importTax ??
+            consignment.quotation?.importTax ??
+            0,
+          vat:
+            estimateResult?.vat ??
+            estimateResult?.quotation?.vat ??
+            consignment.quotation?.vat ??
+            null,
+        });
       } catch (err) {
         if (active) setLoadError(getErrorMessage(err));
       } finally {
@@ -772,20 +791,24 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
 
     const resolvedVolumeCm3 = volumeCm3 ? Number(volumeCm3) : 0;
 
-    const quotation = {
-      ...buildConsignmentQuotationDraft({
-        servicePricing: selectedServicePricing,
-        weightKg,
-        volumeCm3: resolvedVolumeCm3,
-        packageCount,
-        declaredValue,
-        discountPercent,
-        mainServiceAmountOverride: mainServiceAmount,
-        additionalFees: allAdditionalFeeLines,
-        salesNote,
-        volumetricDivisor,
-        pricingRules: feeCatalog,
-      }),
+    const quotation = buildConsignmentQuotationDraft({
+      servicePricing: selectedServicePricing,
+      weightKg,
+      volumeCm3: resolvedVolumeCm3,
+      packageCount,
+      declaredValue,
+      discountPercent,
+      mainServiceAmountOverride: mainServiceAmount,
+      additionalFees: allAdditionalFeeLines,
+      salesNote,
+      volumetricDivisor,
+      pricingRules: feeCatalog,
+      importTax: taxSnapshot.importTax,
+      vat: totals.vat,
+    });
+
+    const quotationPayload = {
+      ...quotation,
       customFees: customFees.map((fee) => ({
         id: fee.id,
         label: fee.label,
@@ -804,13 +827,19 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
       packageCount: Number(packageCount),
       declaredValue: declaredValue === "" ? null : Number(declaredValue),
       salesNote,
-      quotation,
+      quotation: quotationPayload,
     };
 
     try {
       if (!isMockMode()) {
         try {
-          await estimateConsignmentQuotation(detail.id, sendParams);
+          const estimate = await estimateConsignmentQuotation(detail.id, sendParams);
+          if (estimate) {
+            setTaxSnapshot({
+              importTax: estimate.importTax ?? estimate.quotation?.importTax ?? taxSnapshot.importTax,
+              vat: estimate.vat ?? estimate.quotation?.vat ?? null,
+            });
+          }
         } catch {
           // Estimate thất bại không chặn gửi báo giá chính thức.
         }
@@ -823,14 +852,14 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
         setDetail(
           mergeConsignmentDetail(detail, {
             ...response.consignment,
-            quotation: response.consignment.quotation ?? quotation,
+            quotation: response.consignment.quotation ?? quotationPayload,
           })
         );
       } else {
         setDetail({
           ...detail,
           status: response.status ?? "QUOTATION_SENT",
-          quotation,
+          quotation: quotationPayload,
         });
       }
       router.replace(ROUTES.sales.consignment(detail.id));
@@ -1318,13 +1347,27 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
                 </tbody>
                 <tfoot>
                   <tr className="border-t border-border-muted bg-surface/50">
-                    <td colSpan={4} className="px-4 py-3 text-sm font-semibold text-muted">Tạm tính</td>
+                    <td colSpan={4} className="px-4 py-3 text-sm font-semibold text-muted">Tạm tính (cước + phí dịch vụ)</td>
                     <td className="px-4 py-3 text-right font-bold text-ink">{formatMoney(totals.subtotal)}</td>
                   </tr>
                   {totals.discount > 0 ? (
                     <tr className="bg-surface/50">
                       <td colSpan={4} className="px-4 py-3 text-sm font-semibold text-muted">Chiết khấu ({discountPercent}%)</td>
                       <td className="px-4 py-3 text-right font-bold text-danger">-{formatMoney(totals.discount)}</td>
+                    </tr>
+                  ) : null}
+                  {totals.importTax > 0 ? (
+                    <tr className="bg-surface/50">
+                      <td colSpan={4} className="px-4 py-3 text-sm font-semibold text-muted">Thuế nhập khẩu</td>
+                      <td className="px-4 py-3 text-right font-bold text-ink">{formatMoney(totals.importTax)}</td>
+                    </tr>
+                  ) : null}
+                  {totals.vat > 0 ? (
+                    <tr className="bg-surface/50">
+                      <td colSpan={4} className="px-4 py-3 text-sm font-semibold text-muted">
+                        VAT ({formatVatRatePercent(totals.vatRate ?? vatRate)})
+                      </td>
+                      <td className="px-4 py-3 text-right font-bold text-ink">{formatMoney(totals.vat)}</td>
                     </tr>
                   ) : null}
                   <tr className="bg-primary/5">
