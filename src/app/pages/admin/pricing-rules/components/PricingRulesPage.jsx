@@ -141,9 +141,9 @@ export default function PricingRulesPage() {
 
   function formatUnitPrice(item) {
     if (item.unitType === "KG_OR_CBM") {
-      return `${formatMoney(item.pricePerKg)} / kg · ${formatMoney(item.pricePerCbm)} / cm³`;
+      return `${formatMoney(item.pricePerKg)} / kg · ${formatMoney(item.pricePerCbm)} / m³`;
     }
-    if (item.unitType === "CBM") return `${formatMoney(item.price)} / cm³`;
+    if (item.unitType === "CBM") return `${formatMoney(item.price)} / m³`;
     return `${formatMoney(item.price)} / kg`;
   }
 

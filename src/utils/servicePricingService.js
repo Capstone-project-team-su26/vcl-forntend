@@ -22,8 +22,8 @@ export const SERVICE_TYPE_LABELS = {
 
 export const UNIT_TYPE_LABELS = {
   KG: "Theo kg",
-  CBM: "Theo cm³",
-  KG_OR_CBM: "Kg hoặc cm³ (lấy cao hơn)",
+  CBM: "Theo m³ (CBM)",
+  KG_OR_CBM: "Kg hoặc m³ (lấy cao hơn)",
 };
 
 /**
@@ -213,13 +213,26 @@ function formatM3(value) {
   return `${numeric.toLocaleString("vi-VN", { maximumFractionDigits: 4 })} m³`;
 }
 
+/** Luôn cm³ — dùng trong công thức DIM (volume ÷ divisor). */
 function formatCm3(value) {
   const numeric = Number(value) || 0;
   return `${numeric.toLocaleString("vi-VN", { maximumFractionDigits: 2 })} cm³`;
 }
 
+/**
+ * Hiển thị thể tích gọn trên list/card: ≥ 1000 cm³ → m³.
+ * Không dùng trong công thức tính phí.
+ */
 export function formatVolumeCm3(value) {
-  return formatCm3(value);
+  const numeric = Number(value) || 0;
+  if (numeric >= 1000) {
+    const m3 = numeric / 1_000_000;
+    return `${m3.toLocaleString("vi-VN", {
+      maximumFractionDigits: 6,
+      minimumFractionDigits: 0,
+    })} m³`;
+  }
+  return formatCm3(numeric);
 }
 
 export function volumeM3ToCm3(volumeM3) {
@@ -230,25 +243,20 @@ export function volumeCm3ToM3(volumeCm3) {
   return (Number(volumeCm3) || 0) / 1_000_000;
 }
 
-/** BE `totalVolume` = cm³ (Swagger). */
-export function normalizeVolumeCm3FromApi(raw, { weightKg } = {}) {
-  if (raw == null || raw === "") return null;
-  const n = Number(raw);
-  if (!Number.isFinite(n) || n < 0) return null;
-
-  // ponytail: bản ghi cũ bị FE ×1e6 (coi cm³ là m³ rồi volumeM3ToCm3) — VD 16 → 16_000_000.
-  if (n >= 1_000_000) {
-    const undone = n / 1_000_000;
-    const dimRaw = n / VOLUMETRIC_DIVISOR_CM3;
-    const dimUndone = undone / VOLUMETRIC_DIVISOR_CM3;
-    const weight = Number(weightKg) || 0;
-    const absurdVsWeight =
-      weight > 0 && dimRaw > Math.max(weight * 50, 50) && dimUndone <= Math.max(weight * 50, 50);
-    const tinyAfterUndo = weight <= 0 && undone > 0 && undone < 100_000;
-    if (absurdVsWeight || tinyAfterUndo) return undone;
+/**
+ * BE trả `totalVolume` (cm³) và `totalVolumeM3` (m³). Tin thẳng số API, không tự suy đoán/quy đổi.
+ * Ưu tiên `totalVolume` (cm³); nếu thiếu thì suy từ `totalVolumeM3`.
+ */
+export function normalizeVolumeCm3FromApi(raw, { totalVolumeM3 } = {}) {
+  if (raw != null && raw !== "") {
+    const n = Number(raw);
+    if (Number.isFinite(n) && n >= 0) return n;
   }
-
-  return n;
+  if (totalVolumeM3 != null && totalVolumeM3 !== "") {
+    const m3 = Number(totalVolumeM3);
+    if (Number.isFinite(m3) && m3 >= 0) return volumeM3ToCm3(m3);
+  }
+  return null;
 }
 
 /** Ưu tiên volumeCm3; `volumeM3` chỉ còn cho legacy caller. */
@@ -267,17 +275,39 @@ export function calculateItemDimWeightKg(length, width, height, divisor = VOLUME
   return (l * w * h) / normalizeDivisor(divisor);
 }
 
+/**
+ * DIM cả đơn từ kích thước kiện: Σ (D×R×C / divisor).
+ * Mỗi dòng items = 1 kiện (quantity = số món trong kiện, không nhân thêm).
+ */
+export function resolveConsignmentDimFromItems(items, divisor = VOLUMETRIC_DIVISOR_CM3) {
+  if (!Array.isArray(items) || !items.length) return null;
+
+  const dim = normalizeDivisor(divisor);
+  const parts = [];
+  let totalKg = 0;
+
+  for (const item of items) {
+    const kg = calculateItemDimWeightKg(item?.length, item?.width, item?.height, dim);
+    if (kg == null) continue;
+    parts.push({
+      length: Number(item.length),
+      width: Number(item.width),
+      height: Number(item.height),
+      dimKg: kg,
+    });
+    totalKg += kg;
+  }
+
+  if (!parts.length) return null;
+  return { volumetricWeight: totalKg, parts, divisor: dim };
+}
+
 export function formatItemDimensions(length, width, height) {
   const l = Number(length);
   const w = Number(width);
   const h = Number(height);
   if (!l || !w || !h) return null;
   return `${l} × ${w} × ${h} cm`;
-}
-
-/** Tổng thể tích đơn (cm³) — dùng thẳng giá trị API, KHÔNG tự nhân quantity. */
-export function resolveConsignmentTotalVolumeCm3({ totalVolume, weightKg } = {}) {
-  return normalizeVolumeCm3FromApi(totalVolume, { weightKg });
 }
 
 export function formatItemDimFormula(length, width, height, divisor = VOLUMETRIC_DIVISOR_CM3) {
@@ -293,7 +323,12 @@ export function formatItemDimFormula(length, width, height, divisor = VOLUMETRIC
   return `(${l} × ${w} × ${h}) / ${dim.toLocaleString("vi-VN")} = ${dimLabel} kg`;
 }
 
-/** DIM (kg) = thể tích cm³ ÷ hệ số quy đổi — không làm tròn. */
+/** Tổng thể tích đơn (cm³) — không nhân quantity; dùng thẳng cặp totalVolume + totalVolumeM3 từ BE. */
+export function resolveConsignmentTotalVolumeCm3({ totalVolume, totalVolumeM3 } = {}) {
+  return normalizeVolumeCm3FromApi(totalVolume, { totalVolumeM3 });
+}
+
+/** DIM (kg) = (Dài × Rộng × Cao cm) / hệ số — tương đương thể tích cm³ ÷ hệ số. */
 export function calculateVolumetricWeight(volumeCm3, divisor = VOLUMETRIC_DIVISOR_CM3) {
   return (Number(volumeCm3) || 0) / normalizeDivisor(divisor);
 }
@@ -310,8 +345,9 @@ export function calculateMainServiceAmount(
 ) {
   if (!servicePricing) return 0;
 
-  const volume = resolveVolumeCm3({ volumeCm3, volumeM3 });
-  const chargeable = calculateChargeableWeight(weightKg, volume, volumetricDivisor);
+  const volumeCm3Value = resolveVolumeCm3({ volumeCm3, volumeM3 });
+  const volumeM3Value = volumeCm3ToM3(volumeCm3Value);
+  const chargeable = calculateChargeableWeight(weightKg, volumeCm3Value, volumetricDivisor);
   const price = Number(servicePricing.price) || 0;
   const unitType = normalizeUnitType(servicePricing.unitType);
 
@@ -319,10 +355,11 @@ export function calculateMainServiceAmount(
     case "KG":
       return roundMoney(chargeable * price);
     case "CBM":
-      return roundMoney(volume * price);
+      // price = VND/m³ (CBM logistics), không phải VND/cm³.
+      return roundMoney(volumeM3Value * price);
     case "KG_OR_CBM": {
       const byKg = chargeable * (Number(servicePricing.pricePerKg ?? price) || 0);
-      const byCbm = volume * (Number(servicePricing.pricePerCbm ?? price) || 0);
+      const byCbm = volumeM3Value * (Number(servicePricing.pricePerCbm ?? price) || 0);
       return roundMoney(Math.max(byKg, byCbm));
     }
     default:
@@ -341,6 +378,7 @@ export function buildMainServicePricingBreakdown(
     weightKg = 0,
     volumeCm3: volumeCm3Input,
     volumeM3 = 0,
+    items = null,
     estimate = null,
     volumetricDivisor,
   } = {}
@@ -357,23 +395,29 @@ export function buildMainServicePricingBreakdown(
   const unitType = normalizeUnitType(servicePricing?.unitType);
 
   const volumeCm3 = hasVolume ? volumeCm3Value : null;
-  const localVolumetric = hasVolume ? calculateVolumetricWeight(volumeCm3Value, divisor) : 0;
-  const localChargeable = hasVolume
-    ? calculateChargeableWeight(weightKg, volumeCm3Value, divisor)
-    : weight;
+  const volumeM3Value = hasVolume ? volumeCm3ToM3(volumeCm3Value) : 0;
+  const fromItems = resolveConsignmentDimFromItems(items, divisor);
+  const localVolumetric = fromItems
+    ? fromItems.volumetricWeight
+    : hasVolume
+      ? calculateVolumetricWeight(volumeCm3Value, divisor)
+      : 0;
+  const localChargeable =
+    localVolumetric > 0 || hasWeight
+      ? Math.max(weight, localVolumetric)
+      : 0;
 
-  // ponytail: có volume cm³ thì tự tính DIM theo hệ số. Không tin estimate.volumetricWeight —
-  // BE từng nhân volume như m³ (×200) → ra số kg lệch lớn so với cân thực.
+  // ponytail: DIM = (D×R×C)/divisor — ưu tiên kích thước kiện; không tin estimate BE cũ.
   const volumetricWeight = localVolumetric > 0 ? localVolumetric : 0;
   const chargeableWeight =
-    hasVolume || hasWeight ? (hasVolume ? localChargeable : weight) : 0;
+    volumetricWeight > 0 || hasWeight ? Math.max(weight, volumetricWeight) : 0;
 
   const steps = [];
   let freightStep = null;
   let amount = 0;
   let mode = hasConfiguredPricing ? "configured" : "fallback";
 
-  if (!hasWeight && !hasVolume) {
+  if (!hasWeight && !hasVolume && volumetricWeight <= 0) {
     return {
       show: false,
       mode,
@@ -389,33 +433,59 @@ export function buildMainServicePricingBreakdown(
     };
   }
 
-  if (hasVolume && volumeCm3 != null) {
+  if (fromItems?.parts?.length) {
+    const first = fromItems.parts[0];
+    const volumeFormula =
+      fromItems.parts.length === 1
+        ? `${first.length} × ${first.width} × ${first.height} cm`
+        : fromItems.parts
+            .map((part) => `${part.length}×${part.width}×${part.height}`)
+            .join(" + ") + " cm";
     steps.push({
       key: "volume",
-      title: "Thể tích lô hàng",
-      formula: formatCm3(volumeCm3),
-      note: "Tổng thể tích (cm³) khai báo trên yêu cầu ký gửi.",
+      title: "Kích thước kiện (D × R × C)",
+      formula: volumeFormula,
+      note:
+        fromItems.parts.length === 1
+          ? "Kích thước từng kiện hàng (cm) khai báo trên yêu cầu ký gửi."
+          : `Tổng ${fromItems.parts.length} kiện — DIM cộng dồn từng kiện.`,
     });
-  }
-
-  if (hasVolume) {
     steps.push({
       key: "dim",
       title: "Cân quy đổi thể tích (DIM)",
-      formula: `(${formatCm3(volumeCm3)}) ÷ ${divisor.toLocaleString("vi-VN")} = ${formatKg(volumetricWeight)}`,
-      note: `Hệ số quy đổi thể tích = ${divisor.toLocaleString("vi-VN")} (PricingRule VOLUMETRIC_DIVISOR hoặc mặc định IATA).`,
+      formula:
+        fromItems.parts.length === 1
+          ? `(${first.length} × ${first.width} × ${first.height}) / ${divisor.toLocaleString("vi-VN")} = ${formatKg(volumetricWeight)}`
+          : `Σ (D × R × C) / ${divisor.toLocaleString("vi-VN")} = ${formatKg(volumetricWeight)}`,
+      note: `Công thức DIM: (Dài × Rộng × Cao cm) ÷ ${divisor.toLocaleString("vi-VN")} (PricingRule VOLUMETRIC_DIVISOR hoặc mặc định IATA).`,
     });
+  } else if (hasVolume && volumeCm3 != null) {
+    steps.push({
+      key: "volume",
+      title: "Thể tích lô hàng (= D × R × C)",
+      formula: formatCm3(volumeCm3),
+      note: "Thể tích khai báo = Dài × Rộng × Cao (cm³) trên yêu cầu ký gửi.",
+    });
+    steps.push({
+      key: "dim",
+      title: "Cân quy đổi thể tích (DIM)",
+      formula: `(Dài × Rộng × Cao) / ${divisor.toLocaleString("vi-VN")} = ${formatKg(volumetricWeight)}`,
+      note: `= ${formatCm3(volumeCm3)} ÷ ${divisor.toLocaleString("vi-VN")}. Hệ số ${divisor.toLocaleString("vi-VN")} (PricingRule VOLUMETRIC_DIVISOR hoặc mặc định IATA).`,
+    });
+  }
+
+  if (volumetricWeight > 0 || hasWeight) {
     steps.push({
       key: "chargeable",
       title: "Cân tính phí",
-      formula: `MAX(${formatKg(weight)}, ${formatKg(volumetricWeight)}) = ${formatKg(chargeableWeight)}`,
-      note: `${formatKg(weight)} = cân thực · ${formatKg(volumetricWeight)} = DIM — lấy số lớn hơn để tính cước theo kg.`,
-    });
-  } else if (hasWeight) {
-    steps.push({
-      key: "chargeable",
-      title: "Cân tính phí",
-      formula: `${formatKg(chargeableWeight)} (theo cân thực — chưa có thể tích để quy đổi DIM)`,
+      formula:
+        volumetricWeight > 0
+          ? `MAX(${formatKg(weight)}, ${formatKg(volumetricWeight)}) = ${formatKg(chargeableWeight)}`
+          : `${formatKg(chargeableWeight)} (theo cân thực — chưa có kích thước để quy đổi DIM)`,
+      note:
+        volumetricWeight > 0
+          ? `${formatKg(weight)} = cân thực · ${formatKg(volumetricWeight)} = DIM — lấy số lớn hơn để tính cước.`
+          : null,
     });
   }
 
@@ -454,13 +524,13 @@ export function buildMainServicePricingBreakdown(
     }
     case "CBM": {
       if (price > 0 && hasVolume) {
-        amount = roundMoney(volumeCm3Value * price);
+        amount = roundMoney(volumeM3Value * price);
         freightStep = {
           key: "freight",
           title: "Cước dịch vụ chính",
-          formula: `${formatCm3(volumeCm3Value)} × ${formatMoney(price)}/cm³ = ${formatMoney(amount)}`,
+          formula: `${formatM3(volumeM3Value)} × ${formatMoney(price)}/m³ = ${formatMoney(amount)}`,
           note: hasConfiguredPricing
-            ? `Đơn giá từ bảng giá ${formatServicePricingRoute(servicePricing)} — tính theo cm³.`
+            ? `Đơn giá từ bảng giá ${formatServicePricingRoute(servicePricing)} — tính theo m³ (CBM).`
             : null,
         };
       }
@@ -471,7 +541,7 @@ export function buildMainServicePricingBreakdown(
       const pricePerCbm = Number(servicePricing.pricePerCbm ?? price) || 0;
       const byKg = pricePerKg > 0 ? roundMoney(chargeableWeight * pricePerKg) : null;
       const byCbm =
-        pricePerCbm > 0 && hasVolume ? roundMoney(volumeCm3Value * pricePerCbm) : null;
+        pricePerCbm > 0 && hasVolume ? roundMoney(volumeM3Value * pricePerCbm) : null;
 
       if (byKg != null || byCbm != null) {
         const candidates = [byKg, byCbm].filter((value) => value != null);
@@ -485,11 +555,11 @@ export function buildMainServicePricingBreakdown(
             useKg && byKg != null
               ? `${formatKg(chargeableWeight)} × ${formatMoney(pricePerKg)}/kg = ${formatMoney(byKg)}`
               : byCbm != null
-                ? `${formatCm3(volumeCm3Value)} × ${formatMoney(pricePerCbm)}/cm³ = ${formatMoney(byCbm)}`
+                ? `${formatM3(volumeM3Value)} × ${formatMoney(pricePerCbm)}/m³ = ${formatMoney(byCbm)}`
                 : null,
           note:
             byKg != null && byCbm != null
-              ? `So sánh: theo kg ${formatMoney(byKg)} · theo cm³ ${formatMoney(byCbm)} → lấy ${formatMoney(amount)}`
+              ? `So sánh: theo kg ${formatMoney(byKg)} · theo m³ ${formatMoney(byCbm)} → lấy ${formatMoney(amount)}`
               : hasConfiguredPricing
                 ? `Đơn giá từ bảng giá ${formatServicePricingRoute(servicePricing)}.`
                 : null,
@@ -625,7 +695,7 @@ function validateServicePricingPayload(data, { requireCarrierGuid = false } = {}
       throw new ApiError(400, { message: "Vui lòng nhập giá theo kg." });
     }
     if (data.pricePerCbm == null || Number.isNaN(data.pricePerCbm)) {
-      throw new ApiError(400, { message: "Vui lòng nhập giá theo cm³." });
+      throw new ApiError(400, { message: "Vui lòng nhập giá theo m³ (CBM)." });
     }
   } else if (data.price == null || Number.isNaN(data.price)) {
     throw new ApiError(400, { message: "Vui lòng nhập đơn giá dịch vụ chính." });
@@ -836,15 +906,25 @@ export function parseConsignmentRoute(consignment) {
   };
 }
 
-/** Nhãn tuyến từ yêu cầu ký gửi (ưu tiên `route` BE, không dùng kho/bảng giá mặc định). */
-export function formatConsignmentRouteLabel(consignment) {
+/** Nhãn tuyến từ yêu cầu ký gửi (ưu tiên `route` BE; fallback điểm đến / bảng giá). */
+export function formatConsignmentRouteLabel(consignment, servicePricing = null) {
   if (!consignment) return "—";
   const raw = String(consignment.route ?? "").trim();
-  if (!raw) return "—";
+  if (raw) {
+    const { origin, destination } = parseConsignmentRoute(consignment);
+    if (origin && destination) return `${origin} → ${destination}`;
+    return raw;
+  }
 
-  const { origin, destination } = parseConsignmentRoute(consignment);
-  if (origin && destination) return `${origin} → ${destination}`;
-  return raw;
+  if (servicePricing) {
+    const pricingRoute = formatServicePricingRoute(servicePricing);
+    if (pricingRoute && pricingRoute !== "—") return pricingRoute;
+  }
+
+  const fallback = String(
+    consignment.destination ?? consignment.warehouseName ?? ""
+  ).trim();
+  return fallback || "—";
 }
 
 /** Suy ra mã quốc gia khi BE không trả `warehouse.code` (vd. `CN-GZ` → `CN`). */
@@ -968,9 +1048,12 @@ export function filterServicePricingsForQuotation(
 
 export function getAvailableServiceTypes(servicePricings, context = {}) {
   const matched = filterServicePricingsForQuotation(servicePricings, context);
+  const hasRoute = Boolean(String(context?.consignment?.route ?? "").trim());
   const source = matched.length
     ? matched
-    : servicePricings.filter((entry) => entry.isActive !== false);
+    : hasRoute
+      ? []
+      : servicePricings.filter((entry) => entry.isActive !== false);
 
   return [...new Set(source.map((entry) => entry.serviceType).filter(Boolean))];
 }
@@ -994,6 +1077,9 @@ export function findServicePricingForQuotation(
     (entry) => String(entry.serviceType ?? "").toUpperCase() === normalizedType
   );
   if (byType) return byType;
+
+  // Đã có route cụ thể nhưng không có bảng giá cùng tuyến/dịch vụ: không bắt nhầm route khác.
+  if (String(consignment?.route ?? "").trim()) return candidates[0] ?? null;
 
   if (warehouse?.id) {
     const byWarehouse = findServicePricingForWarehouse(

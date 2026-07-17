@@ -80,6 +80,7 @@ export function mergeSummaryWithDetail(summary, detail) {
     status: summary.status ?? detail.status,
     totalWeight: detail.totalWeight ?? summary.totalWeight,
     totalVolume: detail.totalVolume ?? summary.totalVolume,
+    totalVolumeM3: detail.totalVolumeM3 ?? summary.totalVolumeM3,
     packageCount: detail.packageCount ?? summary.packageCount,
     items: detail.items ?? summary.items,
     route: detail.route ?? summary.route,
