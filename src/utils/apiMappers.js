@@ -150,6 +150,7 @@ export function normalizeConsignmentSummary(item) {
     receiverPhone: receiver.phone ?? pickDisplayName(item.phone) ?? null,
     receiverAddress: receiver.address ?? pickDisplayName(item.address) ?? null,
     requiresInspection: item.requiresInspection === true,
+    pricingRuleIds: Array.isArray(item.pricingRuleIds) ? item.pricingRuleIds : [],
     productNames,
     consignmentType:
       item.orderType ?? item.consignmentType ?? item.shippingOption ?? "—",
@@ -319,6 +320,7 @@ export function normalizeConsignmentDetail(raw) {
     receiverPhone: receiver.phone,
     receiverAddress: receiver.address,
     requiresInspection: item.requiresInspection === true,
+    pricingRuleIds: Array.isArray(item.pricingRuleIds) ? item.pricingRuleIds : [],
     notes: item.note ?? item.notes,
     trackingCode: item.consignmentCode ?? item.trackingCode,
     rejectionReason: item.rejectionReason,
@@ -371,6 +373,7 @@ export function normalizeWarehouseFromApi(item) {
     name: item.name ?? item.warehouseName ?? "—",
     code: item.code ?? item.warehouseCode ?? null,
     address: item.address ?? null,
+    region: item.region ?? null,
     warehouseType: item.warehouseType ?? item.type ?? null,
     isActive: item.isActive !== false,
   };
@@ -387,6 +390,10 @@ export function toApiWarehousePayload(payload) {
     name: payload.name?.trim(),
     code: payload.code?.trim(),
     address: payload.address?.trim() || null,
+    region:
+      payload.region === undefined
+        ? undefined
+        : payload.region?.trim().toUpperCase() || null,
     warehouseType: payload.warehouseType || null,
     isActive: payload.isActive !== false,
   };
@@ -536,6 +543,9 @@ export function normalizeServicePricingFromApi(item) {
     currency: item.currency ?? "VND",
     effectiveDate: item.effectiveDate ?? item.effective_date ?? null,
     isActive: item.isActive !== false && item.status !== "INACTIVE",
+    boxPricingRules: (item.boxPricingRules ?? item.box_pricing_rules ?? []).map(
+      normalizeAdditionalServiceFeeFromApi
+    ),
   };
 }
 
@@ -1360,7 +1370,9 @@ export function toApiStaffConsignmentPayload(payload) {
     route,
     shippingOption,
     note: noteParts.join("\n") || null,
-    requiresInspection: payload.requiresInspection ?? false,
+    pricingRuleIds: Array.isArray(payload.pricingRuleIds)
+      ? payload.pricingRuleIds.filter(isUuid)
+      : [],
     items: payload.items.map((item) => ({
       productName: item.productName?.trim(),
       productType: item.productType?.trim() || "GENERAL",

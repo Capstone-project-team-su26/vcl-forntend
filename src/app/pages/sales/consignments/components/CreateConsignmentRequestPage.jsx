@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 import * as customerService from "@/utils/customerService";
 import * as orderConsignmentService from "@/utils/orderConsignmentService";
 import * as servicePricingService from "@/utils/servicePricingService";
+import { formatFeeAmount } from "@/utils/additionalServiceFeeService";
 import { getErrorMessage } from "@/utils/apiError";
 import { ROUTES } from "@/utils/appRoutes";
 import VndMoneyInput from "@/app/components/VndMoneyInput";
@@ -53,6 +54,7 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
   const [packageCount, setPackageCount] = useState("");
   const [declaredValue, setDeclaredValue] = useState("");
   const [notes, setNotes] = useState("");
+  const [selectedPricingRuleIds, setSelectedPricingRuleIds] = useState([]);
 
   const [validation, setValidation] = useState(null);
   const [isValidating, setIsValidating] = useState(false);
@@ -83,6 +85,19 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
   const selectedPricing = selectedRouteOption?.pricing ?? null;
   const serviceType = selectedRouteOption?.serviceType ?? "STANDARD";
   const routeForCreate = selectedRouteOption?.route ?? null;
+  const boxPricingRules = useMemo(
+    () => (selectedPricing?.boxPricingRules ?? []).filter((rule) => rule.isActive !== false),
+    [selectedPricing]
+  );
+  const activePricingRuleIds = useMemo(() => {
+    const availableIds = new Set(boxPricingRules.map((rule) => rule.id).filter(Boolean));
+    const requiredIds = boxPricingRules
+      .filter((rule) => rule.isRequired)
+      .map((rule) => rule.id);
+    return [...new Set([...requiredIds, ...selectedPricingRuleIds])].filter((id) =>
+      availableIds.has(id)
+    );
+  }, [boxPricingRules, selectedPricingRuleIds]);
 
   useEffect(() => {
     if (!routeOptions.length) return;
@@ -247,6 +262,7 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
         route: routeForCreate,
         originCountry: selectedPricing.originCountry,
         destinationCountry: selectedPricing.destinationCountry,
+        pricingRuleIds: activePricingRuleIds,
         weightKg: Number(weightKg),
         volumeCm3: Number(volumeCm3),
         packageCount: Number(packageCount),
@@ -435,6 +451,50 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
                 </p>
               ) : null}
             </div>
+            {boxPricingRules.length ? (
+              <fieldset className="space-y-3 sm:col-span-2">
+                <legend className="text-sm font-semibold text-ink">
+                  Dịch vụ đóng gói / phụ phí
+                </legend>
+                <div className="grid gap-2">
+                  {boxPricingRules.map((rule) => {
+                    const checked =
+                      rule.isRequired || selectedPricingRuleIds.includes(rule.id);
+                    return (
+                      <label
+                        key={rule.id}
+                        className="flex items-start gap-3 rounded-lg border border-border-muted bg-surface px-4 py-3 cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          disabled={rule.isRequired}
+                          onChange={(event) =>
+                            setSelectedPricingRuleIds((current) =>
+                              event.target.checked
+                                ? [...new Set([...current, rule.id])]
+                                : current.filter((id) => id !== rule.id)
+                            )
+                          }
+                          className="mt-0.5 h-4 w-4 accent-primary"
+                        />
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-sm font-semibold text-ink">
+                            {rule.name}
+                            {rule.isRequired ? " (bắt buộc)" : ""}
+                          </span>
+                          <span className="block text-xs text-muted mt-0.5">
+                            {[rule.description, formatFeeAmount(rule)]
+                              .filter(Boolean)
+                              .join(" · ")}
+                          </span>
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </fieldset>
+            ) : null}
             {useWarehousePicker ? (
               <div className="space-y-2 sm:col-span-2">
                 <FieldLabel htmlFor="warehouseId" required>
