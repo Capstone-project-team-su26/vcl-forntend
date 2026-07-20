@@ -89,6 +89,18 @@ FE hiển thị dịch vụ chính từ `estimatedFreightCharge` (dòng "Dịch 
 - **FE đã phòng thủ**: loại mọi phần tử `additionalFees` có `code === "MAIN_SERVICE"` hoặc `feeType === "MAIN_SERVICE"`.
 - **Đề nghị BE**: `additionalFees` **chỉ chứa phụ phí**, KHÔNG bỏ dịch vụ chính vào đây. Cước chính đã có ở `estimatedFreightCharge`/`mainServiceAmount`.
 
+## Luồng nghiệp vụ (2026-07-20)
+
+1. **Khách chọn** khoản dịch vụ (`pricingRuleIds` / box pricing rules) khi tạo yêu cầu ký gửi.
+2. **Sales tính phí** trên màn báo giá: bật sẵn các rule khách đã chọn, chỉnh số lượng; thành tiền = đơn giá × số lượng.
+3. **Cước dịch vụ chính**: FE ưu tiên tính local từ bảng `service-pricings` (đơn giá × cân tính phí / CBM).
+4. **Estimate**: BE đã **bỏ** `POST .../quotation/estimate`. FE tính local; thuế/snapshot lấy từ `GET .../quotation` nếu đã có báo giá.
+
+## Payload `additionalFees` gửi BE (AdditionalFeeDto)
+
+Swagger hiện chỉ nhận: `feeId`, `code`, `label`, `amount`, `enabled` (`additionalProperties: false`).
+`unitPrice` / `quantity` chỉ dùng trên FE để hiển thị và tính `amount`.
+
 ## Tóm tắt yêu cầu BE
 
 1. Luôn trả `quantity` (không `null`) cho phí FIXED; PERCENTAGE để `null` là hợp lệ.

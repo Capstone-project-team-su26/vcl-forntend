@@ -32,11 +32,14 @@ const {
   estimateConsignmentQuotation,
   fetchActiveAdditionalFees,
   formatMoney,
+  canEditQuotationFeeSelection,
   recalculateAdditionalFeeLine,
+  resolvePreferredMainServiceAmount,
   resolveQuotationAdditionalFees,
   resolveConsignmentServiceType,
   resolveInitialSalesNote,
   resolveServicePricingForConsignment,
+  mergeSentQuotationSnapshot,
   formatVatRatePercent,
 } = consignmentQuotationService;
 
@@ -70,14 +73,6 @@ function FieldLabel({ htmlFor, children, required }) {
 
 const LOCKED_FIELD_CLASS =
   "w-full h-11 px-4 rounded-lg border border-border-muted text-sm bg-surface text-ink cursor-not-allowed opacity-90";
-
-const QUICK_CUSTOM_FEES = [
-  "Phí đóng gói lại",
-  "Phí bảo hiểm hàng hóa",
-  "Phí dán nhãn / barcode",
-  "Phụ phí mùa cao điểm",
-  "Phí xử lý hàng đặc biệt",
-];
 
 function formatKgLabel(value) {
   const numeric = Number(value) || 0;
@@ -171,25 +166,25 @@ function PricingFormulaBreakdown({ breakdown }) {
           <Icon icon="lucide:calculator" className="w-4.5 h-4.5 text-primary" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-bold text-ink">Công thức tính cước dịch vụ chính</p>
+          <p className="text-sm font-bold text-ink">Cách tính cước chính (ký gửi)</p>
           <p className="text-xs text-muted mt-0.5">
             {breakdown.hasConfiguredPricing
-              ? "Đơn giá từ bảng giá service-pricings trên BE."
-              : "Ước tính tạm — cần cấu hình bảng giá BE để có đơn giá chính xác."}
+              ? "Lấy đơn giá từ bảng giá tuyến (service-pricings). Cân tính phí = lớn hơn giữa cân thực tế và cân DIM."
+              : "Chưa khớp bảng giá tuyến — cần Admin cấu hình service-pricings trước khi gửi báo giá."}
           </p>
           {showSummaryChips ? (
             <div className="flex flex-wrap items-center gap-2 mt-2.5">
               <span className="inline-flex items-center gap-1 rounded-full border border-border-muted bg-surface-elevated px-2.5 py-1 text-[11px] font-semibold text-ink">
                 <Icon icon="lucide:scale" className="w-3 h-3 text-muted" />
-                {formatKgLabel(breakdown.actualWeightKg)} thực
+                Cân thực {formatKgLabel(breakdown.actualWeightKg)}
               </span>
               <span className="inline-flex items-center gap-1 rounded-full border border-border-muted bg-surface-elevated px-2.5 py-1 text-[11px] font-semibold text-ink">
                 <Icon icon="lucide:box" className="w-3 h-3 text-muted" />
-                DIM {formatKgLabel(breakdown.volumetricWeight)}
+                Cân DIM {formatKgLabel(breakdown.volumetricWeight)}
               </span>
               <Icon icon="lucide:arrow-right" className="w-3.5 h-3.5 text-muted hidden sm:block" />
               <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-[11px] font-bold text-primary">
-                {formatKgLabel(breakdown.chargeableWeight)} tính phí
+                Cân tính phí {formatKgLabel(breakdown.chargeableWeight)}
               </span>
             </div>
           ) : null}
@@ -238,11 +233,9 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
   const [discountPercent, setDiscountPercent] = useState("0");
   const [additionalFeeLines, setAdditionalFeeLines] = useState([]);
   const [feeCatalog, setFeeCatalog] = useState([]);
-  const [feesFromApi, setFeesFromApi] = useState(false);
   const [salesNote, setSalesNote] = useState("");
   const [estimateSnapshot, setEstimateSnapshot] = useState(null);
   const [taxSnapshot, setTaxSnapshot] = useState({ importTax: 0, vat: null });
-  const [customFees, setCustomFees] = useState([]);
 
   const canSend = detail && !readOnly ? canStaffSendConsignmentQuotation(detail) : false;
 
@@ -304,21 +297,8 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
   );
 
   const allAdditionalFeeLines = useMemo(
-    () => [
-      ...additionalFeeLines,
-      ...customFees.map((fee) => ({
-        feeId: fee.id,
-        label: fee.label,
-        description: "Phí bổ sung do Sales thêm",
-        unitPrice: Number(fee.unitPrice) || 0,
-        quantity: Number(fee.quantity) || 0,
-        amount: (Number(fee.unitPrice) || 0) * (Number(fee.quantity) || 0),
-        enabled: true,
-        isCustom: true,
-        isRequired: false,
-      })),
-    ],
-    [additionalFeeLines, customFees]
+    () => additionalFeeLines.filter((line) => line.enabled !== false),
+    [additionalFeeLines]
   );
 
   const vatRate = useMemo(() => resolveVatRate(feeCatalog), [feeCatalog]);
@@ -475,7 +455,6 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
           packageCount: packages,
           declaredValue: declared,
           discountPercent: consignment.quotation?.discountPercent ?? 0,
-          mainServiceAmountOverride: draftMainAmount,
           salesNote: estimateSalesNote,
           volumetricDivisor: divisor,
           pricingRules: activeFees,
@@ -501,32 +480,18 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
           }
         }
 
-        const localDraft = buildConsignmentQuotationDraft({
-          servicePricing: pricing,
-          weightKg: weight,
-          volumeCm3: resolvedVolumeCm3,
-          packageCount: packages,
-          declaredValue: declared,
-          discountPercent: consignment.quotation?.discountPercent ?? 0,
-          salesNote: estimateSalesNote,
-          volumetricDivisor: divisor,
-          pricingRules: activeFees,
-        });
+        const localDraft = preliminaryDraft;
 
         const apiFreight =
           estimateResult?.estimatedFreightCharge ??
           estimateResult?.quotation?.mainServiceAmount ??
           draftMainAmount;
-        // ponytail: bỏ cước estimate nếu gấp ≫ local (BE còn tính volume cm³ như m³).
-        const apiFreightNumber = apiFreight != null ? Number(apiFreight) : null;
         const localFreight = Number(localDraft.mainServiceAmount) || 0;
-        const apiFreightInflated =
-          localFreight > 0 &&
-          apiFreightNumber != null &&
-          apiFreightNumber > localFreight * 50;
-        const draftMainAmountResolved = apiFreightInflated
-          ? localFreight
-          : (apiFreightNumber ?? localFreight);
+        // Ưu tiên đơn giá × cân/CBM local; estimate BE chỉ khi chưa tính được.
+        const draftMainAmountResolved = resolvePreferredMainServiceAmount(
+          localFreight,
+          apiFreight
+        );
 
         const draft = buildConsignmentQuotationDraft({
           servicePricing: pricing,
@@ -540,36 +505,19 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
           pricingRules: activeFees,
         });
 
-        const { lines: feeLines, fromApi } = resolveQuotationAdditionalFees({
+        const selectedPricingRuleIds = consignment.pricingRuleIds ?? [];
+        const { lines: feeLines } = resolveQuotationAdditionalFees({
           consignment,
           estimate: estimateResult,
           catalogFees: activeFees,
           packageCount: packages,
           declaredValue: declared,
           mainServiceAmount: draft.mainServiceAmount,
+          selectedPricingRuleIds,
         });
 
         setMainServiceAmount(String(draftMainAmountResolved ?? draft.mainServiceAmount));
         setAdditionalFeeLines(feeLines);
-        setFeesFromApi(fromApi);
-        setCustomFees(
-          (consignment.quotation?.customFees ?? []).map((fee, index) => {
-            const amount = Number(fee.amount) || 0;
-            const quantity = fee.quantity != null ? Number(fee.quantity) || 0 : 1;
-            const unitPrice =
-              fee.unitPrice != null
-                ? Number(fee.unitPrice) || 0
-                : quantity
-                  ? Math.round(amount / quantity)
-                  : amount;
-            return {
-              id: fee.id ?? `custom-loaded-${index}`,
-              label: fee.label ?? "Phí khác",
-              unitPrice,
-              quantity,
-            };
-          })
-        );
         setEstimateSnapshot(
           estimateResult
             ? {
@@ -632,17 +580,26 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
 
     setMainServiceAmount(String(draft.mainServiceAmount));
     setAdditionalFeeLines((current) => {
+      // Chưa load xong dòng phí — đừng fallback DOMESTIC (gây lệch lúc mở lại trang).
+      if (!current.length) return current;
+
       const { enabledFeeIds, quantityByFeeId } = buildEnabledFeeStateFromLines(
         current,
         feeCatalog
       );
+      const selectedPricingRuleIds = detail?.pricingRuleIds ?? [];
       return buildDefaultAdditionalFeeLines({
         fees: feeCatalog,
         packageCount,
         declaredValue,
         mainServiceAmount: draft.mainServiceAmount,
-        enabledFeeIds: Object.keys(enabledFeeIds).length ? enabledFeeIds : undefined,
-        quantityByFeeId: Object.keys(quantityByFeeId).length ? quantityByFeeId : undefined,
+        enabledFeeIds,
+        quantityByFeeId,
+        selectedPricingRuleIds:
+          selectedPricingRuleIds.length &&
+          canEditQuotationFeeSelection(detail?.quotation, detail?.status)
+            ? selectedPricingRuleIds
+            : undefined,
         requiresInspection: detail?.requiresInspection === true,
       });
     });
@@ -656,6 +613,9 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
     feeCatalog,
     volumetricDivisor,
     detail?.requiresInspection,
+    detail?.pricingRuleIds,
+    detail?.quotation,
+    detail?.status,
   ]);
 
   useEffect(() => {
@@ -690,68 +650,24 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
     resetSubmitState();
   }
 
-  function addCustomFee(label = "Phí khác", unitPrice = 0) {
-    setCustomFees((current) => [
-      ...current,
-      { id: `custom-${Date.now()}-${current.length}`, label, unitPrice, quantity: 1 },
-    ]);
-    resetSubmitState();
-  }
-
   function reloadBasePricing() {
     if (pricingBreakdown.amount > 0) {
       setMainServiceAmount(String(pricingBreakdown.amount));
     }
-    setCustomFees([]);
     setDiscountPercent("0");
-    setFeesFromApi(false);
+    const selectedPricingRuleIds = detail?.pricingRuleIds ?? [];
     setAdditionalFeeLines(
       buildDefaultAdditionalFeeLines({
         fees: feeCatalog,
         packageCount,
         declaredValue,
         mainServiceAmount: pricingBreakdown.amount || Number(mainServiceAmount) || 0,
+        selectedPricingRuleIds:
+          selectedPricingRuleIds.length &&
+          canEditQuotationFeeSelection(detail?.quotation, detail?.status)
+            ? selectedPricingRuleIds
+            : undefined,
         requiresInspection: detail?.requiresInspection === true,
-      })
-    );
-    resetSubmitState();
-  }
-
-  function updateCustomFee(id, field, value) {
-    setCustomFees((current) =>
-      current.map((fee) =>
-        fee.id === id
-          ? {
-              ...fee,
-              [field]:
-                field === "label" ? value : value === "" ? "" : Math.max(0, Number(value) || 0),
-            }
-          : fee
-      )
-    );
-    resetSubmitState();
-  }
-
-  function removeCustomFee(id) {
-    setCustomFees((current) => current.filter((fee) => fee.id !== id));
-    resetSubmitState();
-  }
-
-  function toggleAdditionalFee(feeId) {
-    const fee = findCatalogFeeEntry(feeId);
-
-    setAdditionalFeeLines((current) =>
-      current.map((line) => {
-        if (line.feeId !== feeId) return line;
-        if (line.isRequired) return line;
-        const enabled = line.enabled === false;
-        if (fee) {
-          return recalculateAdditionalFeeLine(fee, { ...line, enabled }, feeCalculationContext);
-        }
-        const amount = enabled
-          ? (Number(line.unitPrice) || 0) * (Number(line.quantity) || 0)
-          : 0;
-        return { ...line, enabled, amount };
       })
     );
     resetSubmitState();
@@ -811,13 +727,6 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
 
     const quotationPayload = {
       ...quotation,
-      customFees: customFees.map((fee) => ({
-        id: fee.id,
-        label: fee.label,
-        unitPrice: Number(fee.unitPrice) || 0,
-        quantity: Number(fee.quantity) || 0,
-        amount: (Number(fee.unitPrice) || 0) * (Number(fee.quantity) || 0),
-      })),
     };
 
     const sendParams = {
@@ -849,19 +758,25 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
 
       const response = await orderConsignmentService.sendConsignmentQuotation(detail.id, sendParams);
 
-      // Merge giữ party cũ nếu BE trả payload thưa; rồi về chi tiết (tránh kẹt trang chỉ-xem).
+      // BE có thể trả snapshot gộp (serviceFee + taxAndDuty) lệch bảng Sales vừa gửi —
+      // giữ breakdown local (đơn giá × SL + VAT 8%) khi tổng/phụ phí BE thưa.
+      const mergedQuotation = mergeSentQuotationSnapshot(
+        response.consignment?.quotation,
+        quotationPayload
+      );
+
       if (response.consignment) {
         setDetail(
           mergeConsignmentDetail(detail, {
             ...response.consignment,
-            quotation: response.consignment.quotation ?? quotationPayload,
+            quotation: mergedQuotation,
           })
         );
       } else {
         setDetail({
           ...detail,
           status: response.status ?? "QUOTATION_SENT",
-          quotation: quotationPayload,
+          quotation: mergedQuotation,
         });
       }
       router.replace(ROUTES.sales.consignment(detail.id));
@@ -923,8 +838,8 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
             "Nội dung báo giá của yêu cầu này — chỉ xem, không chỉnh sửa."
           ) : (
             <>
-              Hệ thống tính <strong>dịch vụ chính</strong> từ bảng giá (khóa). Sales chỉ bật/tắt phụ phí và chỉnh
-              <strong> số lượng</strong> — thành tiền tự tính theo đơn giá cấu hình.
+              Cước chính tính từ bảng giá tuyến (khóa). Phụ phí theo dịch vụ khách đã chọn — Sales chỉ chỉnh{" "}
+              <strong>số lượng</strong>; thành tiền = đơn giá × số lượng.
             </>
           )}
         </p>
@@ -984,14 +899,14 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
         <form onSubmit={handleSubmit} className="space-y-8">
           <section className="rounded-xl border border-border-muted bg-surface-elevated p-6 space-y-4">
             <div>
-              <h2 className="text-lg font-bold text-ink">Thông số & dịch vụ chính</h2>
+              <h2 className="text-lg font-bold text-ink">Thông số đơn hàng &amp; cước chính</h2>
               <p className="text-sm text-muted mt-1">
-                Các thông số lấy từ yêu cầu ký gửi — không chỉnh tại bước báo giá.
+                Thông số lấy từ yêu cầu ký gửi (khóa). Cước chính = đơn giá tuyến × cân tính phí (MAX cân thực tế, cân DIM).
               </p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <FieldLabel htmlFor="serviceType" required>Loại dịch vụ</FieldLabel>
+                <FieldLabel htmlFor="serviceType" required>Loại hình vận chuyển</FieldLabel>
                 <select
                   id="serviceType"
                   value={
@@ -1015,12 +930,12 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
                 </select>
                 {!availableServiceTypes.length ? (
                   <p className="text-xs text-muted">
-                    Bảng giá BE chưa có tuyến khớp đơn này — liên hệ Admin cấu hình service-pricings.
+                    Chưa có bảng giá khớp tuyến đơn này — nhờ Admin cấu hình service-pricings.
                   </p>
                 ) : null}
               </div>
               <div className="space-y-2">
-                <FieldLabel htmlFor="weightKg" required>Khối lượng (kg)</FieldLabel>
+                <FieldLabel htmlFor="weightKg" required>Cân nặng thực tế (kg)</FieldLabel>
                 <input
                   id="weightKg"
                   type="number"
@@ -1032,7 +947,7 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
                 />
               </div>
               <div className="space-y-2">
-                <FieldLabel htmlFor="volumeCm3" required>Thể tích</FieldLabel>
+                <FieldLabel htmlFor="volumeCm3" required>Thể tích kiện (cm³)</FieldLabel>
                 <input
                   id="volumeCm3"
                   type="text"
@@ -1042,12 +957,12 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
                 />
                 {volumeCm3 && Number(volumeCm3) >= 1000 ? (
                   <p className="text-xs text-muted">
-                    {Number(volumeCm3).toLocaleString("vi-VN")} cm³
+                    {Number(volumeCm3).toLocaleString("vi-VN")} cm³ — dùng để quy đổi cân DIM
                   </p>
                 ) : null}
               </div>
               <div className="space-y-2">
-                <FieldLabel htmlFor="packageCount" required>Số kiện</FieldLabel>
+                <FieldLabel htmlFor="packageCount" required>Số kiện hàng</FieldLabel>
                 <input
                   id="packageCount"
                   type="number"
@@ -1065,19 +980,20 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
                   disabled
                   className={LOCKED_FIELD_CLASS}
                 />
+                <p className="text-xs text-muted">Dùng làm cơ sở tính phụ phí % (vd. bảo hiểm), nếu có.</p>
               </div>
             </div>
 
             {showServiceSummary ? (
               <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 text-sm grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <p className="text-muted">Tuyến</p>
+                  <p className="text-muted">Tuyến vận chuyển</p>
                   <p className="font-semibold text-ink">{displayRouteLabel}</p>
                 </div>
                 <div>
-                  <p className="text-muted">Cân thực → DIM → Tính phí</p>
+                  <p className="text-muted">Cân thực tế → cân DIM → cân tính phí</p>
                   <p className="font-semibold text-ink leading-snug">
-                    {Number(weightKg) > 0 ? `${weightKg} kg` : "—"} thực
+                    {Number(weightKg) > 0 ? `${weightKg} kg` : "—"} thực tế
                     {volumetricWeight > 0 || pricingBreakdown.volumeCm3 != null ? (
                       <>
                         {" · "}
@@ -1089,13 +1005,13 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
                     {chargeableWeight > 0 ? (
                       <>
                         {" → "}
-                        <span className="text-primary">{chargeableWeight} kg</span> tính phí
+                        <span className="text-primary">{chargeableWeight} kg</span> tính cước
                       </>
                     ) : null}
                   </p>
                   {pricingBreakdown.volumeCm3 != null || pricingBreakdown.volumetricWeight > 0 ? (
                     <p className="text-xs text-muted mt-1">
-                      DIM = (Dài × Rộng × Cao) / {volumetricDivisor.toLocaleString("vi-VN")}
+                      Cân DIM = (Dài × Rộng × Cao cm) ÷ {volumetricDivisor.toLocaleString("vi-VN")}
                       {pricingBreakdown.volumetricWeight > 0
                         ? ` = ${pricingBreakdown.volumetricWeight} kg`
                         : null}
@@ -1103,7 +1019,7 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
                   ) : null}
                 </div>
                 <div>
-                  <p className="text-muted">Đơn vị tính</p>
+                  <p className="text-muted">Cách tính cước chính</p>
                   <p className="font-semibold text-ink">
                     {selectedServicePricing?.unitType
                       ? UNIT_TYPE_LABELS[selectedServicePricing.unitType] ??
@@ -1114,13 +1030,13 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
               </div>
             ) : canSend ? (
               <p className="text-sm text-danger">
-                Chưa có giá dịch vụ chính khớp tuyến/dịch vụ của đơn. Kiểm tra cấu hình bảng giá tại Admin.
+                Chưa có bảng giá cước chính khớp tuyến/loại hình của đơn. Kiểm tra cấu hình tại Admin.
               </p>
             ) : null}
 
             {!hasConfiguredPricing && detail?.quotation && readOnly ? (
               <p className="text-xs text-muted">
-                Đơn đã có báo giá từ hệ thống. Số tiền bên dưới lấy từ báo giá thực tế của yêu cầu.
+                Đơn đã có báo giá. Số tiền bên dưới lấy từ báo giá đã lưu trên yêu cầu.
               </p>
             ) : null}
 
@@ -1132,7 +1048,7 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
               <div className="px-6 py-4 border-b border-border-muted">
                 <h2 className="text-lg font-bold text-ink">Bảng giá tham chiếu (VND)</h2>
                 <p className="text-sm text-muted mt-1">
-                  Đơn giá cấu hình trên hệ thống cho tuyến/dịch vụ này. Số tiền ở bảng lập báo giá bên dưới có thể chỉnh tay.
+                  Đơn giá cấu hình theo tuyến/loại hình. Cước chính khóa theo bảng này; phụ phí bên dưới chỉ hiện dịch vụ khách đã chọn.
                 </p>
               </div>
               <div className="overflow-x-auto">
@@ -1150,7 +1066,7 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
                         const ref = formatMainServiceUnitPrice(selectedServicePricing);
                         return (
                           <tr className="border-b border-border-muted/60 bg-primary/5">
-                            <td className="px-6 py-3 font-bold text-ink">Dịch vụ chính (cước ký gửi)</td>
+                            <td className="px-6 py-3 font-bold text-ink">Cước chính (ký gửi quốc tế)</td>
                             <td className="px-6 py-3 text-muted">{ref.unit}</td>
                             <td className="px-6 py-3 text-right font-bold text-primary">{ref.rate}</td>
                           </tr>
@@ -1168,18 +1084,18 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
                 </table>
               </div>
               <div className="px-6 py-3 border-t border-border-muted bg-surface/40 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 text-sm">
-                <p className="font-semibold text-ink">Hệ số quy đổi thể tích</p>
+                <p className="font-semibold text-ink">Hệ số quy đổi thể tích (DIM)</p>
                 <p className="text-muted">
-                  DIM = (Dài × Rộng × Cao cm) ÷{" "}
+                  Cân DIM = (Dài × Rộng × Cao cm) ÷{" "}
                   <span className="font-mono font-bold text-ink">
                     {volumetricDivisor.toLocaleString("vi-VN")}
                   </span>
                   {volumetricDivisorRule ? (
-                    <span className="text-xs"> · từ quy tắc {volumetricDivisorRule.code || "VOLUMETRIC_DIVISOR"}</span>
+                    <span className="text-xs"> · quy tắc {volumetricDivisorRule.code || "VOLUMETRIC_DIVISOR"}</span>
                   ) : (
                     <span className="text-xs"> · mặc định IATA {VOLUMETRIC_DIVISOR_CM3.toLocaleString("vi-VN")}</span>
                   )}
-                  . Cước theo MAX(cân thực, DIM).
+                  . Cước chính theo cân tính phí = MAX(cân thực tế, cân DIM).
                 </p>
               </div>
             </section>
@@ -1188,9 +1104,10 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
           <section className="rounded-xl border border-border-muted bg-surface-elevated p-6 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
               <div>
-                <h2 className="text-lg font-bold text-ink">Lập báo giá — chỉnh sửa từng khoản phí</h2>
+                <h2 className="text-lg font-bold text-ink">Lập báo giá — tính phí theo dịch vụ đã chọn</h2>
                 <p className="text-sm text-muted mt-1">
-                  Dịch vụ chính và phí bắt buộc bị khóa. Sales bật/tắt phụ phí và chỉnh <strong>số lượng</strong> — thành tiền tự tính theo đơn giá.
+                  Hiện cước chính, phí vận chuyển nội địa, và dịch vụ khách đã chọn. Sales chỉnh{" "}
+                  <strong>số lượng</strong> — thành tiền = đơn giá × số lượng.
                 </p>
               </div>
               {canSend ? (
@@ -1213,10 +1130,9 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
             </div>
 
             <div className="overflow-x-auto rounded-lg border border-border-muted">
-              <table className="w-full text-sm min-w-[720px]">
+              <table className="w-full text-sm min-w-[640px]">
                 <thead>
                   <tr className="text-left text-xs uppercase tracking-wide text-muted border-b border-border-muted bg-surface/50">
-                    <th className="px-4 py-3 w-10" />
                     <th className="px-4 py-3">Khoản phí</th>
                     <th className="px-4 py-3 text-right">Đơn giá</th>
                     <th className="px-4 py-3 text-center">Số lượng</th>
@@ -1226,10 +1142,7 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
                 <tbody>
                   <tr className="border-b border-border-muted/60 align-top bg-primary/5">
                     <td className="px-4 py-3">
-                      <Icon icon="lucide:lock" className="w-3.5 h-3.5 text-muted" />
-                    </td>
-                    <td className="px-4 py-3">
-                      <p className="font-bold text-ink">Dịch vụ chính (cước ký gửi)</p>
+                      <p className="font-bold text-ink">Cước chính (ký gửi quốc tế)</p>
                       <span className="inline-block mt-1 text-[10px] font-bold uppercase tracking-wide text-primary">
                         Bắt buộc · khóa
                       </span>
@@ -1246,15 +1159,11 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
                       {formatMoney(mainServiceAmount)}
                     </td>
                   </tr>
-                  {additionalFeeLines.map((line) => {
+                  {allAdditionalFeeLines.map((line) => {
                     const isPercentage = line.feeCalculationType === "PERCENTAGE";
                     const locked = line.isRequired || !line.quantityEditable;
-                    const disabled = line.enabled === false;
                     return (
                     <tr key={line.feeId} className="border-b border-border-muted/60 align-top">
-                      <td className="px-4 py-3">
-                        <input type="checkbox" checked={!disabled} disabled={line.isRequired || !canSend} onChange={() => toggleAdditionalFee(line.feeId)} />
-                      </td>
                       <td className="px-4 py-3">
                         <p className="font-medium text-ink">{line.label}</p>
                         {line.isRequired ? (
@@ -1273,9 +1182,7 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
                             : "—"}
                       </td>
                       <td className="px-4 py-3 text-center">
-                        {disabled ? (
-                          <span className="text-muted">—</span>
-                        ) : isPercentage ? (
+                        {isPercentage ? (
                           <span className="text-xs text-muted">theo %</span>
                         ) : canSend && !locked ? (
                           <input
@@ -1291,127 +1198,44 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
                         )}
                       </td>
                       <td className="px-4 py-3 text-right font-semibold">
-                        {disabled ? "—" : formatMoney(line.amount)}
+                        {formatMoney(line.amount)}
                       </td>
                     </tr>
                     );
                   })}
-                  {customFees.map((fee) => (
-                    <tr key={fee.id} className="border-b border-border-muted/60 align-top">
-                      <td className="px-4 py-3">
-                        {canSend ? (
-                          <button
-                            type="button"
-                            onClick={() => removeCustomFee(fee.id)}
-                            className="btn-delete-icon"
-                            aria-label="Xóa phí"
-                          >
-                            <Icon icon="lucide:trash-2" className="w-4 h-4" />
-                          </button>
-                        ) : null}
-                      </td>
-                      <td className="px-4 py-3">
-                        {canSend ? (
-                          <input
-                            value={fee.label}
-                            onChange={(e) => updateCustomFee(fee.id, "label", e.target.value)}
-                            className="w-full h-10 px-3 rounded-lg border border-border-muted text-sm input-focus-ring"
-                          />
-                        ) : (
-                          <p className="font-medium text-ink">{fee.label}</p>
-                        )}
-                        <span className="inline-block mt-1 text-[10px] font-bold uppercase tracking-wide text-muted">
-                          Tùy chỉnh
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        {canSend ? (
-                          <VndMoneyInput
-                            value={fee.unitPrice}
-                            onChange={(value) => updateCustomFee(fee.id, "unitPrice", value)}
-                            className="w-28 h-10 px-3 rounded-lg border border-border-muted text-sm text-right input-focus-ring ml-auto"
-                          />
-                        ) : (
-                          <span className="font-mono text-xs">{formatMoney(fee.unitPrice)}</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {canSend ? (
-                          <input
-                            type="number"
-                            min="0"
-                            step="1"
-                            value={fee.quantity ?? ""}
-                            onChange={(e) => updateCustomFee(fee.id, "quantity", e.target.value)}
-                            className="w-20 h-10 px-2 rounded-lg border border-border-muted text-sm text-center input-focus-ring"
-                          />
-                        ) : (
-                          <span className="text-ink">{fee.quantity}</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-right font-semibold">
-                        {formatMoney((Number(fee.unitPrice) || 0) * (Number(fee.quantity) || 0))}
-                      </td>
-                    </tr>
-                  ))}
                 </tbody>
                 <tfoot>
                   <tr className="border-t border-border-muted bg-surface/50">
-                    <td colSpan={4} className="px-4 py-3 text-sm font-semibold text-muted">Tạm tính (cước + phí dịch vụ)</td>
+                    <td colSpan={3} className="px-4 py-3 text-sm font-semibold text-muted">Tạm tính (cước + phí dịch vụ)</td>
                     <td className="px-4 py-3 text-right font-bold text-ink">{formatMoney(totals.subtotal)}</td>
                   </tr>
                   {totals.discount > 0 ? (
                     <tr className="bg-surface/50">
-                      <td colSpan={4} className="px-4 py-3 text-sm font-semibold text-muted">Chiết khấu ({discountPercent}%)</td>
+                      <td colSpan={3} className="px-4 py-3 text-sm font-semibold text-muted">Chiết khấu ({discountPercent}%)</td>
                       <td className="px-4 py-3 text-right font-bold text-danger">-{formatMoney(totals.discount)}</td>
                     </tr>
                   ) : null}
                   {totals.importTax > 0 ? (
                     <tr className="bg-surface/50">
-                      <td colSpan={4} className="px-4 py-3 text-sm font-semibold text-muted">Thuế nhập khẩu</td>
+                      <td colSpan={3} className="px-4 py-3 text-sm font-semibold text-muted">Thuế nhập khẩu</td>
                       <td className="px-4 py-3 text-right font-bold text-ink">{formatMoney(totals.importTax)}</td>
                     </tr>
                   ) : null}
                   {totals.vat > 0 ? (
                     <tr className="bg-surface/50">
-                      <td colSpan={4} className="px-4 py-3 text-sm font-semibold text-muted">
+                      <td colSpan={3} className="px-4 py-3 text-sm font-semibold text-muted">
                         VAT ({formatVatRatePercent(totals.vatRate ?? vatRate)})
                       </td>
                       <td className="px-4 py-3 text-right font-bold text-ink">{formatMoney(totals.vat)}</td>
                     </tr>
                   ) : null}
                   <tr className="bg-primary/5">
-                    <td colSpan={4} className="px-4 py-4 text-base font-black text-ink font-['Oswald']">Tổng cộng</td>
+                    <td colSpan={3} className="px-4 py-4 text-base font-black text-ink font-['Oswald']">Tổng cộng</td>
                     <td className="px-4 py-4 text-right text-xl font-black text-primary font-['Oswald']">{formatMoney(totals.total)}</td>
                   </tr>
                 </tfoot>
               </table>
             </div>
-
-            {canSend ? (
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => addCustomFee()}
-                  className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-primary/30 bg-primary/5 text-xs font-bold text-primary hover:bg-primary/10"
-                >
-                  <Icon icon="lucide:plus" className="w-3.5 h-3.5" />
-                  Thêm khoản phí trống
-                </button>
-                <span className="text-xs font-semibold text-muted">Hoặc thêm nhanh:</span>
-                {QUICK_CUSTOM_FEES.map((label) => (
-                  <button
-                    key={label}
-                    type="button"
-                    onClick={() => addCustomFee(label, 0)}
-                    className="inline-flex items-center gap-1 h-9 px-3 rounded-full border border-border-muted text-xs font-bold text-ink hover:bg-surface"
-                  >
-                    <Icon icon="lucide:plus" className="w-3.5 h-3.5" />
-                    {label}
-                  </button>
-                ))}
-              </div>
-            ) : null}
           </section>
 
           <section className="rounded-xl border border-border-muted bg-surface-elevated p-6 space-y-3">

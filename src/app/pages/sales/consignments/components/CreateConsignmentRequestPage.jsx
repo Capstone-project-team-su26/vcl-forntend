@@ -454,7 +454,7 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
             {boxPricingRules.length ? (
               <fieldset className="space-y-3 sm:col-span-2">
                 <legend className="text-sm font-semibold text-ink">
-                  Dịch vụ đóng gói / phụ phí
+                  Dịch vụ khách chọn (Sales sẽ tính phí khi báo giá)
                 </legend>
                 <div className="grid gap-2">
                   {boxPricingRules.map((rule) => {

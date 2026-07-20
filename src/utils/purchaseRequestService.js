@@ -13,6 +13,7 @@ import {
   normalizePurchaseRequestPurchaseOrderResponse,
 } from "@/utils/apiMappers";
 import { ApiError } from "@/utils/apiError";
+import { formatDateTimeLocal } from "@/utils/dateTime";
 import { registerPurchaseOrderInMockStore } from "@/utils/purchaseOrderService";
 import { formatMoney } from "@/utils/servicePricingService";
 
@@ -396,12 +397,5 @@ export async function createPurchaseRequestPurchaseOrder(id, payload) {
 }
 
 export function formatPurchaseRequestDate(isoDate) {
-  if (!isoDate) return "—";
-  return new Date(isoDate).toLocaleDateString("vi-VN", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return formatDateTimeLocal(isoDate);
 }
