@@ -59,6 +59,12 @@ const navItems = [
     icon: "lucide:layers",
     href: ROUTES.admin.additionalServiceFees,
   },
+  {
+    id: "package-configurations",
+    label: "Cấu hình đóng gói",
+    icon: "lucide:box",
+    href: ROUTES.admin.packageConfigurations,
+  },
   { id: "alerts", label: "Cảnh báo", icon: "lucide:bell" },
   { id: "settings", label: "Cài đặt", icon: "lucide:settings" },
 ];

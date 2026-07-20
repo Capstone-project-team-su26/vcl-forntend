@@ -18,6 +18,7 @@ export const ROUTES = {
     shippingMethods: `${PAGES}/admin/shipping-methods`,
     carriers: `${PAGES}/admin/carriers`,
     additionalServiceFees: `${PAGES}/admin/additional-service-fees`,
+    packageConfigurations: `${PAGES}/admin/package-configurations`,
     payments: `${PAGES}/admin/payments`,
   },
   sales: {
