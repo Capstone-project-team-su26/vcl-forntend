@@ -4,7 +4,7 @@ import { Icon } from "@iconify/react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import CustomerFormModal from "@/app/pages/sales/customers/components/CustomerFormModal";
-import * as customerService from "@/utils/customerService";
+import * as customerService from "@/modules/customers";
 import { getErrorMessage } from "@/utils/apiError";
 import { ROUTES } from "@/utils/appRoutes";
 

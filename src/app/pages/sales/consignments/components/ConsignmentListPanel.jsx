@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import ConsignmentStatusBadge from "@/app/pages/sales/consignments/components/ConsignmentStatusBadge";
-import * as orderConsignmentService from "@/utils/orderConsignmentService";
+import * as orderConsignmentService from "@/modules/consignments";
 import {
   clearConsignmentDetailCache,
   fetchConsignmentDetailsByIds,
@@ -15,7 +15,7 @@ import { resolveConsignmentPackageCount } from "@/utils/apiMappers";
 import {
   formatVolumeCm3,
   resolveConsignmentTotalVolumeCm3,
-} from "@/utils/servicePricingService";
+} from "@/modules/service-pricing";
 import { getErrorMessage } from "@/utils/apiError";
 import { ROUTES } from "@/utils/appRoutes";
 import { useAuth } from "@/hooks/useAuth";

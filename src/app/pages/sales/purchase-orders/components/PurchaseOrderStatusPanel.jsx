@@ -3,8 +3,8 @@
 import { Icon } from "@iconify/react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import * as customerService from "@/utils/customerService";
-import * as purchaseOrderService from "@/utils/purchaseOrderService";
+import * as customerService from "@/modules/customers";
+import * as purchaseOrderService from "@/modules/purchase-orders";
 import { getErrorMessage } from "@/utils/apiError";
 import { ROUTES } from "@/utils/appRoutes";
 

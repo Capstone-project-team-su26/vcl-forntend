@@ -3,9 +3,9 @@
 import { Icon } from "@iconify/react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import * as customerService from "@/utils/customerService";
-import * as shippingMethodService from "@/utils/shippingMethodService";
-import * as orderConsignmentService from "@/utils/orderConsignmentService";
+import * as customerService from "@/modules/customers";
+import * as shippingMethodService from "@/modules/shipping-methods";
+import * as orderConsignmentService from "@/modules/consignments";
 import { getErrorMessage } from "@/utils/apiError";
 import { ROUTES } from "@/utils/appRoutes";
 

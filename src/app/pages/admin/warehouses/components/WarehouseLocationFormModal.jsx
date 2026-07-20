@@ -2,7 +2,7 @@
 
 import { Icon } from "@iconify/react";
 import { useState } from "react";
-import * as warehouseService from "@/utils/warehouseService";
+import * as warehouseService from "@/modules/warehouses";
 import { getErrorMessage } from "@/utils/apiError";
 
 const { LOCATION_TYPE_LABELS } = warehouseService;

@@ -2,10 +2,10 @@
 
 import { Icon } from "@iconify/react";
 import { useEffect, useState } from "react";
-import * as feeService from "@/utils/additionalServiceFeeService";
+import * as feeService from "@/modules/additional-service-fees";
 import { getErrorMessage } from "@/utils/apiError";
 import VndMoneyInput from "@/app/components/VndMoneyInput";
-import { isVatRule, isVolumetricDivisorRule } from "@/utils/servicePricingService";
+import { isVatRule, isVolumetricDivisorRule } from "@/modules/service-pricing";
 
 const { FEE_CALCULATION_TYPE_LABELS } = feeService;
 

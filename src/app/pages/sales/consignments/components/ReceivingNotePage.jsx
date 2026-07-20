@@ -6,10 +6,10 @@ import { useEffect, useState } from "react";
 import {
   CONSIGNMENT_TYPE_LABELS,
   formatConsignmentDate,
-} from "@/utils/orderConsignmentService";
+} from "@/modules/consignments";
 import { getErrorMessage } from "@/utils/apiError";
 import { ROUTES } from "@/utils/appRoutes";
-import * as receivingNoteService from "@/utils/warehouseReceivingNoteService";
+import * as receivingNoteService from "@/modules/consignments";
 
 function DetailRow({ label, value }) {
   return (

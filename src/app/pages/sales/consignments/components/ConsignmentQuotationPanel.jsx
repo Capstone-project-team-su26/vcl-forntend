@@ -4,11 +4,12 @@ import { Icon } from "@iconify/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import * as orderConsignmentService from "@/utils/orderConsignmentService";
-import * as consignmentQuotationService from "@/utils/consignmentQuotationService";
+import * as orderConsignmentService from "@/modules/consignments";
+import * as consignmentQuotationService from "@/modules/consignments/quotation";
 import ConsignmentStatusBadge from "@/app/pages/sales/consignments/components/ConsignmentStatusBadge";
-import * as servicePricingService from "@/utils/servicePricingService";
-import { formatFeeAmount } from "@/utils/additionalServiceFeeService";
+import QuotationPackageConfigSection from "@/app/pages/sales/consignments/components/quotation/QuotationPackageConfigSection";
+import * as servicePricingService from "@/modules/service-pricing";
+import { formatFeeAmount } from "@/modules/additional-service-fees";
 import { getErrorMessage } from "@/utils/apiError";
 import { isMockMode } from "@/utils/mocks/dataSource";
 import { ROUTES } from "@/utils/appRoutes";
@@ -41,6 +42,7 @@ const {
   resolveServicePricingForConsignment,
   mergeSentQuotationSnapshot,
   formatVatRatePercent,
+  isPackingFee,
 } = consignmentQuotationService;
 
 const {
@@ -301,6 +303,14 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
     [additionalFeeLines]
   );
 
+  const packingFeeTotalFromLines = useMemo(
+    () =>
+      allAdditionalFeeLines
+        .filter((line) => isPackingFee(line))
+        .reduce((sum, line) => sum + (Number(line.amount) || 0), 0),
+    [allAdditionalFeeLines]
+  );
+
   const vatRate = useMemo(() => resolveVatRate(feeCatalog), [feeCatalog]);
 
   const totals = useMemo(
@@ -539,6 +549,31 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
             consignment.quotation?.vat ??
             null,
         });
+
+        // Gộp snapshot GET quotation (PACKING_FEE, parcels, totals) vào detail để khối thùng đọc được.
+        if (estimateResult?.quotation || estimateResult?.parcels) {
+          const quote = estimateResult.quotation ?? {};
+          setDetail({
+            ...consignment,
+            quotation: {
+              ...consignment.quotation,
+              ...quote,
+              parcels: estimateResult.parcels ?? quote.parcels ?? consignment.quotation?.parcels ?? [],
+              additionalFees:
+                quote.additionalFees ?? consignment.quotation?.additionalFees ?? null,
+              domesticShippingFee:
+                estimateResult.domesticShippingFee ??
+                quote.domesticShippingFee ??
+                consignment.quotation?.domesticShippingFee ??
+                null,
+              totalEstimatedCost:
+                estimateResult.totalEstimatedCost ??
+                quote.totalEstimatedCost ??
+                consignment.quotation?.totalEstimatedCost ??
+                null,
+            },
+          });
+        }
       } catch (err) {
         if (active) setLoadError(getErrorMessage(err));
       } finally {
@@ -588,7 +623,7 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
         feeCatalog
       );
       const selectedPricingRuleIds = detail?.pricingRuleIds ?? [];
-      return buildDefaultAdditionalFeeLines({
+      const next = buildDefaultAdditionalFeeLines({
         fees: feeCatalog,
         packageCount,
         declaredValue,
@@ -602,6 +637,22 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
             : undefined,
         requiresInspection: detail?.requiresInspection === true,
       });
+
+      // Giữ dòng PACKING_FEE từ API (không có trong catalog phụ phí).
+      const packingLines = current.filter((line) => isPackingFee(line));
+      if (!packingLines.length) return next;
+
+      const present = new Set(
+        next.flatMap((line) =>
+          [line.feeId, line.code].filter(Boolean).map((value) => String(value).toUpperCase())
+        )
+      );
+      const missingPacking = packingLines.filter((line) => {
+        const id = line.feeId != null ? String(line.feeId).toUpperCase() : null;
+        const code = line.code != null ? String(line.code).toUpperCase() : null;
+        return !((id && present.has(id)) || (code && present.has(code)));
+      });
+      return missingPacking.length ? [...missingPacking, ...next] : next;
     });
   }, [
     selectedServicePricing?.id,
@@ -635,9 +686,13 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
   }
 
   function updateAdditionalFeeQuantity(feeId, value) {
-    const fee = findCatalogFeeEntry(feeId);
-    setAdditionalFeeLines((current) =>
-      current.map((line) => {
+    setAdditionalFeeLines((current) => {
+      const target = current.find((line) => line.feeId === feeId);
+      if (target && (target.isPackingFee || isPackingFee(target) || !target.quantityEditable)) {
+        return current;
+      }
+      const fee = findCatalogFeeEntry(feeId);
+      return current.map((line) => {
         if (line.feeId !== feeId) return line;
         const quantity = value === "" ? "" : Math.max(0, Number(value) || 0);
         if (!fee) {
@@ -645,8 +700,8 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
           return { ...line, quantity, amount };
         }
         return recalculateAdditionalFeeLine(fee, { ...line, quantity }, feeCalculationContext);
-      })
-    );
+      });
+    });
     resetSubmitState();
   }
 
@@ -656,8 +711,9 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
     }
     setDiscountPercent("0");
     const selectedPricingRuleIds = detail?.pricingRuleIds ?? [];
-    setAdditionalFeeLines(
-      buildDefaultAdditionalFeeLines({
+    setAdditionalFeeLines((current) => {
+      const packingLines = current.filter((line) => isPackingFee(line));
+      const next = buildDefaultAdditionalFeeLines({
         fees: feeCatalog,
         packageCount,
         declaredValue,
@@ -668,8 +724,9 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
             ? selectedPricingRuleIds
             : undefined,
         requiresInspection: detail?.requiresInspection === true,
-      })
-    );
+      });
+      return packingLines.length ? [...packingLines, ...next] : next;
+    });
     resetSubmitState();
   }
 
@@ -1101,13 +1158,21 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
             </section>
           ) : null}
 
+          {detail ? (
+            <QuotationPackageConfigSection
+              consignment={detail}
+              quotation={detail.quotation}
+              packingFeeTotalFromLines={packingFeeTotalFromLines}
+            />
+          ) : null}
+
           <section className="rounded-xl border border-border-muted bg-surface-elevated p-6 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
               <div>
                 <h2 className="text-lg font-bold text-ink">Lập báo giá — tính phí theo dịch vụ đã chọn</h2>
                 <p className="text-sm text-muted mt-1">
-                  Hiện cước chính, phí vận chuyển nội địa, và dịch vụ khách đã chọn. Sales chỉnh{" "}
-                  <strong>số lượng</strong> — thành tiền = đơn giá × số lượng.
+                  Hiện cước chính, phí vận chuyển nội địa, phí vỏ thùng (khóa), và dịch vụ khách đã chọn. Sales chỉnh{" "}
+                  <strong>số lượng</strong> phụ phí khác — thành tiền = đơn giá × số lượng.
                 </p>
               </div>
               {canSend ? (
@@ -1161,12 +1226,17 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
                   </tr>
                   {allAdditionalFeeLines.map((line) => {
                     const isPercentage = line.feeCalculationType === "PERCENTAGE";
-                    const locked = line.isRequired || !line.quantityEditable;
+                    const packing = line.isPackingFee === true || isPackingFee(line);
+                    const locked = packing || line.isRequired || !line.quantityEditable;
                     return (
                     <tr key={line.feeId} className="border-b border-border-muted/60 align-top">
                       <td className="px-4 py-3">
                         <p className="font-medium text-ink">{line.label}</p>
-                        {line.isRequired ? (
+                        {packing ? (
+                          <span className="inline-block mt-1 text-[10px] font-bold uppercase tracking-wide text-primary">
+                            Phí vỏ thùng · khóa
+                          </span>
+                        ) : line.isRequired ? (
                           <span className="inline-block mt-1 text-[10px] font-bold uppercase tracking-wide text-primary">
                             Bắt buộc · khóa
                           </span>

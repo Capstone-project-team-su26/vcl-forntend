@@ -9,7 +9,7 @@ import {
   normalizeVolumeCm3FromApi,
   resolveConsignmentDimFromItems,
   resolveConsignmentTotalVolumeCm3,
-} from "./servicePricingService.js";
+} from "@/modules/service-pricing";
 
 function assert(cond, msg) {
   if (!cond) throw new Error(msg);

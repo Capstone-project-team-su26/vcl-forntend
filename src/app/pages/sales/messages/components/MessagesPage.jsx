@@ -14,7 +14,7 @@ import {
   markConversationAsRead,
   sendMessage,
   dedupeConversations,
-} from "@/utils/conversationService";
+} from "@/modules/messages";
 
 function haveMessagesChanged(prev = [], next = []) {
   if (prev.length !== next.length) return true;

@@ -3,12 +3,12 @@
 import { Icon } from "@iconify/react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import * as customerService from "@/utils/customerService";
-import * as orderConsignmentService from "@/utils/orderConsignmentService";
+import * as customerService from "@/modules/customers";
+import * as orderConsignmentService from "@/modules/consignments";
 import * as pricingService from "@/utils/internationalWarehousePricingService";
 import { getErrorMessage } from "@/utils/apiError";
 import { ROUTES } from "@/utils/appRoutes";
-import { formatVolumeCm3 } from "@/utils/servicePricingService";
+import { formatVolumeCm3 } from "@/modules/service-pricing";
 
 const { ITEM_VALIDATION_LABELS, ITEM_VALIDATION_STYLES } = orderConsignmentService;
 const { FEE_CODES, buildDefaultQuotationLines, calculateQuotationTotal, formatMoney } =

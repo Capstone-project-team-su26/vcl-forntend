@@ -4,7 +4,7 @@ import { Icon } from "@iconify/react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import DataTable from "@/app/components/DataTable";
-import * as purchaseRequestService from "@/utils/purchaseRequestService";
+import * as purchaseRequestService from "@/modules/purchase-requests";
 import { getErrorMessage } from "@/utils/apiError";
 import { ROUTES } from "@/utils/appRoutes";
 

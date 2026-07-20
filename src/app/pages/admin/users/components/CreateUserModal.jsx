@@ -2,8 +2,8 @@
 
 import { Icon } from "@iconify/react";
 import { useEffect, useMemo, useState } from "react";
-import * as authService from "@/utils/authService";
-import * as warehouseService from "@/utils/warehouseService";
+import * as authService from "@/modules/auth";
+import * as warehouseService from "@/modules/warehouses";
 import { ApiError, getErrorMessage } from "@/utils/apiError";
 import { normalizeEmployeeRole } from "@/utils/apiMappers";
 

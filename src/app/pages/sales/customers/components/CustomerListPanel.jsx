@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import CustomerFormModal from "@/app/pages/sales/customers/components/CustomerFormModal";
 import DataTable from "@/app/components/DataTable";
-import * as customerService from "@/utils/customerService";
+import * as customerService from "@/modules/customers";
 import { getErrorMessage } from "@/utils/apiError";
 import { ROUTES } from "@/utils/appRoutes";
 

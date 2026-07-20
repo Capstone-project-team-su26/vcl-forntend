@@ -3,8 +3,8 @@
 import { Icon } from "@iconify/react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import * as orderConsignmentService from "@/utils/orderConsignmentService";
-import * as consignmentQuotationService from "@/utils/consignmentQuotationService";
+import * as orderConsignmentService from "@/modules/consignments";
+import * as consignmentQuotationService from "@/modules/consignments/quotation";
 import { getErrorMessage } from "@/utils/apiError";
 import { ROUTES } from "@/utils/appRoutes";
 import ConsignmentStatusBadge from "@/app/pages/sales/consignments/components/ConsignmentStatusBadge";
@@ -16,8 +16,8 @@ import {
   resolveVolumetricDivisor,
   isVolumetricDivisorRule,
   VOLUMETRIC_DIVISOR_CM3,
-} from "@/utils/servicePricingService";
-import { formatProductTypeLabel } from "@/utils/productTypeService";
+} from "@/modules/service-pricing";
+import { formatProductTypeLabel } from "@/modules/product-types";
 
 const {
   CONSIGNMENT_TYPE_LABELS,

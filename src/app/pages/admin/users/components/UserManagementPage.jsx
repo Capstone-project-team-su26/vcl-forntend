@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import AdminLayout from "../../components/AdminLayout";
 import CreateUserModal from "./CreateUserModal";
 import DataTable from "@/app/components/DataTable";
-import * as userService from "@/utils/userService";
+import * as userService from "@/modules/users";
 import { getErrorMessage } from "@/utils/apiError";
 
 const STATUS_FILTER_OPTIONS = [

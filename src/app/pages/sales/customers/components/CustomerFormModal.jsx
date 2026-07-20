@@ -2,7 +2,7 @@
 
 import { Icon } from "@iconify/react";
 import { useState } from "react";
-import * as customerService from "@/utils/customerService";
+import * as customerService from "@/modules/customers";
 import { getErrorMessage } from "@/utils/apiError";
 
 const { CUSTOMER_STATUS_LABELS } = customerService;

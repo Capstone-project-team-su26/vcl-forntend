@@ -8,7 +8,7 @@ import {
   getSession,
   setSession,
 } from "@/utils/authSession";
-import * as authService from "@/utils/authService";
+import * as authService from "@/modules/auth";
 import { getErrorMessage } from "@/utils/apiError";
 import { ROUTES } from "@/utils/appRoutes";
 import { isAdminRole, isSaleRole, isOpsRole, isStaffRole } from "@/utils/routing";

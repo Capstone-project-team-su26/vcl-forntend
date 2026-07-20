@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import AdminLayout from "../../components/AdminLayout";
 import ServicePricingFormModal from "./PricingRuleFormModal";
 import DataTable from "@/app/components/DataTable";
-import * as servicePricingService from "@/utils/servicePricingService";
+import * as servicePricingService from "@/modules/service-pricing";
 import { getErrorMessage } from "@/utils/apiError";
 
 const {

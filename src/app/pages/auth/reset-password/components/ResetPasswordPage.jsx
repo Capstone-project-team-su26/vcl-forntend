@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import AppLogo from "@/app/components/AppLogo";
-import * as authService from "@/utils/authService";
+import * as authService from "@/modules/auth";
 import { ROUTES } from "@/utils/appRoutes";
 import { getErrorMessage } from "@/utils/apiError";
 function ResetPasswordPage() {

@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import AdminLayout from "../../components/AdminLayout";
 import PackageConfigurationFormModal from "./PackageConfigurationFormModal";
 import DataTable from "@/app/components/DataTable";
-import * as packageConfigurationService from "@/utils/packageConfigurationService";
+import * as packageConfigurationService from "@/modules/package-configurations";
 import { getErrorMessage } from "@/utils/apiError";
 
 const {

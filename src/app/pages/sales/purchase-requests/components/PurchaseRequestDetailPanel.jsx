@@ -3,12 +3,12 @@
 import { Icon } from "@iconify/react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import * as purchaseRequestService from "@/utils/purchaseRequestService";
+import * as purchaseRequestService from "@/modules/purchase-requests";
 import {
   PURCHASE_ORDER_STATUS_LABELS,
   PURCHASE_ORDER_STATUS_STYLES,
   canUpdatePurchaseOrderStatus,
-} from "@/utils/purchaseOrderService";
+} from "@/modules/purchase-orders";
 import { getErrorMessage } from "@/utils/apiError";
 import { ROUTES } from "@/utils/appRoutes";
 

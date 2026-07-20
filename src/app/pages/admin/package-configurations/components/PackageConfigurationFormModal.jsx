@@ -3,7 +3,7 @@
 import { Icon } from "@iconify/react";
 import { useEffect, useState } from "react";
 import VndMoneyInput from "@/app/components/VndMoneyInput";
-import * as packageConfigurationService from "@/utils/packageConfigurationService";
+import * as packageConfigurationService from "@/modules/package-configurations";
 import { getErrorMessage } from "@/utils/apiError";
 
 function readFormValue(form, name) {

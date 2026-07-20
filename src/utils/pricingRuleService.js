@@ -1,4 +1,4 @@
-/** @deprecated Import từ servicePricingService. Giữ file để tránh gãy import cũ. */
+/** @deprecated Import từ `@/modules/service-pricing`. Giữ file để tránh gãy import cũ. */
 export {
   listServicePricings as listPricingRules,
   createServicePricing as createPricingRule,
@@ -8,4 +8,4 @@ export {
   UNIT_TYPE_LABELS as BILLING_UNIT_LABELS,
   formatServicePricingRoute as formatPricingRoute,
   formatMoney,
-} from "@/utils/servicePricingService";
+} from "@/modules/service-pricing";

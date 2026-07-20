@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import AdminLayout from "@/app/pages/admin/components/AdminLayout";
 import WarehouseFormModal from "@/app/pages/admin/warehouses/components/WarehouseFormModal";
 import WarehouseLocationFormModal from "@/app/pages/admin/warehouses/components/WarehouseLocationFormModal";
-import * as warehouseService from "@/utils/warehouseService";
+import * as warehouseService from "@/modules/warehouses";
 import { getErrorMessage } from "@/utils/apiError";
 
 const { formatWarehouseType, formatLocationType, getParentLocationLabel } = warehouseService;
