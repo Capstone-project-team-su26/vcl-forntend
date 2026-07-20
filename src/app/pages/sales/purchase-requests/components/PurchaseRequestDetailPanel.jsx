@@ -377,7 +377,7 @@ export default function PurchaseRequestDetailPanel({
           </p>
           <div className="flex flex-wrap gap-3 pt-1">
             <Link
-              href={ROUTES.sales.purchaseOrderStatus(detail.purchaseOrder.id)}
+              href={ROUTES.sales.purchaseOrderStatus(detail.id)}
               className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline"
             >
               {canUpdatePurchaseOrderStatus(detail.purchaseOrder.status ?? "CREATED")

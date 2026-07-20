@@ -25,10 +25,13 @@ function regionFromWarehouseCode(code) {
 }
 
 /**
- * Kho API thường để code rỗng — suy region từ mã, rồi tên/địa chỉ.
+ * Ưu tiên `region` từ Swagger; kho cũ chưa có field thì suy từ mã/tên/địa chỉ.
  * ponytail: heuristic đủ cho VN/US/TQ/TH/JP; kho lạ fallback theo code hoặc id ngắn.
  */
 function inferWarehouseRegion(warehouse) {
+  const apiRegion = String(warehouse?.region || "").trim().toUpperCase();
+  if (apiRegion) return apiRegion;
+
   const fromCode = regionFromWarehouseCode(warehouse?.code);
   if (fromCode) return fromCode;
 

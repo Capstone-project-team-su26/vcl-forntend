@@ -27,6 +27,7 @@ export default function WarehouseFormModal({ open, mode, warehouse, onClose, onS
       name: form.elements.namedItem("name").value.trim(),
       code: form.elements.namedItem("code").value.trim(),
       address: form.elements.namedItem("address").value.trim(),
+      region: form.elements.namedItem("region").value.trim().toUpperCase(),
       warehouseType: form.elements.namedItem("warehouseType").value || null,
       isActive: form.elements.namedItem("isActive").checked,
     };
@@ -131,6 +132,21 @@ export default function WarehouseFormModal({ open, mode, warehouse, onClose, onS
                 </option>
               ))}
             </select>
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="region" className="text-sm font-semibold text-ink">
+              Region (mã quốc gia)
+            </label>
+            <input
+              id="region"
+              name="region"
+              defaultValue={warehouse?.region ?? ""}
+              maxLength={2}
+              pattern="[A-Za-z]{2}"
+              placeholder="VD: CN, JP, KR, VN"
+              className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm uppercase input-focus-ring"
+            />
           </div>
 
           <label className="flex items-center gap-2.5 cursor-pointer">

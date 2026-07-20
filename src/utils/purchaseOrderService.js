@@ -5,9 +5,11 @@ import { apiRequest } from "@/utils/apiClient";
 import {
   normalizePurchaseOrderFromApi,
   normalizePurchaseOrderStatusUpdate,
+  normalizePurchaseRequestFromApi,
   toApiPurchaseOrderStatusPayload,
 } from "@/utils/apiMappers";
 import { ApiError } from "@/utils/apiError";
+import { formatDateTimeLocal } from "@/utils/dateTime";
 
 export const PURCHASE_ORDER_STATUS_LABELS = {
   CREATED: "Đã tạo đơn",
@@ -174,8 +176,31 @@ async function updatePurchaseOrderStatusMock(id, payload) {
 export async function getPurchaseOrder(id) {
   if (isMockMode()) return getPurchaseOrderMock(id);
 
-  const raw = await apiRequest(`/api/purchase-orders/${id}`);
-  return normalizePurchaseOrderFromApi(raw);
+  // BE không còn GET /api/purchase-orders/{id} — chỉ còn PUT .../status.
+  // `id` trên route là purchaseRequestId (xem link từ chi tiết yêu cầu mua hộ).
+  try {
+    const raw = await apiRequest(`/api/purchase-requests/${encodeURIComponent(id)}`);
+    const request = normalizePurchaseRequestFromApi(raw);
+    if (request?.purchaseOrder?.id) {
+      return normalizePurchaseOrderFromApi({
+        ...request.purchaseOrder,
+        purchaseRequestId: request.id,
+        requestCode: request.requestCode,
+        customerId: request.customerId,
+        customerName: request.customerName,
+        customerPhone: request.customerPhone,
+        customerEmail: request.customerEmail,
+        items: request.purchaseOrder.items ?? request.items,
+      });
+    }
+  } catch {
+    // fall through
+  }
+
+  throw new ApiError(404, {
+    message:
+      "Không tìm thấy đơn mua hàng. Mở từ yêu cầu mua hộ (BE đã gỡ GET /api/purchase-orders/{id}).",
+  });
 }
 
 export async function updatePurchaseOrderStatus(id, payload) {
@@ -190,14 +215,7 @@ export async function updatePurchaseOrderStatus(id, payload) {
 }
 
 export function formatPurchaseOrderDate(isoDate) {
-  if (!isoDate) return "—";
-  return new Date(isoDate).toLocaleDateString("vi-VN", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return formatDateTimeLocal(isoDate);
 }
 
 /** Đồng bộ đơn mua hàng vào mock store khi tạo từ yêu cầu mua hộ. */

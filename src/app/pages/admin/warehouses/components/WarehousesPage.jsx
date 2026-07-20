@@ -363,6 +363,7 @@ export default function WarehousesPage() {
                           <p className="text-sm font-bold text-ink truncate">{warehouse.name}</p>
                           <p className="text-xs text-muted mt-0.5">
                             {warehouse.code}
+                            {warehouse.region ? ` · ${warehouse.region}` : ""}
                             {warehouse.address ? ` · ${warehouse.address}` : ""}
                           </p>
                         </div>

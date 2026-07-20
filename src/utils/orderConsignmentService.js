@@ -15,6 +15,7 @@ import {
   toApiValidateItemsPayload,
 } from "@/utils/apiMappers";
 import { ApiError } from "@/utils/apiError";
+import { formatDateTimeLocal } from "@/utils/dateTime";
 
 export const CONSIGNMENT_TYPE_LABELS = {
   PURCHASE_ORDER: "Mua hộ",
@@ -900,12 +901,8 @@ export const ITEM_VALIDATION_LABELS = {
 };
 
 export function formatConsignmentDate(isoDate) {
-  if (!isoDate) return "—";
-  return new Date(isoDate).toLocaleDateString("vi-VN", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
+  // Local theo máy user + nhãn UTC±X (không hardcode +7).
+  return formatDateTimeLocal(isoDate);
 }
 
 /** Danh sách ảnh hàng hóa từ chi tiết đơn (items.referenceUrl / images). */
