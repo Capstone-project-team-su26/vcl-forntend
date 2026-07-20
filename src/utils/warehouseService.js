@@ -69,6 +69,7 @@ function validateWarehousePayload(payload, { requireAll = false } = {}) {
     name,
     code,
     address: payload.address?.trim() || null,
+    region: payload.region?.trim().toUpperCase() || null,
     warehouseType: payload.warehouseType || null,
     isActive: payload.isActive !== false,
   };

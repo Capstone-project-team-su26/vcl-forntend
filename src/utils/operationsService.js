@@ -2,7 +2,6 @@ import { isMockMode } from "@/utils/mocks/dataSource";
 import { mockDelay } from "@/utils/mocks/mockDelay";
 import { getMockStore } from "@/utils/mocks/mockStore";
 import { ApiError } from "@/utils/apiError";
-import { apiRequest, apiRequestWithMockFallback } from "@/utils/apiClient";
 
 async function getOperationalDashboardMock() {
   await mockDelay();
@@ -59,54 +58,25 @@ async function estimatePriceMock({ destination, packageType }) {
   };
 }
 
+/** BE đã bỏ /api/Operations/* — demo UI dùng mock. */
 export async function getOperationalDashboard() {
-  if (isMockMode()) return getOperationalDashboardMock();
-
-  return apiRequestWithMockFallback("/api/Operations/dashboard", {}, getOperationalDashboardMock);
+  return getOperationalDashboardMock();
 }
 
 export async function getTransferOptions() {
-  if (isMockMode()) return getTransferOptionsMock();
-
-  return apiRequestWithMockFallback(
-    "/api/Operations/transfer/options",
-    {},
-    getTransferOptionsMock
-  );
+  return getTransferOptionsMock();
 }
 
 export async function confirmTransfer(payload) {
   if (isMockMode()) return confirmTransferMock(payload);
-
-  try {
-    return await apiRequest("/api/Operations/transfer", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
-  } catch (err) {
-    if (err instanceof ApiError && err.status === 404) {
-      throw new ApiError(404, {
-        message: "Chức năng chuyển phát chưa khả dụng trên server.",
-      });
-    }
-    throw err;
-  }
+  throw new ApiError(404, {
+    message: "Chức năng chuyển phát chưa khả dụng trên server (API Operations đã gỡ).",
+  });
 }
 
 export async function estimatePrice(payload) {
   if (isMockMode()) return estimatePriceMock(payload);
-
-  try {
-    return await apiRequest("/api/Operations/estimate-price", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
-  } catch (err) {
-    if (err instanceof ApiError && err.status === 404) {
-      throw new ApiError(404, {
-        message: "Chức năng ước tính giá chưa khả dụng trên server.",
-      });
-    }
-    throw err;
-  }
+  throw new ApiError(404, {
+    message: "Chức năng ước tính giá chưa khả dụng trên server (API Operations đã gỡ).",
+  });
 }

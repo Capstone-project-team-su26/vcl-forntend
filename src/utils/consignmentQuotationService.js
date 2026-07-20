@@ -4,7 +4,7 @@ import { isMockMode } from "@/utils/mocks/dataSource";
 import { mockDelay } from "@/utils/mocks/mockDelay";
 import { getMockStore } from "@/utils/mocks/mockStore";
 import { apiRequest } from "@/utils/apiClient";
-import { normalizeEstimateQuotationResponse, toApiCreateQuotationRequest } from "@/utils/apiMappers";
+import { normalizeEstimateQuotationResponse } from "@/utils/apiMappers";
 import {
   calculateChargeableWeight,
   calculateMainServiceAmount,
@@ -52,6 +52,24 @@ export function isDraftConsignmentQuotation(quotation) {
   return false;
 }
 
+/** Sales còn được chỉnh phí theo lựa chọn khách (chưa gửi chính thức). */
+export function canEditQuotationFeeSelection(quotation, consignmentStatus) {
+  if (!quotation) return true;
+  if (quotation.sentAt) return false;
+  const status = String(
+    quotation.status || consignmentStatus || ""
+  ).toUpperCase();
+  if (
+    status === "QUOTATION_SENT" ||
+    status === "QUOTATION_CONFIRMED" ||
+    status === "ACCEPTED" ||
+    status === "SENT"
+  ) {
+    return false;
+  }
+  return true;
+}
+
 export function getConsignmentQuotationHeading(quotation) {
   if (!quotation) return null;
   return isDraftConsignmentQuotation(quotation) ? "Báo giá tạm tính" : "Báo giá đã gửi";
@@ -86,7 +104,13 @@ function isDomesticFee(fee) {
   const key = String(fee?.ruleType ?? fee?.code ?? fee?.ruleCode ?? "")
     .trim()
     .toUpperCase();
-  return key === "DOMESTIC_FEE" || key.includes("DOMESTIC_FEE");
+  // Phí vận chuyển nội địa — luôn hiện trên báo giá (BE thường gộp vào serviceFee).
+  return (
+    key === "DOMESTIC_FEE" ||
+    key === "DOMESTIC" ||
+    key.includes("DOMESTIC_FEE") ||
+    key.includes("DOMESTIC")
+  );
 }
 
 function shouldDefaultEnableFee(
@@ -94,9 +118,9 @@ function shouldDefaultEnableFee(
   { requiresInspection = false, declaredValue = 0 } = {}
 ) {
   if (fee.isRequired === true) return true;
-  if (isInspectionFee(fee)) return requiresInspection;
-  // BE luôn cộng DOMESTIC_FEE vào serviceFee — mặc định bật cho khớp.
   if (isDomesticFee(fee)) return true;
+  // Kiểm hàng chỉ bật khi khách chọn (pricingRuleIds) hoặc rule catalog isRequired.
+  if (isInspectionFee(fee)) return false;
 
   const ruleType = String(fee.ruleType ?? fee.code ?? "").toUpperCase();
   if (ruleType === "INSURANCE" || ruleType.includes("INSURANCE")) {
@@ -107,6 +131,71 @@ function shouldDefaultEnableFee(
   }
 
   return false;
+}
+
+/**
+ * Cước dịch vụ chính: ưu tiên local (đơn giá × cân/CBM) khi tính được.
+ * Estimate BE chỉ dùng khi local = 0 — tránh lệch UI (vd 150k/kg × 2kg hiện 20k).
+ */
+export function resolvePreferredMainServiceAmount(localFreight, apiFreight) {
+  const local = Number(localFreight) || 0;
+  if (local > 0) return roundMoney(local);
+  const api = apiFreight != null ? Number(apiFreight) : null;
+  return api != null && Number.isFinite(api) ? roundMoney(api) : 0;
+}
+
+function feeMatchesSelectedIds(feeOrLine, selectedSet) {
+  if (!selectedSet?.size) return false;
+  const candidates = [
+    feeOrLine?.feeId,
+    feeOrLine?.id,
+    feeOrLine?.code,
+  ].filter((value) => value != null && value !== "");
+  return candidates.some((value) => selectedSet.has(String(value)));
+}
+
+/** Luồng: khách chọn pricingRuleIds → Sales tính phí. DOMESTIC luôn giữ. */
+export function applySelectedPricingRuleIdsToFeeLines(
+  lines,
+  selectedPricingRuleIds,
+  { catalogFees = [], packageCount, declaredValue, mainServiceAmount } = {}
+) {
+  if (!Array.isArray(lines) || !Array.isArray(selectedPricingRuleIds) || !selectedPricingRuleIds.length) {
+    return lines;
+  }
+
+  const selected = new Set(selectedPricingRuleIds.map(String));
+  const context = { packageCount, declaredValue, mainServiceAmount };
+
+  return lines.map((line) => {
+    const catalogFee = findCatalogFee(catalogFees, line);
+    const alwaysOn =
+      line.isRequired === true ||
+      isDomesticFee(line) ||
+      (catalogFee ? isDomesticFee(catalogFee) : false);
+
+    if (alwaysOn) {
+      if (line.enabled !== false) return line;
+      return catalogFee
+        ? recalculateAdditionalFeeLine(catalogFee, { ...line, enabled: true }, context)
+        : { ...line, enabled: true };
+    }
+
+    const enabled =
+      feeMatchesSelectedIds(line, selected) ||
+      (catalogFee ? feeMatchesSelectedIds(catalogFee, selected) : false);
+
+    if ((line.enabled !== false) === enabled) return line;
+
+    if (catalogFee) {
+      return recalculateAdditionalFeeLine(catalogFee, { ...line, enabled }, context);
+    }
+
+    const amount = enabled
+      ? (Number(line.unitPrice) || 0) * (Number(line.quantity) || 0)
+      : 0;
+    return { ...line, enabled, amount };
+  });
 }
 
 /** Phí tính theo phần trăm (giá trị khai báo / dịch vụ chính) — Sales không chỉnh số lượng. */
@@ -245,20 +334,26 @@ export function buildDefaultAdditionalFeeLines({
   mainServiceAmount,
   enabledFeeIds,
   quantityByFeeId,
+  selectedPricingRuleIds,
   requiresInspection = false,
 }) {
   const context = { packageCount, declaredValue, mainServiceAmount };
+  const selectedSet =
+    Array.isArray(selectedPricingRuleIds) && selectedPricingRuleIds.length
+      ? new Set(selectedPricingRuleIds.map(String))
+      : null;
   // ponytail: VOLUMETRIC_DIVISOR / MIN_WEIGHT là config, không phải dòng phụ phí.
   return fees
     .filter((fee) => !isMainServiceFee(fee) && !isPricingConfigRule(fee))
     .map((fee) => {
-      const isRequired =
-        fee.isRequired === true || (isInspectionFee(fee) && requiresInspection);
-      const enabled = isRequired
+      const isRequired = fee.isRequired === true;
+      const enabled = isRequired || isDomesticFee(fee)
         ? true
         : enabledFeeIds
-          ? enabledFeeIds[fee.id] !== false
-          : shouldDefaultEnableFee(fee, { requiresInspection, declaredValue });
+          ? enabledFeeIds[fee.id] === true
+          : selectedSet
+            ? feeMatchesSelectedIds(fee, selectedSet)
+            : shouldDefaultEnableFee(fee, { requiresInspection, declaredValue });
       const quantity =
         quantityByFeeId && quantityByFeeId[fee.id] != null
           ? quantityByFeeId[fee.id]
@@ -595,11 +690,9 @@ export function buildAdditionalFeeLinesFromQuotation(
   if (apiFees.length) {
     return apiFees.map((fee) => {
       const catalogFee = findCatalogFee(catalogFees, fee);
+      // Chỉ khóa khi catalog/API đánh dấu isRequired — không tự ép INSPECTION.
       const isRequired =
-        fee.isRequired === true ||
-        catalogFee?.isRequired === true ||
-        (catalogFee && isInspectionFee(catalogFee) && requiresInspection) ||
-        (isInspectionFee({ code: fee.code }) && requiresInspection);
+        fee.isRequired === true || catalogFee?.isRequired === true;
       // Phí bắt buộc luôn bật — không cho Sales tắt qua API/UI.
       const enabled = isRequired ? true : fee.enabled !== false;
 
@@ -682,6 +775,7 @@ function mergeMissingCatalogFeeLines(apiLines, catalogFees, context) {
     packageCount: context.packageCount,
     declaredValue: context.declaredValue,
     mainServiceAmount: context.mainServiceAmount,
+    selectedPricingRuleIds: context.selectedPricingRuleIds,
     requiresInspection: context.requiresInspection,
   });
 
@@ -702,17 +796,26 @@ export function resolveQuotationAdditionalFees({
   packageCount,
   declaredValue,
   mainServiceAmount,
+  selectedPricingRuleIds,
 }) {
   const requiresInspection = consignment?.requiresInspection === true;
   const quotationSource = estimate?.quotation ?? estimate ?? consignment?.quotation;
   const itemizedFees = quotationSource?.additionalFees;
+  // Còn chỉnh được → luôn ưu tiên pricingRuleIds khách chọn (không tin snapshot BE thưa).
+  const preferCustomerSelection =
+    Array.isArray(selectedPricingRuleIds) &&
+    selectedPricingRuleIds.length > 0 &&
+    canEditQuotationFeeSelection(consignment?.quotation, consignment?.status);
+  const resolvedSelectedIds = preferCustomerSelection ? selectedPricingRuleIds : undefined;
   const feeContext = {
     packageCount,
     declaredValue,
     mainServiceAmount,
     requiresInspection,
+    selectedPricingRuleIds: resolvedSelectedIds,
   };
 
+  let result;
   if (Array.isArray(itemizedFees) && itemizedFees.some((fee) => !isMainServiceFee(fee) && !isPricingConfigRule(fee))) {
     const apiLines = buildAdditionalFeeLinesFromQuotation(quotationSource, {
       requiresInspection,
@@ -721,50 +824,90 @@ export function resolveQuotationAdditionalFees({
       declaredValue,
       mainServiceAmount,
     });
-    return {
+    result = {
       lines: mergeMissingCatalogFeeLines(apiLines, catalogFees, feeContext),
       fromApi: true,
     };
-  }
-
-  if (catalogFees.length) {
-    return {
+  } else if (catalogFees.length) {
+    result = {
       lines: buildDefaultAdditionalFeeLines({
         fees: catalogFees,
         packageCount,
         declaredValue,
         mainServiceAmount,
+        selectedPricingRuleIds: resolvedSelectedIds,
         requiresInspection,
       }),
       fromApi: false,
     };
+  } else {
+    const aggregatedLines = buildAdditionalFeeLinesFromQuotation(quotationSource, {
+      requiresInspection,
+      catalogFees,
+      packageCount,
+      declaredValue,
+      mainServiceAmount,
+    });
+    if (aggregatedLines.length) {
+      result = { lines: aggregatedLines, fromApi: true };
+    } else {
+      result = { lines: [], fromApi: false };
+    }
   }
 
-  const aggregatedLines = buildAdditionalFeeLinesFromQuotation(quotationSource, {
-    requiresInspection,
-    catalogFees,
-    packageCount,
-    declaredValue,
-    mainServiceAmount,
-  });
-  if (aggregatedLines.length) {
-    return { lines: aggregatedLines, fromApi: true };
+  if (resolvedSelectedIds?.length && result.lines.length) {
+    return {
+      ...result,
+      lines: applySelectedPricingRuleIdsToFeeLines(result.lines, resolvedSelectedIds, {
+        catalogFees,
+        packageCount,
+        declaredValue,
+        mainServiceAmount,
+      }),
+    };
   }
 
-  return { lines: [], fromApi: false };
+  return result;
 }
 
 export async function estimateConsignmentQuotation(orderId, params = {}) {
-  if (isMockMode()) return estimateConsignmentQuotationMock(orderId, params);
+  // BE đã bỏ POST /api/orders/{orderId}/quotation/estimate.
+  // Tính local; nếu đã có báo giá thì đọc GET .../quotation để lấy thuế/snapshot.
+  const local = await estimateConsignmentQuotationMock(orderId, params);
+  if (isMockMode() || !orderId) return local;
 
-  const apiPayload = toApiCreateQuotationRequest(params);
-
-  const raw = await apiRequest(`/api/orders/${encodeURIComponent(orderId)}/quotation/estimate`, {
-    method: "POST",
-    body: JSON.stringify(apiPayload),
-  });
-
-  return normalizeEstimateQuotationResponse(raw);
+  try {
+    const raw = await apiRequest(`/api/orders/${encodeURIComponent(orderId)}/quotation`);
+    const existing = normalizeEstimateQuotationResponse(raw);
+    return {
+      ...local,
+      quotationId: existing.quotationId ?? local.quotationId,
+      orderId: existing.orderId ?? local.orderId,
+      status: existing.status ?? local.status,
+      // Thuế / snapshot từ báo giá đã lưu (nếu có); cước + phụ phí vẫn ưu tiên local.
+      importTax: existing.importTax ?? existing.quotation?.importTax ?? local.importTax,
+      vat: existing.vat ?? existing.quotation?.vat ?? local.vat,
+      taxAndDuty: existing.taxAndDuty ?? local.taxAndDuty,
+      volumetricWeight: existing.volumetricWeight ?? local.volumetricWeight,
+      chargeableWeight: existing.chargeableWeight ?? local.chargeableWeight,
+      quotation: {
+        ...local.quotation,
+        ...(existing.quotation ?? {}),
+        // Giữ cước + phụ phí local (đơn giá × SL) — không để BE cũ ghi đè.
+        mainServiceAmount: local.quotation?.mainServiceAmount,
+        estimatedFreightCharge: local.estimatedFreightCharge,
+        additionalFees:
+          local.quotation?.additionalFees ?? existing.quotation?.additionalFees,
+        serviceFee: local.quotation?.serviceFee ?? existing.quotation?.serviceFee,
+      },
+      estimatedFreightCharge: local.estimatedFreightCharge,
+      serviceFee: local.serviceFee,
+      totalEstimatedCost: local.totalEstimatedCost,
+    };
+  } catch {
+    // 404 = chưa có báo giá — dùng local thuần.
+    return local;
+  }
 }
 
 export function resolveInitialSalesNote(consignment) {
@@ -788,14 +931,15 @@ export function getQuotationDisplayLines(quotation) {
   const importTax = Number(quotation.importTax) || 0;
   const vat = Number(quotation.vat) || 0;
   const taxAndDuty = Number(quotation.taxAndDuty) || 0;
+  // BE đôi khi gộp VAT vào taxAndDuty và để vat=0.
+  const resolvedVat = vat > 0 ? vat : importTax === 0 && taxAndDuty > 0 ? taxAndDuty : 0;
 
   if (
     quotation.estimatedFreightCharge != null ||
     serviceFee > 0 ||
     additionalTotal > 0 ||
     importTax !== 0 ||
-    vat !== 0 ||
-    taxAndDuty !== 0
+    resolvedVat !== 0
   ) {
     const lines = [];
 
@@ -827,18 +971,12 @@ export function getQuotationDisplayLines(quotation) {
       });
     }
 
-    if (vat !== 0) {
-      const rateLabel = quotation.vatRate != null
-        ? formatVatRatePercent(quotation.vatRate)
-        : "8%";
+    if (resolvedVat !== 0) {
+      const rateLabel =
+        quotation.vatRate != null ? formatVatRatePercent(quotation.vatRate) : null;
       lines.push({
-        label: `VAT (${rateLabel})`,
-        amount: vat,
-      });
-    } else if (taxAndDuty !== 0 && importTax === 0) {
-      lines.push({
-        label: "Thuế & phí",
-        amount: taxAndDuty,
+        label: rateLabel ? `VAT (${rateLabel})` : vat > 0 ? "VAT" : "Thuế & phí",
+        amount: resolvedVat,
       });
     }
 
@@ -873,6 +1011,50 @@ export function getQuotationDisplayLines(quotation) {
       amount: fee.amount,
     })),
   ];
+}
+
+/** Sau send: giữ breakdown FE nếu BE trả snapshot thưa (thiếu additionalFees / lệch tổng). */
+export function mergeSentQuotationSnapshot(apiQuotation, localQuotation) {
+  if (!localQuotation) return apiQuotation ?? null;
+  if (!apiQuotation) return localQuotation;
+
+  const apiFees = apiQuotation.additionalFees ?? [];
+  const localFees = localQuotation.additionalFees ?? [];
+  const preferLocalFees =
+    localFees.length > 0 &&
+    (apiFees.length === 0 ||
+      Math.abs((Number(apiQuotation.total) || 0) - (Number(localQuotation.total) || 0)) > 1);
+
+  return {
+    ...apiQuotation,
+    ...localQuotation,
+    ...apiQuotation,
+    additionalFees: preferLocalFees ? localFees : apiFees.length ? apiFees : localFees,
+    mainServiceAmount:
+      localQuotation.mainServiceAmount ?? apiQuotation.mainServiceAmount,
+    estimatedFreightCharge:
+      localQuotation.estimatedFreightCharge ??
+      apiQuotation.estimatedFreightCharge ??
+      localQuotation.mainServiceAmount,
+    serviceFee: preferLocalFees
+      ? localQuotation.serviceFee ?? apiQuotation.serviceFee
+      : apiQuotation.serviceFee ?? localQuotation.serviceFee,
+    vat: preferLocalFees
+      ? localQuotation.vat ?? apiQuotation.vat
+      : apiQuotation.vat ?? localQuotation.vat,
+    importTax: apiQuotation.importTax ?? localQuotation.importTax,
+    taxAndDuty: preferLocalFees
+      ? localQuotation.vat ?? apiQuotation.taxAndDuty
+      : apiQuotation.taxAndDuty ?? localQuotation.taxAndDuty,
+    total: preferLocalFees
+      ? localQuotation.total ?? apiQuotation.total
+      : apiQuotation.total ?? localQuotation.total,
+    totalEstimatedCost: preferLocalFees
+      ? localQuotation.totalEstimatedCost ?? localQuotation.total ?? apiQuotation.totalEstimatedCost
+      : apiQuotation.totalEstimatedCost ?? apiQuotation.total ?? localQuotation.totalEstimatedCost,
+    salesNote: localQuotation.salesNote || apiQuotation.salesNote,
+    sentAt: apiQuotation.sentAt ?? localQuotation.sentAt ?? new Date().toISOString(),
+  };
 }
 
 // ponytail: self-check — fail nếu công thức phụ phí / thuế lệch
@@ -926,4 +1108,48 @@ if (typeof process !== "undefined" && process.env?.NODE_ENV !== "production") {
     { ruleType: "VAT", feeCalculationType: "PERCENTAGE", percentageRate: 8 },
   ]);
   console.assert(_vatFromRules === 0.08, "resolveVatRate from PricingRule mismatch");
+
+  console.assert(
+    resolvePreferredMainServiceAmount(300000, 20000) === 300000,
+    "resolvePreferredMainServiceAmount must prefer local freight"
+  );
+  console.assert(
+    resolvePreferredMainServiceAmount(0, 20000) === 20000,
+    "resolvePreferredMainServiceAmount falls back to API when local is 0"
+  );
+  console.assert(
+    canEditQuotationFeeSelection({ status: "PENDING" }) === true &&
+      canEditQuotationFeeSelection({ sentAt: "2026-01-01" }) === false &&
+      canEditQuotationFeeSelection({ status: "QUOTATION_SENT" }) === false,
+    "canEditQuotationFeeSelection mismatch"
+  );
+
+  const _selectedLines = buildDefaultAdditionalFeeLines({
+    fees: [
+      {
+        id: "wood",
+        code: "WOOD_CRATE",
+        name: "Đóng thùng gỗ",
+        feeCalculationType: "FIXED",
+        fixedAmount: 35000,
+      },
+      {
+        id: "domestic",
+        code: "DOMESTIC_FEE",
+        name: "Phí nội địa",
+        feeCalculationType: "FIXED",
+        fixedAmount: 5000,
+        ruleType: "DOMESTIC_FEE",
+      },
+    ],
+    packageCount: 1,
+    declaredValue: 0,
+    mainServiceAmount: 300000,
+    selectedPricingRuleIds: ["wood"],
+  });
+  console.assert(
+    _selectedLines.find((line) => line.feeId === "wood")?.enabled === true &&
+      _selectedLines.find((line) => line.feeId === "domestic")?.enabled === true,
+    "selectedPricingRuleIds must keep domestic fee enabled"
+  );
 }

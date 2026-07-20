@@ -1,4 +1,5 @@
 import { volumeCm3ToM3 } from "@/utils/servicePricingService";
+import { formatDateTimeLocal } from "@/utils/dateTime";
 
 /** Chuẩn hóa response backend VCL → shape FE đang dùng. */
 
@@ -32,12 +33,7 @@ export function normalizeConsignmentStatus(status) {
 }
 
 function formatUserDate(iso) {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("vi-VN", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
+  return formatDateTimeLocal(iso, { dateOnly: true });
 }
 
 /** Tên hiển thị từ vài key BE thường dùng; bỏ "—" giả. */
@@ -150,6 +146,7 @@ export function normalizeConsignmentSummary(item) {
     receiverPhone: receiver.phone ?? pickDisplayName(item.phone) ?? null,
     receiverAddress: receiver.address ?? pickDisplayName(item.address) ?? null,
     requiresInspection: item.requiresInspection === true,
+    pricingRuleIds: Array.isArray(item.pricingRuleIds) ? item.pricingRuleIds : [],
     productNames,
     consignmentType:
       item.orderType ?? item.consignmentType ?? item.shippingOption ?? "—",
@@ -191,6 +188,25 @@ export function normalizeConsignmentQuotationFromApi(quotation) {
     quotation.quotationNote?.trim() ||
     null;
 
+  const additionalFees = Array.isArray(quotation.additionalFees)
+    ? quotation.additionalFees.map((fee) => ({
+        feeId: fee.feeId ?? fee.pricingRuleId ?? fee.id ?? null,
+        id: fee.id ?? fee.feeId ?? null,
+        code: fee.code ?? fee.feeType ?? null,
+        label: fee.label ?? fee.feeName ?? fee.name ?? fee.code ?? "Phụ phí",
+        name: fee.feeName ?? fee.name ?? fee.label ?? null,
+        feeCalculationType:
+          fee.feeCalculationType ?? fee.calculationType ?? null,
+        unitPrice: fee.unitPrice ?? fee.value ?? null,
+        quantity: fee.quantity ?? null,
+        amount: fee.amount ?? fee.totalAmount ?? fee.shippingFee ?? 0,
+        enabled: fee.enabled !== false,
+        isRequired: fee.isRequired === true,
+        unitNoun: fee.unitNoun ?? null,
+        description: fee.note ?? fee.description ?? null,
+      }))
+    : quotation.additionalFees ?? null;
+
   return {
     id: quotation.quotationId ?? quotation.id,
     quotationId: quotation.quotationId ?? quotation.id,
@@ -205,8 +221,10 @@ export function normalizeConsignmentQuotationFromApi(quotation) {
     total: quotation.totalEstimatedCost ?? quotation.total ?? null,
     totalWeight: quotation.totalWeight ?? null,
     totalVolume: quotation.totalVolume ?? null,
+    volumetricWeight: quotation.volumetricWeight ?? null,
+    chargeableWeight: quotation.chargeableWeight ?? null,
     mainServiceAmount: quotation.mainServiceAmount ?? quotation.estimatedFreightCharge ?? null,
-    additionalFees: quotation.additionalFees ?? null,
+    additionalFees,
     discountPercent: quotation.discountPercent ?? null,
     salesNote,
     createdAt: quotation.createdAt ?? null,
@@ -319,6 +337,7 @@ export function normalizeConsignmentDetail(raw) {
     receiverPhone: receiver.phone,
     receiverAddress: receiver.address,
     requiresInspection: item.requiresInspection === true,
+    pricingRuleIds: Array.isArray(item.pricingRuleIds) ? item.pricingRuleIds : [],
     notes: item.note ?? item.notes,
     trackingCode: item.consignmentCode ?? item.trackingCode,
     rejectionReason: item.rejectionReason,
@@ -371,6 +390,7 @@ export function normalizeWarehouseFromApi(item) {
     name: item.name ?? item.warehouseName ?? "—",
     code: item.code ?? item.warehouseCode ?? null,
     address: item.address ?? null,
+    region: item.region ?? null,
     warehouseType: item.warehouseType ?? item.type ?? null,
     isActive: item.isActive !== false,
   };
@@ -387,6 +407,10 @@ export function toApiWarehousePayload(payload) {
     name: payload.name?.trim(),
     code: payload.code?.trim(),
     address: payload.address?.trim() || null,
+    region:
+      payload.region === undefined
+        ? undefined
+        : payload.region?.trim().toUpperCase() || null,
     warehouseType: payload.warehouseType || null,
     isActive: payload.isActive !== false,
   };
@@ -536,6 +560,9 @@ export function normalizeServicePricingFromApi(item) {
     currency: item.currency ?? "VND",
     effectiveDate: item.effectiveDate ?? item.effective_date ?? null,
     isActive: item.isActive !== false && item.status !== "INACTIVE",
+    boxPricingRules: (item.boxPricingRules ?? item.box_pricing_rules ?? []).map(
+      normalizeAdditionalServiceFeeFromApi
+    ),
   };
 }
 
@@ -624,13 +651,13 @@ function toApiAdditionalFeeDto(fee) {
   const feeId = isUuid(fee.feeId) ? fee.feeId : isUuid(fee.id) ? fee.id : null;
   if (!feeId) return null;
 
+  // Khớp AdditionalFeeDto swagger (additionalProperties: false).
   return {
     feeId,
     code: fee.code ?? null,
     label: fee.label ?? null,
     amount: Number(fee.amount) || 0,
     enabled: fee.enabled !== false,
-    isRequired: fee.isRequired === true,
   };
 }
 
@@ -1360,7 +1387,9 @@ export function toApiStaffConsignmentPayload(payload) {
     route,
     shippingOption,
     note: noteParts.join("\n") || null,
-    requiresInspection: payload.requiresInspection ?? false,
+    pricingRuleIds: Array.isArray(payload.pricingRuleIds)
+      ? payload.pricingRuleIds.filter(isUuid)
+      : [],
     items: payload.items.map((item) => ({
       productName: item.productName?.trim(),
       productType: item.productType?.trim() || "GENERAL",

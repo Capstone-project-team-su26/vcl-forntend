@@ -3,6 +3,7 @@ import { mockDelay } from "@/utils/mocks/mockDelay";
 import { apiRequest } from "@/utils/apiClient";
 import { listConsignments } from "@/utils/orderConsignmentService";
 import { formatMoney } from "@/utils/servicePricingService";
+import { formatDateTimeLocal } from "@/utils/dateTime";
 
 export const PAYMENT_STATUS_LABELS = {
   PENDING: "Chờ thanh toán",
@@ -305,16 +306,7 @@ export function formatPaymentAmount(amount) {
 }
 
 export function formatPaymentDate(isoDate) {
-  if (!isoDate) return "—";
-  const date = new Date(isoDate);
-  if (!Number.isFinite(date.getTime())) return "—";
-  return date.toLocaleString("vi-VN", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return formatDateTimeLocal(isoDate);
 }
 
 export function formatInstallmentType(type) {

@@ -21,9 +21,9 @@ export const SERVICE_TYPE_LABELS = {
 };
 
 export const UNIT_TYPE_LABELS = {
-  KG: "Theo kg",
-  CBM: "Theo m³ (CBM)",
-  KG_OR_CBM: "Kg hoặc m³ (lấy cao hơn)",
+  KG: "Theo cân tính phí (kg)",
+  CBM: "Theo thể tích (m³ / CBM)",
+  KG_OR_CBM: "Theo kg hoặc m³ — lấy mức cao hơn",
 };
 
 /**
@@ -481,10 +481,10 @@ export function buildMainServicePricingBreakdown(
       formula:
         volumetricWeight > 0
           ? `MAX(${formatKg(weight)}, ${formatKg(volumetricWeight)}) = ${formatKg(chargeableWeight)}`
-          : `${formatKg(chargeableWeight)} (theo cân thực — chưa có kích thước để quy đổi DIM)`,
+          : `${formatKg(chargeableWeight)} (theo cân thực tế — chưa có kích thước để quy đổi DIM)`,
       note:
         volumetricWeight > 0
-          ? `${formatKg(weight)} = cân thực · ${formatKg(volumetricWeight)} = DIM — lấy số lớn hơn để tính cước.`
+          ? `${formatKg(weight)} = cân thực tế · ${formatKg(volumetricWeight)} = cân DIM — lấy số lớn hơn để tính cước.`
           : null,
     });
   }
@@ -513,7 +513,7 @@ export function buildMainServicePricingBreakdown(
         amount = roundMoney(chargeableWeight * price);
         freightStep = {
           key: "freight",
-          title: "Cước dịch vụ chính",
+          title: "Cước chính",
           formula: `${formatKg(chargeableWeight)} × ${formatMoney(price)}/kg = ${formatMoney(amount)}`,
           note: hasConfiguredPricing
             ? `Đơn giá từ bảng giá ${formatServicePricingRoute(servicePricing)}.`
@@ -527,7 +527,7 @@ export function buildMainServicePricingBreakdown(
         amount = roundMoney(volumeM3Value * price);
         freightStep = {
           key: "freight",
-          title: "Cước dịch vụ chính",
+          title: "Cước chính",
           formula: `${formatM3(volumeM3Value)} × ${formatMoney(price)}/m³ = ${formatMoney(amount)}`,
           note: hasConfiguredPricing
             ? `Đơn giá từ bảng giá ${formatServicePricingRoute(servicePricing)} — tính theo m³ (CBM).`
@@ -550,7 +550,7 @@ export function buildMainServicePricingBreakdown(
 
         freightStep = {
           key: "freight",
-          title: "Cước dịch vụ chính",
+          title: "Cước chính",
           formula:
             useKg && byKg != null
               ? `${formatKg(chargeableWeight)} × ${formatMoney(pricePerKg)}/kg = ${formatMoney(byKg)}`
@@ -573,26 +573,18 @@ export function buildMainServicePricingBreakdown(
 
   if (!freightStep && estimate?.estimatedFreightCharge != null && Number(estimate.estimatedFreightCharge) > 0) {
     const apiAmount = roundMoney(estimate.estimatedFreightCharge);
-    // Bỏ qua cước BE nếu phình bất thường so với ước lượng local (kg × đơn giá).
-    const localGuess =
-      unitType === "KG" && price > 0 && chargeableWeight > 0
-        ? roundMoney(chargeableWeight * price)
-        : 0;
-    const apiLooksInflated = localGuess > 0 && apiAmount > localGuess * 50;
-
-    if (!apiLooksInflated) {
-      amount = apiAmount;
-      freightStep = {
-        key: "freight",
-        title: "Cước dịch vụ chính",
-        formula: `${formatMoney(amount)} (từ báo giá hệ thống)`,
-        note: "BE đã tính sẵn — khớp với bảng giá dịch vụ chính.",
-      };
-    }
+    // Chỉ dùng cước BE khi chưa tính được local (thiếu đơn giá / unitType).
+    amount = apiAmount;
+    freightStep = {
+      key: "freight",
+      title: "Cước chính",
+      formula: `${formatMoney(amount)} (từ báo giá hệ thống)`,
+      note: "BE đã tính sẵn — khớp với bảng giá dịch vụ chính.",
+    };
   } else if (!freightStep) {
     freightStep = {
       key: "freight",
-      title: "Cước dịch vụ chính",
+      title: "Cước chính",
       formula: null,
       note: hasConfiguredPricing
         ? "Thiếu đơn giá hoặc thể tích — kiểm tra thông số trên yêu cầu ký gửi."

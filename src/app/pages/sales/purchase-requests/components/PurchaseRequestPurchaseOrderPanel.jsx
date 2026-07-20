@@ -366,7 +366,7 @@ export default function PurchaseRequestPurchaseOrderPanel({ id, backHref }) {
               Ngày tạo: {formatPurchaseRequestDate(detail.purchaseOrder.createdAt)}
             </p>
             <Link
-              href={ROUTES.sales.purchaseOrderStatus(detail.purchaseOrder.id)}
+              href={ROUTES.sales.purchaseOrderStatus(detail.id)}
               className="inline-flex items-center gap-2 h-10 px-4 rounded-lg border border-primary/30 bg-primary/5 text-primary text-sm font-bold hover:bg-primary/10"
             >
               <Icon icon="lucide:refresh-cw" className="w-4 h-4" />
