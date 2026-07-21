@@ -13,6 +13,7 @@ import { getErrorMessage } from "@/utils/apiError";
 import { ROUTES } from "@/utils/appRoutes";
 import { isAdminRole, isSaleRole, isOpsRole, isStaffRole } from "@/utils/routing";
 import { isPublicPath, resolvePostLoginPath } from "@/utils/routeAccess";
+import { toast } from "@/app/components/ToastProvider";
 
 export function useAuth() {
   const router = useRouter();
@@ -32,8 +33,11 @@ export function useAuth() {
       setSessionState(nextSession);
       const path = resolvePostLoginPath(auth.role, redirectTo);
       if (typeof window !== "undefined" && !isPublicPath(path)) {
+        // Hard navigate → flash so toast survives full reload.
+        toast.flashSuccess("Đăng nhập thành công.");
         window.location.assign(path);
       } else {
+        toast.success("Đăng nhập thành công.");
         router.push(path);
       }
       return auth;
@@ -51,6 +55,7 @@ export function useAuth() {
   const logout = useCallback(() => {
     clearSession();
     setSessionState(null);
+    toast.success("Đăng xuất thành công.");
     router.push(ROUTES.auth.login);
   }, [router]);
 

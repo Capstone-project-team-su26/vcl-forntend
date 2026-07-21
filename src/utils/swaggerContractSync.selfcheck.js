@@ -25,11 +25,34 @@ const staffPayload = toApiStaffConsignmentPayload({
   serviceType: "STANDARD",
   requiresInspection: true,
   pricingRuleIds: [ruleId, "invalid"],
-  items: [{ productName: "Loa", quantity: 1 }],
+  receiverName: "Nguyen Van A",
+  receiverPhone: "0901234567",
+  receiverAddress: "Ha Noi",
+  warehouseCode: "CN-GZ",
+  items: [
+    {
+      productName: "Loa",
+      quantity: 1,
+      length: 30,
+      width: 20,
+      height: 15,
+      packageConfigurationId: pkgId,
+      domesticTrackingCode: "SF123",
+      referenceUrls: ["https://example.com/a.jpg"],
+    },
+  ],
 });
 
 if ("requiresInspection" in staffPayload) throw new Error("removed Swagger field leaked");
 if (staffPayload.pricingRuleIds.join() !== ruleId) throw new Error("pricingRuleIds mismatch");
+if (staffPayload.receiverName !== "Nguyen Van A") throw new Error("receiverName missing");
+if (staffPayload.items[0].length !== 30) throw new Error("item length missing");
+if (staffPayload.items[0].packageConfigurationId !== pkgId) {
+  throw new Error("packageConfigurationId missing");
+}
+if (!String(staffPayload.note || "").includes("CN-GZ")) {
+  throw new Error("warehouse note missing");
+}
 
 const pricing = normalizeServicePricingFromApi({
   id: "pricing-1",

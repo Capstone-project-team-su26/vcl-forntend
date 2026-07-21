@@ -10,9 +10,32 @@ import {
 } from "react";
 
 const ToastContext = createContext(null);
+/** Survives full-page redirects (e.g. login → dashboard). */
+const FLASH_KEY = "vcl_toast_flash";
 
 /** @type {null | ((toast: { message: string, type?: string, duration?: number }) => void)} */
 let pushExternal = null;
+
+/**
+ * Queue a toast for the next page load (sessionStorage).
+ * @param {string} message
+ * @param {{ type?: "success" | "error" | "info", duration?: number }} [options]
+ */
+export function queueToast(message, options = {}) {
+  if (!message || typeof window === "undefined") return;
+  try {
+    sessionStorage.setItem(
+      FLASH_KEY,
+      JSON.stringify({
+        message,
+        type: options.type ?? "info",
+        duration: options.duration,
+      })
+    );
+  } catch {
+    // ignore quota / private mode
+  }
+}
 
 /**
  * Imperative toast API (works outside React components once provider is mounted).
@@ -29,6 +52,12 @@ toast.error = (message, duration) =>
   toast(message, { type: "error", duration });
 toast.info = (message, duration) =>
   toast(message, { type: "info", duration });
+/** Prefer when the next step is a hard navigation (`location.assign` / full reload). */
+toast.flash = (message, options = {}) => queueToast(message, options);
+toast.flashSuccess = (message, duration) =>
+  queueToast(message, { type: "success", duration });
+toast.flashError = (message, duration) =>
+  queueToast(message, { type: "error", duration });
 
 export function useToast() {
   const ctx = useContext(ToastContext);
@@ -37,6 +66,9 @@ export function useToast() {
       success: toast.success,
       error: toast.error,
       info: toast.info,
+      flash: toast.flash,
+      flashSuccess: toast.flashSuccess,
+      flashError: toast.flashError,
       push: toast,
     };
   }
@@ -102,6 +134,9 @@ export default function ToastProvider({ children }) {
     success: (message, duration) => push({ message, type: "success", duration }),
     error: (message, duration) => push({ message, type: "error", duration }),
     info: (message, duration) => push({ message, type: "info", duration }),
+    flash: toast.flash,
+    flashSuccess: toast.flashSuccess,
+    flashError: toast.flashError,
   };
 
   useEffect(() => {
@@ -109,6 +144,18 @@ export default function ToastProvider({ children }) {
     return () => {
       pushExternal = null;
     };
+  }, [push]);
+
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(FLASH_KEY);
+      if (!raw) return;
+      sessionStorage.removeItem(FLASH_KEY);
+      const data = JSON.parse(raw);
+      if (data?.message) push(data);
+    } catch {
+      // ignore
+    }
   }, [push]);
 
   return (

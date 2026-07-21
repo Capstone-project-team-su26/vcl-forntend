@@ -740,7 +740,12 @@ export function toApiStaffConsignmentPayload(payload) {
     route = payload.warehouseCode?.trim() || "US";
   }
 
-  const noteParts = [payload.salesNote?.trim()].filter(Boolean);
+  const noteParts = [payload.salesNote?.trim() || payload.note?.trim()].filter(Boolean);
+  if (payload.warehouseCode?.trim()) {
+    noteParts.push(`Kho quốc tế: ${payload.warehouseCode.trim()}`);
+  } else if (payload.warehouseId) {
+    noteParts.push(`Kho quốc tế (id): ${payload.warehouseId}`);
+  }
 
   if (payload.quotation) {
     noteParts.push(
@@ -748,10 +753,19 @@ export function toApiStaffConsignmentPayload(payload) {
     );
   }
 
+  const toNullableNumber = (value) => {
+    if (value === "" || value == null) return null;
+    const num = Number(value);
+    return Number.isFinite(num) ? num : null;
+  };
+
   return {
     customerId: payload.customerId,
     route,
     shippingOption,
+    receiverName: payload.receiverName?.trim() || null,
+    receiverPhone: payload.receiverPhone?.trim() || null,
+    receiverAddress: payload.receiverAddress?.trim() || null,
     note: noteParts.join("\n") || null,
     pricingRuleIds: Array.isArray(payload.pricingRuleIds)
       ? payload.pricingRuleIds.filter(isUuid)
@@ -769,6 +783,13 @@ export function toApiStaffConsignmentPayload(payload) {
         .map((url) => (typeof url === "string" ? url.trim() : ""))
         .filter(Boolean);
 
+      const length = toNullableNumber(item.length);
+      const width = toNullableNumber(item.width);
+      const height = toNullableNumber(item.height);
+      const packageConfigurationId = isUuid(item.packageConfigurationId)
+        ? item.packageConfigurationId
+        : null;
+
       return {
         productName: item.productName?.trim(),
         productType: item.productType?.trim() || "GENERAL",
@@ -777,13 +798,18 @@ export function toApiStaffConsignmentPayload(payload) {
           item.estimatedWeight === "" || item.estimatedWeight == null
             ? payload.weightKg != null
               ? Number(payload.weightKg)
-              : null
+              : toNullableNumber(item.weight)
             : Number(item.estimatedWeight),
+        length,
+        width,
+        height,
         declaredValue:
           item.declaredValue === "" || item.declaredValue == null
             ? null
             : Number(item.declaredValue),
         referenceUrls: referenceUrls.length ? referenceUrls : null,
+        domesticTrackingCode: item.domesticTrackingCode?.trim() || null,
+        packageConfigurationId,
       };
     }),
   };

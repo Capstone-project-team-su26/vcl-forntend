@@ -419,11 +419,18 @@ export default function WarehouseLayoutPage() {
                 >
                   {board.grid.map((row, rowIndex) =>
                     row.map((cell, colIndex) => (
-                      <button
+                      <div
                         key={`${rowIndex}-${colIndex}`}
-                        type="button"
+                        role={cell ? undefined : "button"}
+                        tabIndex={cell ? undefined : 0}
                         onClick={() => {
                           if (cell) return;
+                          pickEmptySlot(rowIndex, colIndex);
+                        }}
+                        onKeyDown={(event) => {
+                          if (cell) return;
+                          if (event.key !== "Enter" && event.key !== " ") return;
+                          event.preventDefault();
                           pickEmptySlot(rowIndex, colIndex);
                         }}
                         className={`min-h-16 rounded-lg border px-2 py-2 text-left transition-opacity ${cellTone(cell)} ${
@@ -457,7 +464,7 @@ export default function WarehouseLayoutPage() {
                             {rowIndex},{colIndex}
                           </p>
                         )}
-                      </button>
+                      </div>
                     ))
                   )}
                 </div>
