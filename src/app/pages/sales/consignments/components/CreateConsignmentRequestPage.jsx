@@ -37,6 +37,22 @@ function FieldLabel({ htmlFor, children, required }) {
   );
 }
 
+function FormSection({ icon, title, children, className = "" }) {
+  return (
+    <section
+      className={`rounded-xl border border-border-muted bg-surface-elevated p-5 sm:p-6 space-y-4 ${className}`}
+    >
+      <div className="flex items-center gap-2.5">
+        <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
+          <Icon icon={icon} className="w-4 h-4" />
+        </span>
+        <h2 className="text-base font-bold text-ink">{title}</h2>
+      </div>
+      {children}
+    </section>
+  );
+}
+
 function createEmptyItem() {
   return {
     key: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -144,6 +160,21 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
       availableIds.has(id)
     );
   }, [boxPricingRules, selectedPricingRuleIds]);
+
+  const itemSummary = useMemo(() => {
+    let totalQty = 0;
+    let totalWeight = 0;
+    for (const item of items) {
+      totalQty += Number(item.quantity) || 0;
+      totalWeight += Number(item.weightKg) || 0;
+    }
+    return {
+      packageCount: items.length,
+      totalQty,
+      totalWeight,
+      selectedServiceCount: activePricingRuleIds.length,
+    };
+  }, [items, activePricingRuleIds]);
 
   function applyCustomerReceiverDefaults(customer) {
     if (!customer) return;
@@ -434,7 +465,7 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
   }
 
   return (
-    <div className="space-y-8 max-w-3xl">
+    <div className="space-y-6 max-w-6xl">
       <div>
         <Link
           href={ROUTES.sales.consignments}
@@ -463,541 +494,600 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
         </div>
       ) : null}
 
-      <form onSubmit={handleSubmit} className="space-y-8">
-        <section className="rounded-xl border border-border-muted bg-surface-elevated p-6 space-y-4">
-          <h2 className="text-lg font-bold text-ink">Khách hàng</h2>
-          {selectedCustomer ? (
-            <div className="rounded-lg border border-border-muted bg-surface p-4 flex items-start justify-between gap-3">
-              <div>
-                <p className="text-base font-bold text-ink">{selectedCustomer.fullName}</p>
-                <p className="text-xs text-muted mt-1">
-                  {[selectedCustomer.email, selectedCustomer.phone].filter(Boolean).join(" · ") ||
-                    `Mã: ${selectedCustomer.id}`}
-                </p>
+      <form
+        onSubmit={handleSubmit}
+        className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_380px] gap-5 lg:gap-6 items-start"
+      >
+        <div className="space-y-4 min-w-0">
+          <FormSection icon="lucide:send" title="Khách hàng / Người gửi">
+            {selectedCustomer ? (
+              <div className="rounded-lg border border-border-muted bg-surface p-4 flex items-start justify-between gap-3">
+                <div className="min-w-0 grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1">
+                  <div>
+                    <p className="text-xs font-medium text-muted mb-1">Họ tên</p>
+                    <p className="text-sm font-bold text-ink truncate">{selectedCustomer.fullName}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-muted mb-1">Số điện thoại</p>
+                    <p className="text-sm font-semibold text-ink">
+                      {selectedCustomer.phone || "—"}
+                    </p>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <p className="text-xs font-medium text-muted mb-1">Email / Địa chỉ</p>
+                    <p className="text-sm text-ink wrap-break-word">
+                      {[selectedCustomer.email, selectedCustomer.address]
+                        .filter(Boolean)
+                        .join(" · ") || `Mã: ${selectedCustomer.id}`}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedCustomer(null)}
+                  className="text-sm font-semibold text-primary hover:underline shrink-0"
+                >
+                  Đổi khách
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setSelectedCustomer(null)}
-                className="text-sm font-semibold text-primary hover:underline shrink-0"
-              >
-                Đổi khách
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <div className="relative">
-                <Icon
-                  icon="lucide:search"
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted"
-                />
+            ) : (
+              <div className="space-y-3">
+                <div className="relative">
+                  <Icon
+                    icon="lucide:search"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted"
+                  />
+                  <input
+                    type="search"
+                    value={customerSearch}
+                    onChange={(event) => setCustomerSearch(event.target.value)}
+                    placeholder="Tên, email, SĐT, mã khách..."
+                    className="w-full h-11 pl-10 pr-4 rounded-lg border border-border-muted text-sm input-focus-ring"
+                  />
+                </div>
+                {customerSearchError ? (
+                  <p className="text-sm text-danger">{customerSearchError}</p>
+                ) : null}
+                {customerSearch.trim() && !isSearchingCustomers ? (
+                  <ul className="rounded-lg border border-border-muted divide-y divide-border-muted overflow-hidden">
+                    {customerResults.length === 0 ? (
+                      <li className="px-4 py-3 text-sm text-muted">Không tìm thấy khách hàng.</li>
+                    ) : (
+                      customerResults.map((customer) => (
+                        <li key={customer.id}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedCustomer(customer);
+                              applyCustomerReceiverDefaults(customer);
+                              setCustomerSearch("");
+                              setCustomerResults([]);
+                            }}
+                            className="w-full text-left px-4 py-3 hover:bg-surface transition-colors"
+                          >
+                            <p className="text-sm font-semibold text-ink">{customer.fullName}</p>
+                            <p className="text-xs text-muted mt-0.5">
+                              {[customer.email, customer.phone].filter(Boolean).join(" · ")}
+                            </p>
+                          </button>
+                        </li>
+                      ))
+                    )}
+                  </ul>
+                ) : null}
+              </div>
+            )}
+          </FormSection>
+
+          <FormSection icon="lucide:map-pin" title="Người nhận">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <FieldLabel htmlFor="receiverName" required>
+                  Họ tên
+                </FieldLabel>
                 <input
-                  type="search"
-                  value={customerSearch}
-                  onChange={(event) => setCustomerSearch(event.target.value)}
-                  placeholder="Tên, email, SĐT, mã khách..."
-                  className="w-full h-11 pl-10 pr-4 rounded-lg border border-border-muted text-sm input-focus-ring"
+                  id="receiverName"
+                  value={receiverName}
+                  onChange={(event) => setReceiverName(event.target.value)}
+                  className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
                 />
               </div>
-              {customerSearchError ? (
-                <p className="text-sm text-danger">{customerSearchError}</p>
-              ) : null}
-              {customerSearch.trim() && !isSearchingCustomers ? (
-                <ul className="rounded-lg border border-border-muted divide-y divide-border-muted overflow-hidden">
-                  {customerResults.length === 0 ? (
-                    <li className="px-4 py-3 text-sm text-muted">Không tìm thấy khách hàng.</li>
-                  ) : (
-                    customerResults.map((customer) => (
-                      <li key={customer.id}>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedCustomer(customer);
-                            applyCustomerReceiverDefaults(customer);
-                            setCustomerSearch("");
-                            setCustomerResults([]);
-                          }}
-                          className="w-full text-left px-4 py-3 hover:bg-surface transition-colors"
-                        >
-                          <p className="text-sm font-semibold text-ink">{customer.fullName}</p>
-                          <p className="text-xs text-muted mt-0.5">
-                            {[customer.email, customer.phone].filter(Boolean).join(" · ")}
-                          </p>
-                        </button>
-                      </li>
-                    ))
-                  )}
-                </ul>
-              ) : null}
+              <div className="space-y-2">
+                <FieldLabel htmlFor="receiverPhone" required>
+                  Số điện thoại
+                </FieldLabel>
+                <input
+                  id="receiverPhone"
+                  value={receiverPhone}
+                  onChange={(event) => setReceiverPhone(event.target.value)}
+                  className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
+                />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <FieldLabel htmlFor="receiverAddress" required>
+                  Địa chỉ nhận hàng
+                </FieldLabel>
+                <textarea
+                  id="receiverAddress"
+                  rows={2}
+                  value={receiverAddress}
+                  onChange={(event) => setReceiverAddress(event.target.value)}
+                  className="w-full px-4 py-3 rounded-lg border border-border-muted text-sm input-focus-ring resize-y"
+                />
+              </div>
+            </div>
+          </FormSection>
+
+          {items.map((item, index) => {
+            const volume = itemVolumeCm3(item);
+            const isUploading = uploadingItemKey === item.key;
+            return (
+              <FormSection
+                key={item.key}
+                icon="lucide:package"
+                title={`Kiện hàng #${index + 1}`}
+              >
+                <div className="flex items-start justify-between gap-3 -mt-1">
+                  <p className="text-xs text-muted">Thông tin sản phẩm & kích thước kiện</p>
+                  {items.length > 1 ? (
+                    <button
+                      type="button"
+                      onClick={() => removeItem(item.key)}
+                      className="text-sm font-semibold text-danger hover:underline shrink-0"
+                    >
+                      Xóa kiện
+                    </button>
+                  ) : null}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="space-y-2 sm:col-span-2 lg:col-span-3">
+                    <FieldLabel htmlFor={`productName-${item.key}`} required>
+                      Tên sản phẩm
+                    </FieldLabel>
+                    <input
+                      id={`productName-${item.key}`}
+                      value={item.productName}
+                      onChange={(event) =>
+                        updateItem(item.key, { productName: event.target.value })
+                      }
+                      placeholder="VD: Loa Bluetooth JBL Charge 5"
+                      className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <FieldLabel htmlFor={`productType-${item.key}`} required>
+                      Loại hàng hóa
+                    </FieldLabel>
+                    <select
+                      id={`productType-${item.key}`}
+                      value={item.productType}
+                      onChange={(event) =>
+                        updateItem(item.key, { productType: event.target.value })
+                      }
+                      className="form-select input-focus-ring"
+                    >
+                      <option value="">Chọn loại hàng...</option>
+                      {productTypes.map((type) => (
+                        <option key={type.id} value={type.id}>
+                          {type.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <FieldLabel htmlFor={`quantity-${item.key}`} required>
+                      Số lượng
+                    </FieldLabel>
+                    <input
+                      id={`quantity-${item.key}`}
+                      type="number"
+                      min="1"
+                      value={item.quantity}
+                      onChange={(event) =>
+                        updateItem(item.key, { quantity: event.target.value })
+                      }
+                      className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <FieldLabel htmlFor={`declaredValue-${item.key}`}>
+                      Giá trị (VND)
+                    </FieldLabel>
+                    <VndMoneyInput
+                      id={`declaredValue-${item.key}`}
+                      value={item.declaredValue}
+                      onChange={(value) => updateItem(item.key, { declaredValue: value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <FieldLabel htmlFor={`weightKg-${item.key}`} required>
+                      Cân nặng (kg)
+                    </FieldLabel>
+                    <input
+                      id={`weightKg-${item.key}`}
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      value={item.weightKg}
+                      onChange={(event) =>
+                        updateItem(item.key, { weightKg: event.target.value })
+                      }
+                      className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
+                    />
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <FieldLabel required>Kích thước D × R × C (cm)</FieldLabel>
+                    <div className="grid grid-cols-3 gap-2">
+                      <input
+                        id={`lengthCm-${item.key}`}
+                        type="number"
+                        min="0.1"
+                        step="0.1"
+                        value={item.lengthCm}
+                        onChange={(event) =>
+                          updateItem(item.key, { lengthCm: event.target.value })
+                        }
+                        placeholder="Dài"
+                        aria-label="Dài (cm)"
+                        className="w-full h-11 px-3 rounded-lg border border-border-muted text-sm input-focus-ring"
+                      />
+                      <input
+                        id={`widthCm-${item.key}`}
+                        type="number"
+                        min="0.1"
+                        step="0.1"
+                        value={item.widthCm}
+                        onChange={(event) =>
+                          updateItem(item.key, { widthCm: event.target.value })
+                        }
+                        placeholder="Rộng"
+                        aria-label="Rộng (cm)"
+                        className="w-full h-11 px-3 rounded-lg border border-border-muted text-sm input-focus-ring"
+                      />
+                      <input
+                        id={`heightCm-${item.key}`}
+                        type="number"
+                        min="0.1"
+                        step="0.1"
+                        value={item.heightCm}
+                        onChange={(event) =>
+                          updateItem(item.key, { heightCm: event.target.value })
+                        }
+                        placeholder="Cao"
+                        aria-label="Cao (cm)"
+                        className="w-full h-11 px-3 rounded-lg border border-border-muted text-sm input-focus-ring"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <FieldLabel htmlFor={`volume-${item.key}`}>Thể tích</FieldLabel>
+                    <p
+                      id={`volume-${item.key}`}
+                      className="h-11 px-4 rounded-lg border border-border-muted bg-surface text-sm flex items-center text-muted"
+                    >
+                      {volume != null
+                        ? `${volume.toLocaleString("vi-VN")} cm³ ≈ ${formatVolumeCm3(volume)}`
+                        : "Nhập D × R × C"}
+                    </p>
+                  </div>
+                  <div className="space-y-2 sm:col-span-2 lg:col-span-3">
+                    <FieldLabel htmlFor={`images-${item.key}`}>
+                      Ảnh sản phẩm kiện {index + 1}
+                    </FieldLabel>
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => {
+                        if (isUploading || item.imageUrls.length >= MAX_IMAGES_PER_ITEM) return;
+                        document.getElementById(`images-${item.key}`)?.click();
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key !== "Enter" && event.key !== " ") return;
+                        event.preventDefault();
+                        if (isUploading || item.imageUrls.length >= MAX_IMAGES_PER_ITEM) return;
+                        document.getElementById(`images-${item.key}`)?.click();
+                      }}
+                      onDragEnter={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        if (!isUploading && item.imageUrls.length < MAX_IMAGES_PER_ITEM) {
+                          setDragOverItemKey(item.key);
+                        }
+                      }}
+                      onDragOver={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                      }}
+                      onDragLeave={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        if (event.currentTarget.contains(event.relatedTarget)) return;
+                        setDragOverItemKey((current) => (current === item.key ? "" : current));
+                      }}
+                      onDrop={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        setDragOverItemKey("");
+                        if (isUploading || item.imageUrls.length >= MAX_IMAGES_PER_ITEM) return;
+                        void handleUploadImages(item.key, event.dataTransfer.files);
+                      }}
+                      className={`flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed px-4 py-6 text-center cursor-pointer transition-colors ${
+                        isUploading ? "opacity-60 pointer-events-none " : ""
+                      }${
+                        dragOverItemKey === item.key
+                          ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                          : "border-border-muted bg-surface hover:bg-surface-elevated"
+                      }`}
+                    >
+                      <Icon
+                        icon={
+                          isUploading
+                            ? "lucide:loader-2"
+                            : dragOverItemKey === item.key
+                              ? "lucide:download"
+                              : "lucide:image-plus"
+                        }
+                        className={`w-6 h-6 ${
+                          dragOverItemKey === item.key ? "text-primary" : "text-muted"
+                        } ${isUploading ? "animate-spin" : ""}`}
+                      />
+                      <span className="text-sm font-semibold text-ink">
+                        {isUploading
+                          ? "Đang tải ảnh..."
+                          : dragOverItemKey === item.key
+                            ? "Thả ảnh vào đây"
+                            : "Kéo ảnh vào đây hoặc bấm để chọn"}
+                      </span>
+                      <span className="text-xs text-muted">
+                        JPG, PNG, WEBP — tối đa 5MB/ảnh — tối đa {MAX_IMAGES_PER_ITEM} ảnh/kiện
+                      </span>
+                      <span className="text-xs font-medium text-muted">
+                        {item.imageUrls.length}/{MAX_IMAGES_PER_ITEM} ảnh
+                      </span>
+                    </div>
+                    <input
+                      id={`images-${item.key}`}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+                      multiple
+                      className="sr-only"
+                      disabled={isUploading || item.imageUrls.length >= MAX_IMAGES_PER_ITEM}
+                      onChange={(event) => {
+                        void handleUploadImages(item.key, event.target.files);
+                        event.target.value = "";
+                      }}
+                    />
+                    {item.imageUrls.length ? (
+                      <ul className="flex flex-wrap gap-3 pt-1">
+                        {item.imageUrls.map((url) => (
+                          <li
+                            key={url}
+                            className="relative w-20 h-20 rounded-lg overflow-hidden border border-border-muted"
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={url} alt="" className="w-full h-full object-cover" />
+                            <button
+                              type="button"
+                              onClick={() =>
+                                updateItem(item.key, {
+                                  imageUrls: item.imageUrls.filter((entry) => entry !== url),
+                                })
+                              }
+                              className="absolute top-1 right-1 rounded-full bg-black/60 p-0.5 text-white"
+                              aria-label="Xóa ảnh"
+                            >
+                              <Icon icon="lucide:x" className="w-3.5 h-3.5" />
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </div>
+                </div>
+              </FormSection>
+            );
+          })}
+
+          <button
+            type="button"
+            onClick={addItem}
+            className="inline-flex items-center gap-2 h-11 px-4 rounded-lg border border-dashed border-border-muted text-sm font-bold text-ink hover:bg-surface w-full justify-center"
+          >
+            <Icon icon="lucide:plus" className="w-4 h-4" />
+            Thêm kiện hàng mới
+          </button>
+
+          {(isValidating || validationWarnings.length > 0) && (
+            <div className="space-y-2">
+              {validationWarnings.map((warning) => (
+                <div
+                  key={`${warning.productName}-${warning.restrictionType}`}
+                  className={`rounded-lg border px-4 py-3 text-sm ${
+                    ITEM_VALIDATION_STYLES[warning.restrictionType] ||
+                    "bg-surface text-muted border-border-muted"
+                  }`}
+                >
+                  <p className="font-bold">
+                    {ITEM_VALIDATION_LABELS[warning.restrictionType] || warning.restrictionType}
+                    {warning.productName ? ` — ${warning.productName}` : ""}
+                  </p>
+                </div>
+              ))}
             </div>
           )}
-        </section>
+        </div>
 
-        <section className="rounded-xl border border-border-muted bg-surface-elevated p-6 space-y-4">
-          <h2 className="text-lg font-bold text-ink">Tuyến hàng</h2>
-          <p className="text-xs text-muted -mt-2">
-            Chọn đúng tuyến vận chuyển phù hợp với nơi gửi và nơi nhận hàng.
-          </p>
-          <select
-            value={routeGroupKey}
-            onChange={(event) => setRouteGroupKey(event.target.value)}
-            className="form-select input-focus-ring"
-            required
-          >
-            <option value="">Chọn tuyến...</option>
-            {routeGroups.map((group) => (
-              <option key={group.key} value={group.key}>
-                {group.label}
-              </option>
-            ))}
-          </select>
-        </section>
+        <aside className="lg:sticky lg:top-4 space-y-4">
+          <FormSection icon="lucide:truck" title="Dịch vụ & vận chuyển">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <FieldLabel htmlFor="routeGroup" required>
+                  Tuyến hàng
+                </FieldLabel>
+                <select
+                  id="routeGroup"
+                  value={routeGroupKey}
+                  onChange={(event) => setRouteGroupKey(event.target.value)}
+                  className="form-select input-focus-ring"
+                  required
+                >
+                  <option value="">Chọn tuyến...</option>
+                  {routeGroups.map((group) => (
+                    <option key={group.key} value={group.key}>
+                      {group.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-        <section className="rounded-xl border border-border-muted bg-surface-elevated p-6 space-y-4">
-          <h2 className="text-lg font-bold text-ink">Hình thức vận chuyển</h2>
-          <select
-            value={serviceOptionKey}
-            onChange={(event) => setServiceOptionKey(event.target.value)}
-            className="form-select input-focus-ring"
-            required
-            disabled={!serviceOptions.length}
-          >
-            <option value="">Chọn hình thức...</option>
-            {serviceOptions.map((option) => (
-              <option key={option.key} value={option.key}>
-                {formatServiceTypeLabel(option.serviceType)}
-              </option>
-            ))}
-          </select>
-          {routeForCreate ? (
-            <p className="text-xs text-muted">
-              Route gửi BE: <span className="font-mono">{routeForCreate}</span>
-            </p>
-          ) : null}
-        </section>
-
-        <section className="rounded-xl border border-border-muted bg-surface-elevated p-6 space-y-4">
-          <h2 className="text-lg font-bold text-ink">Người nhận</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <FieldLabel htmlFor="receiverName" required>
-                Tên người nhận
-              </FieldLabel>
-              <input
-                id="receiverName"
-                value={receiverName}
-                onChange={(event) => setReceiverName(event.target.value)}
-                className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
-              />
-            </div>
-            <div className="space-y-2">
-              <FieldLabel htmlFor="receiverPhone" required>
-                Số điện thoại
-              </FieldLabel>
-              <input
-                id="receiverPhone"
-                value={receiverPhone}
-                onChange={(event) => setReceiverPhone(event.target.value)}
-                className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
-              />
-            </div>
-            <div className="space-y-2 sm:col-span-2">
-              <FieldLabel htmlFor="receiverAddress" required>
-                Địa chỉ nhận hàng
-              </FieldLabel>
-              <textarea
-                id="receiverAddress"
-                rows={2}
-                value={receiverAddress}
-                onChange={(event) => setReceiverAddress(event.target.value)}
-                className="w-full px-4 py-3 rounded-lg border border-border-muted text-sm input-focus-ring resize-y"
-              />
-            </div>
-          </div>
-        </section>
-
-        {items.map((item, index) => {
-          const volume = itemVolumeCm3(item);
-          const isUploading = uploadingItemKey === item.key;
-          return (
-            <section
-              key={item.key}
-              className="rounded-xl border border-border-muted bg-surface-elevated p-6 space-y-4"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary text-white text-sm font-bold">
-                    {index + 1}
-                  </span>
-                  <h2 className="text-lg font-bold text-ink">
-                    Thông tin sản phẩm kiện thứ {index + 1}
-                  </h2>
-                </div>
-                {items.length > 1 ? (
-                  <button
-                    type="button"
-                    onClick={() => removeItem(item.key)}
-                    className="text-sm font-semibold text-danger hover:underline"
-                  >
-                    Xóa kiện
-                  </button>
+              <div className="space-y-2">
+                <FieldLabel htmlFor="serviceOption" required>
+                  Hình thức vận chuyển
+                </FieldLabel>
+                <select
+                  id="serviceOption"
+                  value={serviceOptionKey}
+                  onChange={(event) => setServiceOptionKey(event.target.value)}
+                  className="form-select input-focus-ring"
+                  required
+                  disabled={!serviceOptions.length}
+                >
+                  <option value="">Chọn hình thức...</option>
+                  {serviceOptions.map((option) => (
+                    <option key={option.key} value={option.key}>
+                      {formatServiceTypeLabel(option.serviceType)}
+                    </option>
+                  ))}
+                </select>
+                {routeForCreate ? (
+                  <p className="text-xs text-muted">
+                    Route: <span className="font-mono">{routeForCreate}</span>
+                  </p>
                 ) : null}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2 sm:col-span-2">
-                  <FieldLabel htmlFor={`productName-${item.key}`} required>
-                    Tên sản phẩm
-                  </FieldLabel>
-                  <input
-                    id={`productName-${item.key}`}
-                    value={item.productName}
-                    onChange={(event) => updateItem(item.key, { productName: event.target.value })}
-                    placeholder="VD: Loa Bluetooth JBL Charge 5"
-                    className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <FieldLabel htmlFor={`productType-${item.key}`} required>
-                    Loại hàng hóa
-                  </FieldLabel>
-                  <select
-                    id={`productType-${item.key}`}
-                    value={item.productType}
-                    onChange={(event) => updateItem(item.key, { productType: event.target.value })}
-                    className="form-select input-focus-ring"
-                  >
-                    <option value="">Chọn loại hàng...</option>
-                    {productTypes.map((type) => (
-                      <option key={type.id} value={type.id}>
-                        {type.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <FieldLabel htmlFor={`quantity-${item.key}`} required>
-                    Số lượng sản phẩm
-                  </FieldLabel>
-                  <input
-                    id={`quantity-${item.key}`}
-                    type="number"
-                    min="1"
-                    value={item.quantity}
-                    onChange={(event) => updateItem(item.key, { quantity: event.target.value })}
-                    className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <FieldLabel htmlFor={`declaredValue-${item.key}`}>
-                    Giá trị kiện hàng (VND)
-                  </FieldLabel>
-                  <VndMoneyInput
-                    id={`declaredValue-${item.key}`}
-                    value={item.declaredValue}
-                    onChange={(value) => updateItem(item.key, { declaredValue: value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <FieldLabel htmlFor={`weightKg-${item.key}`} required>
-                    Cân nặng kiện hàng (kg)
-                  </FieldLabel>
-                  <input
-                    id={`weightKg-${item.key}`}
-                    type="number"
-                    min="0.01"
-                    step="0.01"
-                    value={item.weightKg}
-                    onChange={(event) => updateItem(item.key, { weightKg: event.target.value })}
-                    className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <FieldLabel htmlFor={`lengthCm-${item.key}`} required>
-                    Dài (cm)
-                  </FieldLabel>
-                  <input
-                    id={`lengthCm-${item.key}`}
-                    type="number"
-                    min="0.1"
-                    step="0.1"
-                    value={item.lengthCm}
-                    onChange={(event) => updateItem(item.key, { lengthCm: event.target.value })}
-                    className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <FieldLabel htmlFor={`widthCm-${item.key}`} required>
-                    Rộng (cm)
-                  </FieldLabel>
-                  <input
-                    id={`widthCm-${item.key}`}
-                    type="number"
-                    min="0.1"
-                    step="0.1"
-                    value={item.widthCm}
-                    onChange={(event) => updateItem(item.key, { widthCm: event.target.value })}
-                    className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <FieldLabel htmlFor={`heightCm-${item.key}`} required>
-                    Cao (cm)
-                  </FieldLabel>
-                  <input
-                    id={`heightCm-${item.key}`}
-                    type="number"
-                    min="0.1"
-                    step="0.1"
-                    value={item.heightCm}
-                    onChange={(event) => updateItem(item.key, { heightCm: event.target.value })}
-                    className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <FieldLabel htmlFor={`volume-${item.key}`}>Thể tích (tự tính)</FieldLabel>
-                  <p
-                    id={`volume-${item.key}`}
-                    className="h-11 px-4 rounded-lg border border-border-muted bg-surface text-sm flex items-center text-muted"
-                  >
-                    {volume != null
-                      ? `${volume.toLocaleString("vi-VN")} cm³ ≈ ${formatVolumeCm3(volume)}`
-                      : "Nhập D × R × C"}
-                  </p>
-                </div>
-                <div className="space-y-2 sm:col-span-2">
-                  <FieldLabel htmlFor={`images-${item.key}`}>
-                    Ảnh sản phẩm kiện {index + 1}
-                  </FieldLabel>
-                  <div
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => {
-                      if (isUploading || item.imageUrls.length >= MAX_IMAGES_PER_ITEM) return;
-                      document.getElementById(`images-${item.key}`)?.click();
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key !== "Enter" && event.key !== " ") return;
-                      event.preventDefault();
-                      if (isUploading || item.imageUrls.length >= MAX_IMAGES_PER_ITEM) return;
-                      document.getElementById(`images-${item.key}`)?.click();
-                    }}
-                    onDragEnter={(event) => {
-                      event.preventDefault();
-                      event.stopPropagation();
-                      if (!isUploading && item.imageUrls.length < MAX_IMAGES_PER_ITEM) {
-                        setDragOverItemKey(item.key);
-                      }
-                    }}
-                    onDragOver={(event) => {
-                      event.preventDefault();
-                      event.stopPropagation();
-                    }}
-                    onDragLeave={(event) => {
-                      event.preventDefault();
-                      event.stopPropagation();
-                      if (event.currentTarget.contains(event.relatedTarget)) return;
-                      setDragOverItemKey((current) => (current === item.key ? "" : current));
-                    }}
-                    onDrop={(event) => {
-                      event.preventDefault();
-                      event.stopPropagation();
-                      setDragOverItemKey("");
-                      if (isUploading || item.imageUrls.length >= MAX_IMAGES_PER_ITEM) return;
-                      void handleUploadImages(item.key, event.dataTransfer.files);
-                    }}
-                    className={`flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed px-4 py-6 text-center cursor-pointer transition-colors ${
-                      isUploading ? "opacity-60 pointer-events-none " : ""
-                    }${
-                      dragOverItemKey === item.key
-                        ? "border-primary bg-primary/5 ring-2 ring-primary/20"
-                        : "border-border-muted bg-surface hover:bg-surface-elevated"
-                    }`}
-                  >
-                    <Icon
-                      icon={
-                        isUploading
-                          ? "lucide:loader-2"
-                          : dragOverItemKey === item.key
-                            ? "lucide:download"
-                            : "lucide:image-plus"
-                      }
-                      className={`w-6 h-6 ${
-                        dragOverItemKey === item.key ? "text-primary" : "text-muted"
-                      } ${isUploading ? "animate-spin" : ""}`}
-                    />
-                    <span className="text-sm font-semibold text-ink">
-                      {isUploading
-                        ? "Đang tải ảnh..."
-                        : dragOverItemKey === item.key
-                          ? "Thả ảnh vào đây"
-                          : "Kéo ảnh vào đây hoặc bấm để chọn"}
-                    </span>
-                    <span className="text-xs text-muted">
-                      JPG, PNG, WEBP — tối đa 5MB/ảnh — tối đa {MAX_IMAGES_PER_ITEM} ảnh/kiện
-                    </span>
-                    <span className="text-xs font-medium text-muted">
-                      {item.imageUrls.length}/{MAX_IMAGES_PER_ITEM} ảnh
-                    </span>
-                  </div>
-                  <input
-                    id={`images-${item.key}`}
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
-                    multiple
-                    className="sr-only"
-                    disabled={isUploading || item.imageUrls.length >= MAX_IMAGES_PER_ITEM}
-                    onChange={(event) => {
-                      void handleUploadImages(item.key, event.target.files);
-                      event.target.value = "";
-                    }}
-                  />
-                  {item.imageUrls.length ? (
-                    <ul className="flex flex-wrap gap-3 pt-1">
-                      {item.imageUrls.map((url) => (
-                        <li key={url} className="relative w-20 h-20 rounded-lg overflow-hidden border border-border-muted">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={url} alt="" className="w-full h-full object-cover" />
-                          <button
-                            type="button"
-                            onClick={() =>
-                              updateItem(item.key, {
-                                imageUrls: item.imageUrls.filter((entry) => entry !== url),
-                              })
+              {boxPricingRules.length ? (
+                <fieldset className="space-y-2">
+                  <legend className="text-sm font-semibold text-ink">Dịch vụ phụ</legend>
+                  <div className="grid gap-2">
+                    {boxPricingRules.map((rule) => {
+                      const checked =
+                        rule.isRequired || selectedPricingRuleIds.includes(rule.id);
+                      return (
+                        <label
+                          key={rule.id}
+                          className="flex items-start gap-3 rounded-lg border border-border-muted bg-surface px-3 py-2.5 cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            disabled={rule.isRequired}
+                            onChange={(event) =>
+                              setSelectedPricingRuleIds((current) =>
+                                event.target.checked
+                                  ? [...new Set([...current, rule.id])]
+                                  : current.filter((id) => id !== rule.id)
+                              )
                             }
-                            className="absolute top-1 right-1 rounded-full bg-black/60 p-0.5 text-white"
-                            aria-label="Xóa ảnh"
-                          >
-                            <Icon icon="lucide:x" className="w-3.5 h-3.5" />
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : null}
-                </div>
+                            className="mt-0.5 h-4 w-4 accent-primary"
+                          />
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-sm font-semibold text-ink">
+                              {rule.name}
+                              {rule.isRequired ? " (bắt buộc)" : ""}
+                            </span>
+                            <span className="block text-xs text-muted mt-0.5">
+                              {[rule.description, formatFeeAmount(rule)]
+                                .filter(Boolean)
+                                .join(" · ")}
+                            </span>
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </fieldset>
+              ) : (
+                <p className="text-xs text-muted">Không có dịch vụ phụ cho tuyến này.</p>
+              )}
+
+              <div className="space-y-2">
+                <FieldLabel htmlFor="notes">Ghi chú đơn hàng</FieldLabel>
+                <textarea
+                  id="notes"
+                  rows={3}
+                  maxLength={1000}
+                  value={notes}
+                  onChange={(event) => setNotes(event.target.value)}
+                  placeholder="Ghi chú xử lý, yêu cầu đặc biệt..."
+                  className="w-full px-4 py-3 rounded-lg border border-border-muted text-sm input-focus-ring resize-y"
+                />
+                <p className="text-xs text-muted text-right">{notes.length}/1000</p>
               </div>
-            </section>
-          );
-        })}
+            </div>
 
-        <button
-          type="button"
-          onClick={addItem}
-          className="inline-flex items-center gap-2 h-11 px-4 rounded-lg border border-border-muted text-sm font-bold text-ink hover:bg-surface"
-        >
-          <Icon icon="lucide:plus" className="w-4 h-4" />
-          Thêm kiện hàng mới
-        </button>
-
-        <section className="rounded-xl border border-border-muted bg-surface-elevated p-6 space-y-4">
-          <h2 className="text-lg font-bold text-ink">
-            Ghi chú chung cho đơn ký gửi &amp; lựa chọn dịch vụ
-          </h2>
-
-          {boxPricingRules.length ? (
-            <fieldset className="space-y-3">
-              <legend className="text-sm font-semibold text-ink">Chọn loại dịch vụ</legend>
-              <p className="text-xs text-muted">Dịch vụ áp dụng cho toàn bộ đơn — không bắt buộc</p>
-              <div className="grid gap-2">
-                {boxPricingRules.map((rule) => {
-                  const checked =
-                    rule.isRequired || selectedPricingRuleIds.includes(rule.id);
-                  return (
-                    <label
-                      key={rule.id}
-                      className="flex items-start gap-3 rounded-lg border border-border-muted bg-surface px-4 py-3 cursor-pointer"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        disabled={rule.isRequired}
-                        onChange={(event) =>
-                          setSelectedPricingRuleIds((current) =>
-                            event.target.checked
-                              ? [...new Set([...current, rule.id])]
-                              : current.filter((id) => id !== rule.id)
-                          )
-                        }
-                        className="mt-0.5 h-4 w-4 accent-primary"
-                      />
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-sm font-semibold text-ink">
-                          {rule.name}
-                          {rule.isRequired ? " (bắt buộc)" : ""}
-                        </span>
-                        <span className="block text-xs text-muted mt-0.5">
-                          {[rule.description, formatFeeAmount(rule)].filter(Boolean).join(" · ")}
-                        </span>
-                      </span>
-                    </label>
-                  );
-                })}
+            <div className="rounded-lg border border-border-muted bg-surface px-4 py-3 space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted">Số kiện</span>
+                <span className="font-semibold text-ink">{itemSummary.packageCount}</span>
               </div>
-            </fieldset>
-          ) : (
-            <p className="text-sm text-muted">Không có dịch vụ phụ cho tuyến này.</p>
-          )}
-
-          <div className="space-y-2">
-            <FieldLabel htmlFor="notes">Ghi chú đơn hàng</FieldLabel>
-            <textarea
-              id="notes"
-              rows={3}
-              maxLength={1000}
-              value={notes}
-              onChange={(event) => setNotes(event.target.value)}
-              className="w-full px-4 py-3 rounded-lg border border-border-muted text-sm input-focus-ring resize-y"
-            />
-            <p className="text-xs text-muted text-right">{notes.length}/1000 ký tự</p>
-          </div>
-
-          <p className="text-xs text-muted rounded-lg border border-border-muted bg-surface px-4 py-3">
-            Lưu ý: Đơn hàng sẽ được nhân viên kiểm tra và xác nhận lại thông tin trước khi xử lý
-            (trạng thái chờ báo giá).
-          </p>
-        </section>
-
-        {(isValidating || validationWarnings.length > 0) && (
-          <div className="space-y-2">
-            {validationWarnings.map((warning) => (
-              <div
-                key={`${warning.productName}-${warning.restrictionType}`}
-                className={`rounded-lg border px-4 py-3 text-sm ${
-                  ITEM_VALIDATION_STYLES[warning.restrictionType] ||
-                  "bg-surface text-muted border-border-muted"
-                }`}
-              >
-                <p className="font-bold">
-                  {ITEM_VALIDATION_LABELS[warning.restrictionType] || warning.restrictionType}
-                  {warning.productName ? ` — ${warning.productName}` : ""}
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted">Tổng SL sản phẩm</span>
+                <span className="font-semibold text-ink">{itemSummary.totalQty}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted">Tổng cân nặng</span>
+                <span className="font-semibold text-ink">
+                  {itemSummary.totalWeight > 0
+                    ? `${itemSummary.totalWeight.toLocaleString("vi-VN")} kg`
+                    : "—"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted">Dịch vụ phụ đã chọn</span>
+                <span className="font-semibold text-ink">{itemSummary.selectedServiceCount}</span>
+              </div>
+              <div className="border-t border-border-muted pt-2 mt-1">
+                <p className="text-xs text-muted">
+                  Đơn vào trạng thái chờ báo giá — giá cuối xác nhận sau khi kiểm hàng.
                 </p>
               </div>
-            ))}
-          </div>
-        )}
+            </div>
 
-        {submitError ? (
-          <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
-            {submitError}
-          </div>
-        ) : null}
+            {submitError ? (
+              <div className="rounded-lg border border-danger/30 bg-danger/5 px-3 py-2.5 text-sm text-danger">
+                {submitError}
+              </div>
+            ) : null}
 
-        <button
-          type="submit"
-          disabled={isSubmitting || hasBannedItem || !routeOptions.length || Boolean(uploadingItemKey)}
-          className="inline-flex items-center justify-center gap-2 h-11 px-6 rounded-lg bg-primary text-white text-sm font-bold hover:bg-primary/90 disabled:opacity-50"
-        >
-          {isSubmitting ? (
-            <>
-              <Icon icon="lucide:loader-2" className="w-4 h-4 animate-spin" />
-              Đang tạo...
-            </>
-          ) : (
-            <>
-              <Icon icon="lucide:check" className="w-4 h-4" />
-              Xác nhận yêu cầu ký gửi
-            </>
-          )}
-        </button>
+            <button
+              type="submit"
+              disabled={
+                isSubmitting || hasBannedItem || !routeOptions.length || Boolean(uploadingItemKey)
+              }
+              className="w-full inline-flex items-center justify-center gap-2 h-12 px-6 rounded-lg bg-primary text-white text-sm font-bold hover:bg-primary/90 disabled:opacity-50"
+            >
+              {isSubmitting ? (
+                <>
+                  <Icon icon="lucide:loader-2" className="w-4 h-4 animate-spin" />
+                  Đang tạo...
+                </>
+              ) : (
+                <>
+                  <Icon icon="lucide:check" className="w-4 h-4" />
+                  Xác nhận yêu cầu ký gửi
+                </>
+              )}
+            </button>
+            <Link
+              href={ROUTES.sales.consignments}
+              className="block w-full text-center text-sm font-semibold text-muted hover:text-ink py-1"
+            >
+              Hủy
+            </Link>
+          </FormSection>
+        </aside>
       </form>
     </div>
   );
