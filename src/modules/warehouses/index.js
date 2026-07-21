@@ -89,11 +89,13 @@ export async function listWarehouses(params = {}) {
   return listWarehousesApi(params);
 }
 
+export async function listActiveWarehouses() {
+  if (isMockMode()) return listWarehousesMock({ isActive: true });
+  return listActiveWarehousesApi();
+}
+
 export async function listActiveDestinationWarehouses() {
-  const items = isMockMode()
-    ? await listWarehousesMock({ isActive: true })
-    : await listActiveWarehousesApi();
-  // Ops layout chỉ làm trên kho đích; nếu API không gắn type thì trả active.
+  const items = await listActiveWarehouses();
   const destinations = filterWarehousesByType(items, "Destination");
   return destinations.length ? destinations : items;
 }

@@ -122,7 +122,7 @@ export function normalizeWarehouseLocationListResponse(raw) {
 }
 
 export function toApiWarehouseLocationPayload(payload) {
-  return {
+  const body = {
     locationType: payload.locationType,
     code: payload.code?.trim(),
     name: payload.name?.trim(),
@@ -133,6 +133,25 @@ export function toApiWarehouseLocationPayload(payload) {
         : Number(payload.capacity),
     isActive: payload.isActive !== false,
   };
+
+  // Ops có thể đổi Zone/Shelf/Bin trên bản ghi storage (BE nhận nếu hỗ trợ).
+  if (payload.zoneName !== undefined) body.zoneName = payload.zoneName?.trim() || null;
+  if (payload.shelfCode !== undefined) body.shelfCode = payload.shelfCode?.trim() || null;
+  if (payload.binCode !== undefined) body.binCode = payload.binCode?.trim() || null;
+  if (payload.maxVolume !== undefined) {
+    body.maxVolume =
+      payload.maxVolume === "" || payload.maxVolume == null
+        ? null
+        : Number(payload.maxVolume);
+  }
+  if (payload.maxWeight !== undefined) {
+    body.maxWeight =
+      payload.maxWeight === "" || payload.maxWeight == null
+        ? null
+        : Number(payload.maxWeight);
+  }
+
+  return body;
 }
 
 export function normalizeLayoutCellFromApi(item) {
