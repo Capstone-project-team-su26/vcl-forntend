@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import AdminLayout from "@/app/pages/admin/components/AdminLayout";
 import DataTable from "@/app/components/DataTable";
-import * as orderConsignmentService from "@/utils/orderConsignmentService";
+import * as orderConsignmentService from "@/modules/consignments";
 import ConsignmentStatusBadge from "@/app/pages/sales/consignments/components/ConsignmentStatusBadge";
 import { getErrorMessage } from "@/utils/apiError";
 import { ROUTES } from "@/utils/appRoutes";

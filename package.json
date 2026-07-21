@@ -3,8 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --turbopack",
+    "dev:webpack": "next dev",
     "dev:turbo": "next dev --turbopack",
+    "clean": "node -e \"require('fs').rmSync('.next',{recursive:true,force:true}); console.log('Removed .next')\"",
     "build": "next build",
     "start": "next start",
     "preview": "next build && next start",
@@ -24,6 +26,7 @@
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
+    "sass": "^1.101.0",
     "tailwindcss": "^4"
   },
   "ignoreScripts": [

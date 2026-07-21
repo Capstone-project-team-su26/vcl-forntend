@@ -1,7 +1,7 @@
-"use client";
+import { redirect } from "next/navigation";
+import { ROUTES } from "@/utils/appRoutes";
 
-import StaffCustomersPage from "@/app/pages/sales/customers/components/StaffCustomersPage";
-
+/** Quản lý khách đã chuyển sang Admin → Quản lý khách. */
 export default function Page() {
-  return <StaffCustomersPage />;
+  redirect(ROUTES.sales.consignments);
 }

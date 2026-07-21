@@ -97,22 +97,21 @@ Swagger: xem host API trong `.env.local` (vd. `{API_URL}/swagger`).
 ### Thêm / sửa dữ liệu Mock
 
 ```
-src/utils/mocks/
-├── mockStore.js      ← seed chính (users, ký gửi, hàng cấm, bảng giá, …)
-├── mockAccounts.js   ← email / role đăng nhập nhanh
-├── mockDelay.js      ← giả lập độ trễ mạng
-├── authMocks.js      ← login, forgot password
-├── dataSource.js     ← bật/tắt mock vs API
-└── index.js          ← export gộp (import `@/utils/mocks`)
+src/utils/mocks/          ← core mock (dataSource, delay, accounts, store aggregator)
+src/modules/<feature>/
+├── index.js              ← facade public (UI chỉ import đây)
+├── api.js                ← gọi /api/*
+├── mock.js               ← đọc/ghi mock
+├── mappers.js            ← normalize / toApi payload
+└── seed.js               ← (tuỳ chọn) seed domain, gắn vào mockStore
 ```
 
 **Quy trình khi làm feature mới:**
 
-1. Thêm seed vào `mockStore.js` (hoặc file mock riêng trong `mocks/` nếu lớn).
-2. Trong `src/utils/<tên>Service.js`:
-   - `if (isMockMode()) return ...Mock(...)`
-   - `else return apiRequest(...)`
-3. Kiểm tra với `NEXT_PUBLIC_DATA_SOURCE=mock` trước khi nối API.
+1. Tạo `src/modules/<feature>/` với `api` / `mock` / `mappers` / `index`.
+2. Seed: thêm vào `mockStore` hoặc `modules/<feature>/seed.js` rồi import vào store.
+3. UI import từ `@/modules/<feature>` — không gọi `apiRequest` trực tiếp từ component.
+4. Kiểm tra với `NEXT_PUBLIC_DATA_SOURCE=mock` trước khi nối API.
 
 Helper: `isMockMode()` từ `src/utils/mocks/dataSource.js` (hoặc `import { isMockMode } from "@/utils/mocks"`).
 
@@ -126,21 +125,24 @@ Nút **mặt trăng / mặt trời** góc dưới trái — theme lưu `localSto
 
 | Mục đích | Lệnh |
 |---------|------|
-| Chạy dev (Turbopack) | `bun dev` |
+| Chạy dev (Turbopack, mặc định) | `bun run dev` |
+| Dev webpack (fallback Windows) | `bun run dev:webpack` |
+| Xóa cache `.next` | `bun run clean` |
 | Build production | `bun run build` |
 | Chạy bản đã build (sau `build`) | `bun run start` |
 | Lint | `bun run lint` |
 
 ## Cấu trúc project (colocation theo route)
 
-- **`src/app/pages/`** — Toàn bộ page, chia theo role:
+- **`src/app/pages/`** — Toàn bộ page, chia theo role (URL vẫn `/pages/...`):
   - **`auth/`** — đăng nhập, quên/đặt lại mật khẩu (công khai)
   - **`admin/`** — Admin
-  - **`sales/`** — Sale (ký gửi, transfer)
+  - **`sales/`** — Sale (ký gửi, purchase, …)
   - **`operations/`** — Operations (dashboard vận hành)
 - **`src/app/components/`** — UI dùng chung toàn app (logo, theme, auth guard, …).
+- **`src/modules/<feature>/`** — domain logic: `api.js` + `mock.js` + `mappers.js` + `index.js` (facade `isMockMode()`).
 - **`src/hooks/`** — React hooks dùng chung (vd. `useAuth`).
-- **`src/utils/`** — API client, services, mocks, `appRoutes.js`, `routeAccess.js`.
+- **`src/utils/`** — helper dùng chung: API client, mocks core, `appRoutes.js`, `routeAccess.js` (không nhét service domain mới vào đây).
 
 Ví dụ:
 
@@ -177,9 +179,10 @@ Cookie đồng bộ từ session khi login/logout (`src/utils/authSession.js`).
 1. Thêm route trong `src/app/pages/<role>/<tên-route>/page.jsx`.
 2. Đặt component của route vào `components/` cùng cấp route.
 3. Cập nhật `src/utils/appRoutes.js` và `src/utils/routeAccess.js` nếu thêm khu vực mới.
-4. Hook / service dùng nhiều nơi → `src/hooks/`, `src/utils/`.
-5. UI dùng toàn app → `src/app/components/`.
-6. Service layer: hỗ trợ **mock + API** qua `isMockMode()` (xem mục Mock ở trên).
+4. Domain logic (CRUD/API/mock) → `src/modules/<feature>/`.
+5. Hook / helper thật sự dùng chung → `src/hooks/`, `src/utils/`.
+6. UI dùng toàn app → `src/app/components/`.
+7. Module facade: **mock + API** qua `isMockMode()` trong `index.js` (xem mục Mock ở trên).
 
 ## Alias import
 

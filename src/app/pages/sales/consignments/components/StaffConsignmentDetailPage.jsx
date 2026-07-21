@@ -1,10 +1,21 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect } from "react";
-import ConsignmentDetailPanel from "@/app/pages/sales/consignments/components/ConsignmentDetailPanel";
 import { useAuth } from "@/hooks/useAuth";
 import { ROUTES } from "@/utils/appRoutes";
+
+const ConsignmentDetailPanel = dynamic(
+  () => import("@/app/pages/sales/consignments/components/ConsignmentDetailPanel"),
+  {
+    loading: () => (
+      <div className="flex items-center justify-center py-24 text-muted">
+        Đang tải chi tiết...
+      </div>
+    ),
+  }
+);
 
 export default function StaffConsignmentDetailPage() {
   const params = useParams();

@@ -2,17 +2,33 @@
 
 import { Icon } from "@iconify/react";
 import { useEffect, useMemo, useState } from "react";
-import * as authService from "@/utils/authService";
-import * as warehouseService from "@/utils/warehouseService";
+import * as authService from "@/modules/auth";
+import * as userService from "@/modules/users";
+import * as warehouseService from "@/modules/warehouses";
 import { ApiError, getErrorMessage } from "@/utils/apiError";
 import { normalizeEmployeeRole } from "@/utils/apiMappers";
 
 const EMPLOYEE_ROLES = [
-  { value: "Sale", label: "Sale" },
-  { value: "OperationsManager", label: "Operations" },
-  { value: "Warehouse", label: "Warehouse" },
-  { value: "Delivery", label: "Delivery" },
-  { value: "Admin", label: "Admin" },
+  {
+    value: "Sale",
+    label: "Sale",
+    description: "Bán hàng — tạo đơn, báo giá, chăm sóc khách.",
+  },
+  {
+    value: "OperationsManager",
+    label: "Operations",
+    description: "Vận hành — điều phối quy trình nội bộ.",
+  },
+  {
+    value: "Warehouse",
+    label: "Warehouse",
+    description: "Kho — nhận/xuất hàng theo region được gán.",
+  },
+  {
+    value: "Admin",
+    label: "Admin",
+    description: "Quản trị — toàn quyền hệ thống nội bộ.",
+  },
 ];
 
 /** VN-HCM → VN, US → US. */
@@ -74,8 +90,18 @@ function getInitials(name) {
     .join("");
 }
 
-export default function CreateUserModal({ open, onClose, onCreated }) {
-  const [error, setError] = useState("");
+function FieldError({ id, message }) {
+  if (!message) return null;
+  return (
+    <p id={id} className="text-xs text-danger" role="alert">
+      {message}
+    </p>
+  );
+}
+
+export default function CreateUserModal({ open, onClose, onCreated, existingUsers = [] }) {
+  const [formError, setFormError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedRole, setSelectedRole] = useState("Sale");
   const [selectedRegion, setSelectedRegion] = useState("");
@@ -91,6 +117,7 @@ export default function CreateUserModal({ open, onClose, onCreated }) {
   const selectedRegionValue = regionOptions.some((item) => item.value === selectedRegion)
     ? selectedRegion
     : (regionOptions[0]?.value ?? "");
+  const selectedRoleMeta = EMPLOYEE_ROLES.find((item) => item.value === selectedRole);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -115,11 +142,27 @@ export default function CreateUserModal({ open, onClose, onCreated }) {
     };
   }, [open]);
 
+  useEffect(() => {
+    if (!open) {
+      setFormError("");
+      setFieldErrors({});
+      setIsSubmitting(false);
+      setSelectedRole("Sale");
+      setSelectedRegion("");
+    }
+  }, [open]);
+
   if (!open) return null;
+
+  function clearErrors() {
+    if (formError) setFormError("");
+    if (Object.keys(fieldErrors).length) setFieldErrors({});
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
-    setError("");
+    setFormError("");
+
     const form = e.currentTarget;
     const fullName = form.fullName.value.trim();
     const email = form.email.value.trim();
@@ -128,15 +171,28 @@ export default function CreateUserModal({ open, onClose, onCreated }) {
     const role = form.employeeRole.value;
     const region = needsRegion ? selectedRegionValue : "";
 
-    if (needsRegion && !region) {
-      setError(
-        regionsLoading
-          ? "Đang tải danh sách kho, thử lại sau giây lát."
-          : "Không suy ra được region từ kho hiện có."
-      );
+    const nextFieldErrors = userService.validateEmployeeRegister({
+      fullName,
+      email,
+      password,
+      phone,
+      role,
+      region,
+      needsRegion,
+      regionsLoading,
+    });
+
+    if (!nextFieldErrors.email && !nextFieldErrors.phone) {
+      const duplicate = userService.findDuplicateUser(existingUsers, { email, phone });
+      if (duplicate) nextFieldErrors[duplicate.field] = duplicate.message;
+    }
+
+    if (Object.keys(nextFieldErrors).length) {
+      setFieldErrors(nextFieldErrors);
       return;
     }
 
+    setFieldErrors({});
     setIsSubmitting(true);
     try {
       const response = await authService.adminRegisterEmployee({
@@ -168,11 +224,16 @@ export default function CreateUserModal({ open, onClose, onCreated }) {
       onClose();
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
-        setError("Email đã được sử dụng.");
+        const message = getErrorMessage(err).toLowerCase();
+        if (message.includes("phone") || message.includes("điện thoại") || message.includes("sđt")) {
+          setFieldErrors({ phone: "Số điện thoại đã được sử dụng." });
+        } else {
+          setFieldErrors({ email: "Email đã được sử dụng." });
+        }
       } else if (err instanceof ApiError && err.status === 403) {
-        setError("Bạn không có quyền tạo người dùng.");
+        setFormError("Bạn không có quyền tạo người dùng.");
       } else {
-        setError(getErrorMessage(err));
+        setFormError(getErrorMessage(err));
       }
     } finally {
       setIsSubmitting(false);
@@ -187,70 +248,104 @@ export default function CreateUserModal({ open, onClose, onCreated }) {
         aria-label="Đóng"
         onClick={onClose}
       />
-      <div className="relative w-full max-w-lg bg-surface rounded-2xl border border-border shadow-xl p-6">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="create-user-title"
+        className="relative w-full max-w-lg bg-surface rounded-2xl border border-border shadow-xl p-6"
+      >
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-xl font-bold text-ink">Thêm nhân viên</h2>
-            <p className="text-sm text-muted mt-1">Tạo tài khoản nhân viên mới.</p>
+            <h2 id="create-user-title" className="text-xl font-bold text-ink">
+              Thêm nhân viên
+            </h2>
+            <p className="text-sm text-muted mt-1">
+              Tạo tài khoản đăng nhập nội bộ. Email và số điện thoại phải chưa gắn tài khoản khác.
+            </p>
           </div>
           <button type="button" onClick={onClose} className="p-2 text-muted hover:text-ink">
             <Icon icon="lucide:x" className="w-5 h-5" />
           </button>
         </div>
 
-        {error ? (
+        {formError ? (
           <div className="mb-4 rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
-            {error}
+            {formError}
           </div>
         ) : null}
 
-        <form
-          className="space-y-4"
-          onSubmit={handleSubmit}
-          onInput={() => {
-            if (error) setError("");
-          }}
-        >
+        <form className="space-y-4" onSubmit={handleSubmit} onInput={clearErrors} noValidate>
           <div className="space-y-2">
             <label htmlFor="fullName" className="text-sm font-semibold text-ink">
-              Họ tên
+              Họ tên <span className="text-danger">*</span>
             </label>
             <input
               id="fullName"
               name="fullName"
               required
+              maxLength={255}
+              autoComplete="name"
+              placeholder="VD: Nguyễn Văn A"
+              aria-invalid={Boolean(fieldErrors.fullName)}
+              aria-describedby={fieldErrors.fullName ? "fullName-error" : undefined}
               className="w-full h-11 px-4 border border-border-muted rounded-lg text-sm bg-surface-muted text-ink input-focus-ring"
             />
+            <FieldError id="fullName-error" message={fieldErrors.fullName} />
           </div>
 
           <div className="space-y-2">
             <label htmlFor="email" className="text-sm font-semibold text-ink">
-              Email
+              Email đăng nhập <span className="text-danger">*</span>
             </label>
             <input
               id="email"
               name="email"
               type="email"
               required
+              maxLength={255}
+              autoComplete="email"
+              placeholder="ten@congty.com"
+              aria-invalid={Boolean(fieldErrors.email)}
+              aria-describedby={fieldErrors.email ? "email-error" : "email-hint"}
               className="w-full h-11 px-4 border border-border-muted rounded-lg text-sm bg-surface-muted text-ink input-focus-ring"
             />
+            {fieldErrors.email ? (
+              <FieldError id="email-error" message={fieldErrors.email} />
+            ) : (
+              <p id="email-hint" className="text-xs text-muted">
+                Dùng để đăng nhập hệ thống nội bộ; không trùng tài khoản hiện có.
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label htmlFor="phone" className="text-sm font-semibold text-ink">
-                Số điện thoại
+                Số điện thoại <span className="text-danger">*</span>
               </label>
               <input
                 id="phone"
                 name="phone"
+                type="tel"
                 required
+                maxLength={50}
+                autoComplete="tel"
+                placeholder="VD: 0901234567"
+                aria-invalid={Boolean(fieldErrors.phone)}
+                aria-describedby={fieldErrors.phone ? "phone-error" : "phone-hint"}
                 className="w-full h-11 px-4 border border-border-muted rounded-lg text-sm bg-surface-muted text-ink input-focus-ring"
               />
+              {fieldErrors.phone ? (
+                <FieldError id="phone-error" message={fieldErrors.phone} />
+              ) : (
+                <p id="phone-hint" className="text-xs text-muted">
+                  Liên hệ nội bộ; chấp nhận +84 hoặc 0…; không trùng tài khoản khác.
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <label htmlFor="employeeRole" className="text-sm font-semibold text-ink">
-                Vai trò
+                Vai trò <span className="text-danger">*</span>
               </label>
               <select
                 id="employeeRole"
@@ -262,6 +357,10 @@ export default function CreateUserModal({ open, onClose, onCreated }) {
                   setSelectedRole(nextRole);
                   if (nextRole !== "Warehouse") setSelectedRegion("");
                 }}
+                aria-invalid={Boolean(fieldErrors.employeeRole)}
+                aria-describedby={
+                  fieldErrors.employeeRole ? "employeeRole-error" : "employeeRole-hint"
+                }
                 className="w-full h-11 px-4 border border-border-muted rounded-lg text-sm input-focus-ring bg-surface-muted text-ink"
               >
                 {EMPLOYEE_ROLES.map((item) => (
@@ -270,13 +369,20 @@ export default function CreateUserModal({ open, onClose, onCreated }) {
                   </option>
                 ))}
               </select>
+              {fieldErrors.employeeRole ? (
+                <FieldError id="employeeRole-error" message={fieldErrors.employeeRole} />
+              ) : (
+                <p id="employeeRole-hint" className="text-xs text-muted">
+                  {selectedRoleMeta?.description}
+                </p>
+              )}
             </div>
           </div>
 
           {needsRegion ? (
             <div className="space-y-2">
               <label htmlFor="region" className="text-sm font-semibold text-ink">
-                Region
+                Region <span className="text-danger">*</span>
               </label>
               <select
                 id="region"
@@ -285,6 +391,8 @@ export default function CreateUserModal({ open, onClose, onCreated }) {
                 value={selectedRegionValue}
                 onChange={(e) => setSelectedRegion(e.target.value)}
                 disabled={regionsLoading || regionOptions.length === 0}
+                aria-invalid={Boolean(fieldErrors.region)}
+                aria-describedby={fieldErrors.region ? "region-error" : "region-hint"}
                 className="w-full h-11 px-4 border border-border-muted rounded-lg text-sm input-focus-ring bg-surface-muted text-ink disabled:opacity-60"
               >
                 {regionsLoading ? (
@@ -299,6 +407,13 @@ export default function CreateUserModal({ open, onClose, onCreated }) {
                   ))
                 )}
               </select>
+              {fieldErrors.region ? (
+                <FieldError id="region-error" message={fieldErrors.region} />
+              ) : (
+                <p id="region-hint" className="text-xs text-muted">
+                  Region kho gắn với tài khoản Warehouse (theo quy ước nội bộ).
+                </p>
+              )}
               {regionsError ? (
                 <p className="text-xs text-danger">Không tải được kho: {regionsError}</p>
               ) : null}
@@ -307,7 +422,7 @@ export default function CreateUserModal({ open, onClose, onCreated }) {
 
           <div className="space-y-2">
             <label htmlFor="password" className="text-sm font-semibold text-ink">
-              Mật khẩu
+              Mật khẩu tạm <span className="text-danger">*</span>
             </label>
             <input
               id="password"
@@ -316,8 +431,19 @@ export default function CreateUserModal({ open, onClose, onCreated }) {
               required
               minLength={8}
               maxLength={100}
+              autoComplete="new-password"
+              placeholder="Ít nhất 8 ký tự"
+              aria-invalid={Boolean(fieldErrors.password)}
+              aria-describedby={fieldErrors.password ? "password-error" : "password-hint"}
               className="w-full h-11 px-4 border border-border-muted rounded-lg text-sm bg-surface-muted text-ink input-focus-ring"
             />
+            {fieldErrors.password ? (
+              <FieldError id="password-error" message={fieldErrors.password} />
+            ) : (
+              <p id="password-hint" className="text-xs text-muted">
+                Nhân viên nên đổi mật khẩu sau lần đăng nhập đầu.
+              </p>
+            )}
           </div>
 
           <div className="flex justify-end gap-3 pt-2">

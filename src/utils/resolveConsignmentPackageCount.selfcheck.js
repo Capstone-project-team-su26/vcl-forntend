@@ -1,5 +1,5 @@
 import { resolveConsignmentPackageCount } from "./apiMappers.js";
-import { resolveConsignmentTotalVolumeCm3 } from "./servicePricingService.js";
+import { resolveConsignmentTotalVolumeCm3 } from "@/modules/service-pricing";
 
 const singleLineIsOne = resolveConsignmentPackageCount({
   items: [{ quantity: 2 }],

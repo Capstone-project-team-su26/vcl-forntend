@@ -2,7 +2,7 @@
 import { jsx, jsxs } from "react/jsx-runtime";
 import { Icon } from "@iconify/react";
 import { useState } from "react";
-import * as restrictedItemService from "@/utils/restrictedItemService";
+import * as restrictedItemService from "@/modules/restricted-items";
 import { getErrorMessage } from "@/utils/apiError";
 const { RESTRICTION_TYPE_LABELS } = restrictedItemService;
 const restrictionOptions = Object.entries(RESTRICTION_TYPE_LABELS).map(([value, label]) => ({

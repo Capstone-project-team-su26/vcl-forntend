@@ -3,7 +3,7 @@ import {
   CONSIGNMENT_STATUS_ICONS,
   CONSIGNMENT_STATUS_LABELS,
   CONSIGNMENT_STATUS_STYLES,
-} from "@/utils/orderConsignmentService";
+} from "@/modules/consignments";
 
 export default function ConsignmentStatusBadge({ status, className = "" }) {
   const icon = CONSIGNMENT_STATUS_ICONS[status];

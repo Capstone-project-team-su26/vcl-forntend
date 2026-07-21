@@ -2,9 +2,9 @@
 
 import { Icon } from "@iconify/react";
 import { useEffect, useMemo, useState } from "react";
-import * as carrierService from "@/utils/carrierService";
-import * as servicePricingService from "@/utils/servicePricingService";
-import * as warehouseService from "@/utils/warehouseService";
+import * as carrierService from "@/modules/carriers";
+import * as servicePricingService from "@/modules/service-pricing";
+import * as warehouseService from "@/modules/warehouses";
 import { getErrorMessage } from "@/utils/apiError";
 import VndMoneyInput from "@/app/components/VndMoneyInput";
 import { extractGuid } from "@/utils/apiMappers";

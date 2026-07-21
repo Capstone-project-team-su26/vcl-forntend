@@ -18,6 +18,7 @@ import {
 } from "@/utils/mocks/mockAccounts";
 import { ApiError } from "@/utils/apiError";
 import { getErrorMessage } from "@/utils/apiError";
+import { toast } from "@/app/components/ToastProvider";
 const features = [
   { icon: "lucide:users", title: "Quản trị người dùng", desc: "Admin — users, hàng cấm, bảng giá" },
   { icon: "lucide:package", title: "Ký gửi", desc: "Sale — duyệt yêu cầu ký gửi" },
@@ -83,13 +84,14 @@ function LoginPage() {
       await loginWithCredentials({ email, password, redirectTo });
     } catch (err) {
       justLoggedInRef.current = false;
+      let message = getErrorMessage(err, "Đăng nhập thất bại. Vui lòng thử lại.");
       if (err instanceof ApiError && err.status === 401) {
-        setError("Email hoặc mật khẩu không đúng.");
+        message = "Email hoặc mật khẩu không đúng.";
       } else if (err instanceof ApiError && err.status === 403) {
-        setError("Bạn không có quyền truy cập.");
-      } else {
-        setError(getErrorMessage(err, "Đăng nhập thất bại. Vui lòng thử lại."));
+        message = "Bạn không có quyền truy cập.";
       }
+      setError(message);
+      toast.error(message);
     } finally {
       setIsSubmitting(false);
     }

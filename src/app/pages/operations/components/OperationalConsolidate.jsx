@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
 import { useAuth } from "@/hooks/useAuth";
 import OperationsShell from "@/app/pages/operations/components/OperationsShell";
 
@@ -130,8 +128,14 @@ export default function OperationalConsolidate() {
     }
   }
 
-  function createConsolidatePdf() {
+  async function createConsolidatePdf() {
     if (!detailData) return;
+
+    const [{ jsPDF }, autoTableModule] = await Promise.all([
+      import("jspdf"),
+      import("jspdf-autotable"),
+    ]);
+    const autoTable = autoTableModule.default;
 
     const pdf = new jsPDF();
     const fileName = `${formatPdfValue(detailData?.masterCode || "consolidation")}.pdf`;

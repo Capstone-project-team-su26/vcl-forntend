@@ -3,12 +3,13 @@
 import { Icon } from "@iconify/react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import * as purchaseRequestService from "@/utils/purchaseRequestService";
+import * as purchaseRequestService from "@/modules/purchase-requests";
 import {
   PURCHASE_ORDER_STATUS_LABELS,
   PURCHASE_ORDER_STATUS_STYLES,
   canUpdatePurchaseOrderStatus,
-} from "@/utils/purchaseOrderService";
+} from "@/modules/purchase-orders";
+import { useToast } from "@/app/components/ToastProvider";
 import { getErrorMessage } from "@/utils/apiError";
 import { ROUTES } from "@/utils/appRoutes";
 
@@ -48,11 +49,10 @@ export default function PurchaseRequestDetailPanel({
   id,
   backHref = ROUTES.sales.purchaseRequests,
 }) {
+  const toast = useToast();
   const [detail, setDetail] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
-  const [actionError, setActionError] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
   const [actionReason, setActionReason] = useState("");
   const [reasonValidation, setReasonValidation] = useState("");
   const [pendingAction, setPendingAction] = useState(null);
@@ -70,8 +70,6 @@ export default function PurchaseRequestDetailPanel({
     async function load() {
       setIsLoading(true);
       setError("");
-      setActionError("");
-      setSuccessMessage("");
       setActionReason("");
       setReasonValidation("");
       setPendingAction(null);
@@ -94,8 +92,7 @@ export default function PurchaseRequestDetailPanel({
 
   function applyUpdatedRequest(next, message) {
     setDetail(next);
-    setSuccessMessage(message);
-    setActionError("");
+    toast.success(message);
     setReasonValidation("");
     setActionReason("");
     setPendingAction(null);
@@ -117,8 +114,6 @@ export default function PurchaseRequestDetailPanel({
     }
 
     setPendingAction(status);
-    setActionError("");
-    setSuccessMessage("");
     setReasonValidation("");
 
     try {
@@ -140,7 +135,7 @@ export default function PurchaseRequestDetailPanel({
         response.message || "Cập nhật trạng thái yêu cầu mua hộ thành công."
       );
     } catch (err) {
-      setActionError(getErrorMessage(err));
+      toast.error(getErrorMessage(err));
     } finally {
       setPendingAction(null);
     }
@@ -198,30 +193,25 @@ export default function PurchaseRequestDetailPanel({
         </div>
       </div>
 
-      {successMessage ? (
-        <div className="rounded-lg border border-success/30 bg-success-bg px-4 py-3 text-sm text-success-text">
-          {successMessage}
-          <p className="mt-1 font-semibold">
-            Trạng thái mới: {PURCHASE_REQUEST_STATUS_LABELS[detail.status] || detail.status}
-          </p>
-        </div>
-      ) : null}
-
-      {actionError ? (
-        <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
-          {actionError}
-        </div>
-      ) : null}
-
       <section className="rounded-xl border border-border-muted bg-surface-elevated p-6">
         <h2 className="text-lg font-bold text-ink mb-2">Thông tin yêu cầu</h2>
         <dl>
           <DetailRow label="Khách hàng" value={detail.customerName} />
+          {detail.route ? <DetailRow label="Tuyến" value={detail.route} /> : null}
           <DetailRow label="Ngày tạo" value={formatPurchaseRequestDate(detail.createdAt)} />
+          <DetailRow label="Người nhận" value={detail.receiverName || "—"} />
+          <DetailRow label="SĐT nhận" value={detail.receiverPhone || "—"} />
+          <DetailRow label="Địa chỉ nhận" value={detail.receiverAddress || "—"} />
           <DetailRow
             label="Ghi chú của Customer"
             value={detail.customerNote || "—"}
           />
+          {detail.requiresInspection ? (
+            <DetailRow label="Kiểm hàng" value="Có" />
+          ) : null}
+          {detail.requiresQuantityCheck ? (
+            <DetailRow label="Kiểm số lượng" value="Có" />
+          ) : null}
           {detail.statusReason ? (
             <DetailRow label="Lý do xử lý" value={detail.statusReason} />
           ) : null}
@@ -233,9 +223,10 @@ export default function PurchaseRequestDetailPanel({
           <h2 className="text-lg font-bold text-ink">Sản phẩm cần mua</h2>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm min-w-[720px]">
             <thead>
               <tr className="text-left text-xs uppercase tracking-wide text-muted border-b border-border-muted bg-surface/50">
+                <th className="px-6 py-3 font-bold">Ảnh</th>
                 <th className="px-6 py-3 font-bold">Tên sản phẩm</th>
                 <th className="px-6 py-3 font-bold">Link mua hàng</th>
                 <th className="px-6 py-3 font-bold">SL</th>
@@ -243,11 +234,32 @@ export default function PurchaseRequestDetailPanel({
               </tr>
             </thead>
             <tbody>
-              {detail.items.map((product) => (
+              {detail.items.map((product, index) => (
                 <tr
-                  key={product.id}
+                  key={product.id ?? `${product.productName}-${index}`}
                   className="border-b border-border-muted/60 last:border-0"
                 >
+                  <td className="px-6 py-4">
+                    {product.imageUrl ? (
+                      <a
+                        href={product.imageUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block w-12 h-12 rounded-lg overflow-hidden border border-border-muted bg-surface"
+                      >
+                        <img
+                          src={product.imageUrl}
+                          alt={product.productName || "Ảnh sản phẩm"}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                      </a>
+                    ) : (
+                      <div className="w-12 h-12 rounded-lg border border-dashed border-border-muted bg-surface flex items-center justify-center">
+                        <Icon icon="lucide:image-off" className="w-4 h-4 text-muted" />
+                      </div>
+                    )}
+                  </td>
                   <td className="px-6 py-4 font-semibold text-ink">{product.productName}</td>
                   <td className="px-6 py-4">
                     {product.productLink ? (

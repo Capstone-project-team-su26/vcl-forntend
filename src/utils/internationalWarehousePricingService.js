@@ -1,6 +1,6 @@
-/** @deprecated Dùng servicePricingService */
+/** @deprecated Dùng `@/modules/service-pricing` */
 export {
   listInternationalWarehouses,
   formatMoney,
   DEFAULT_CURRENCY,
-} from "@/utils/servicePricingService";
+} from "@/modules/service-pricing";

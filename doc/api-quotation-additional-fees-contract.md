@@ -101,6 +101,16 @@ FE hiển thị dịch vụ chính từ `estimatedFreightCharge` (dòng "Dịch 
 Swagger hiện chỉ nhận: `feeId`, `code`, `label`, `amount`, `enabled` (`additionalProperties: false`).
 `unitPrice` / `quantity` chỉ dùng trên FE để hiển thị và tính `amount`.
 
+## Field báo giá mới (2026-07-21)
+
+Swagger `QuotationDetailResponse` / `QuotationDetailsDto` thêm / tách rõ:
+
+| Field | Hướng | Ghi chú |
+|---|---|---|
+| `domesticShippingFee` | response + request (`quotation`) | Phí VC nội địa tách khỏi `serviceFee`. FE normalize + gửi lại khi save/send; estimate local suy từ dòng phí `DOMESTIC*`. |
+| `parcels[]` | response | Chi tiết cước theo kiện (`ParcelQuotationDetailDto`). |
+| `consignmentCode` / `warehouseId` / `consignmentType` | response | Metadata đơn trên snapshot báo giá. |
+
 ## Tóm tắt yêu cầu BE
 
 1. Luôn trả `quantity` (không `null`) cho phí FIXED; PERCENTAGE để `null` là hợp lệ.

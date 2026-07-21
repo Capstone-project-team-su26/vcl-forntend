@@ -31,7 +31,7 @@ export async function getCachedConsignmentDetail(id) {
   if (pending) return pending;
 
   const request = (async () => {
-    const { getStaffConsignment } = await import("@/utils/orderConsignmentService");
+    const { getStaffConsignment } = await import("@/modules/consignments");
     return getStaffConsignment(id);
   })()
     .then((data) => {

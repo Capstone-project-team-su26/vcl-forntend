@@ -7,7 +7,6 @@ import { ROUTES } from "@/utils/appRoutes";
 
 function resolveActiveNav(pathname) {
   if (!pathname) return "dashboard";
-  if (pathname.startsWith(ROUTES.sales.customers)) return "customers";
   if (pathname.startsWith(ROUTES.sales.payments)) return "payments";
   if (pathname.startsWith(ROUTES.sales.purchaseRequests)) return "purchase-requests";
   if (pathname.startsWith(ROUTES.sales.messages)) return "messages";
@@ -19,6 +18,7 @@ function resolveActiveNav(pathname) {
 export default function SalesLayoutShell({ children }) {
   const pathname = usePathname();
   const activeNav = resolveActiveNav(pathname);
+  const fullBleed = pathname?.startsWith(ROUTES.sales.messages);
 
   return (
     <InternalShell
@@ -26,6 +26,7 @@ export default function SalesLayoutShell({ children }) {
       activeNav={activeNav}
       roleLabel="Sales"
       logoHref={ROUTES.sales.home}
+      fullBleed={fullBleed}
     >
       {children}
     </InternalShell>

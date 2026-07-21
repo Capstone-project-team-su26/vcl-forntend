@@ -4,24 +4,29 @@ import { Icon } from "@iconify/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import * as customerService from "@/utils/customerService";
-import * as orderConsignmentService from "@/utils/orderConsignmentService";
-import * as servicePricingService from "@/utils/servicePricingService";
-import { formatFeeAmount } from "@/utils/additionalServiceFeeService";
+import * as customerService from "@/modules/customers";
+import * as orderConsignmentService from "@/modules/consignments";
+import * as servicePricingService from "@/modules/service-pricing";
+import * as productTypeService from "@/modules/product-types";
+import * as uploadsService from "@/modules/uploads";
+import { formatFeeAmount } from "@/modules/additional-service-fees";
 import { getErrorMessage } from "@/utils/apiError";
 import { ROUTES } from "@/utils/appRoutes";
 import VndMoneyInput from "@/app/components/VndMoneyInput";
+import { toast } from "@/app/components/ToastProvider";
 
 const { ITEM_VALIDATION_LABELS, ITEM_VALIDATION_STYLES } = orderConsignmentService;
 const {
-  formatInternationalWarehouseLabel,
   formatServiceTypeLabel,
   formatVolumeCm3,
   isConfiguredServicePricing,
   listServicePricings,
   listServicePricingRouteOptions,
-  listInternationalWarehouses,
 } = servicePricingService;
+
+const MAX_IMAGES_PER_ITEM = 3;
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/jpg"]);
 
 function FieldLabel({ htmlFor, children, required }) {
   return (
@@ -32,10 +37,33 @@ function FieldLabel({ htmlFor, children, required }) {
   );
 }
 
+function createEmptyItem() {
+  return {
+    key: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    productName: "",
+    productType: "",
+    quantity: "1",
+    declaredValue: "",
+    weightKg: "",
+    lengthCm: "",
+    widthCm: "",
+    heightCm: "",
+    imageUrls: [],
+  };
+}
+
+function itemVolumeCm3(item) {
+  const length = Number(item.lengthCm);
+  const width = Number(item.widthCm);
+  const height = Number(item.heightCm);
+  if (!(length > 0 && width > 0 && height > 0)) return null;
+  return length * width * height;
+}
+
 export default function CreateConsignmentRequestPage({ preselectedCustomerId }) {
   const router = useRouter();
-  const [warehouses, setWarehouses] = useState([]);
   const [servicePricings, setServicePricings] = useState([]);
+  const [productTypes, setProductTypes] = useState([]);
   const [isLoadingPage, setIsLoadingPage] = useState(true);
   const [loadError, setLoadError] = useState("");
 
@@ -45,19 +73,19 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
   const [customerSearchError, setCustomerSearchError] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState(null);
 
-  const [productName, setProductName] = useState("");
-  const [productType, setProductType] = useState("");
-  const [warehouseId, setWarehouseId] = useState("");
-  const [routeKey, setRouteKey] = useState("");
-  const [weightKg, setWeightKg] = useState("");
-  const [volumeCm3, setVolumeCm3] = useState("");
-  const [packageCount, setPackageCount] = useState("");
-  const [declaredValue, setDeclaredValue] = useState("");
+  const [routeGroupKey, setRouteGroupKey] = useState("");
+  const [serviceOptionKey, setServiceOptionKey] = useState("");
+  const [items, setItems] = useState([createEmptyItem()]);
+  const [receiverName, setReceiverName] = useState("");
+  const [receiverPhone, setReceiverPhone] = useState("");
+  const [receiverAddress, setReceiverAddress] = useState("");
   const [notes, setNotes] = useState("");
   const [selectedPricingRuleIds, setSelectedPricingRuleIds] = useState([]);
 
   const [validation, setValidation] = useState(null);
   const [isValidating, setIsValidating] = useState(false);
+  const [uploadingItemKey, setUploadingItemKey] = useState("");
+  const [dragOverItemKey, setDragOverItemKey] = useState("");
   const [submitError, setSubmitError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -70,16 +98,34 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
     [servicePricings]
   );
 
-  const useWarehousePicker = warehouses.length > 0;
+  const routeGroups = useMemo(() => {
+    const map = new Map();
+    for (const option of routeOptions) {
+      const key = `${String(option.originCountry ?? "").toUpperCase()}|${String(option.destinationCountry ?? "").toUpperCase()}`;
+      if (!map.has(key)) {
+        map.set(key, {
+          key,
+          label: `${option.originCountry ?? "—"} → ${option.destinationCountry ?? "—"}`,
+          originCountry: option.originCountry,
+          destinationCountry: option.destinationCountry,
+          options: [],
+        });
+      }
+      map.get(key).options.push(option);
+    }
+    return [...map.values()];
+  }, [routeOptions]);
 
-  const selectedWarehouse = useMemo(
-    () => warehouses.find((entry) => entry.id === warehouseId) ?? null,
-    [warehouses, warehouseId]
+  const selectedRouteGroup = useMemo(
+    () => routeGroups.find((entry) => entry.key === routeGroupKey) ?? null,
+    [routeGroups, routeGroupKey]
   );
 
+  const serviceOptions = selectedRouteGroup?.options ?? [];
+
   const selectedRouteOption = useMemo(
-    () => routeOptions.find((entry) => entry.key === routeKey) ?? null,
-    [routeOptions, routeKey]
+    () => serviceOptions.find((entry) => entry.key === serviceOptionKey) ?? null,
+    [serviceOptions, serviceOptionKey]
   );
 
   const selectedPricing = selectedRouteOption?.pricing ?? null;
@@ -99,28 +145,55 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
     );
   }, [boxPricingRules, selectedPricingRuleIds]);
 
+  function applyCustomerReceiverDefaults(customer) {
+    if (!customer) return;
+    setReceiverName((current) => current.trim() || customer.fullName || "");
+    setReceiverPhone((current) => current.trim() || customer.phone || "");
+    setReceiverAddress((current) => current.trim() || customer.address || "");
+  }
+
+  function updateItem(key, patch) {
+    setItems((current) =>
+      current.map((item) => (item.key === key ? { ...item, ...patch } : item))
+    );
+  }
+
+  function addItem() {
+    setItems((current) => [...current, createEmptyItem()]);
+  }
+
+  function removeItem(key) {
+    setItems((current) => (current.length <= 1 ? current : current.filter((item) => item.key !== key)));
+  }
+
   useEffect(() => {
-    if (!routeOptions.length) return;
-    if (!routeKey || !routeOptions.some((entry) => entry.key === routeKey)) {
-      setRouteKey(routeOptions[0].key);
+    if (!routeGroups.length) return;
+    if (!routeGroupKey || !routeGroups.some((entry) => entry.key === routeGroupKey)) {
+      setRouteGroupKey(routeGroups[0].key);
     }
-  }, [routeOptions, routeKey]);
+  }, [routeGroups, routeGroupKey]);
+
+  useEffect(() => {
+    if (!serviceOptions.length) {
+      setServiceOptionKey("");
+      return;
+    }
+    if (!serviceOptionKey || !serviceOptions.some((entry) => entry.key === serviceOptionKey)) {
+      setServiceOptionKey(serviceOptions[0].key);
+    }
+  }, [serviceOptions, serviceOptionKey]);
 
   useEffect(() => {
     if (!preselectedCustomerId) return;
-
     let active = true;
-
-    async function loadPreselectedCustomer() {
-      try {
-        const customer = await customerService.getCustomer(preselectedCustomerId);
-        if (active && customer) setSelectedCustomer(customer);
-      } catch {
-        // Sales có thể chọn lại thủ công.
-      }
-    }
-
-    loadPreselectedCustomer();
+    customerService
+      .getCustomer(preselectedCustomerId)
+      .then((customer) => {
+        if (!active || !customer) return;
+        setSelectedCustomer(customer);
+        applyCustomerReceiverDefaults(customer);
+      })
+      .catch(() => {});
     return () => {
       active = false;
     };
@@ -128,28 +201,23 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
 
   useEffect(() => {
     let active = true;
-
     async function loadPageData() {
       setIsLoadingPage(true);
       setLoadError("");
-
       try {
-        const [warehouseList, pricingList] = await Promise.all([
-          listInternationalWarehouses().catch(() => []),
+        const [pricingList, typeList] = await Promise.all([
           listServicePricings({ isActive: true }).catch(() => []),
+          productTypeService.listProductTypes().catch(() => []),
         ]);
         if (!active) return;
-
-        setWarehouses(Array.isArray(warehouseList) ? warehouseList : []);
         setServicePricings(Array.isArray(pricingList) ? pricingList : []);
-        if (warehouseList.length === 1) setWarehouseId(warehouseList[0].id);
+        setProductTypes(Array.isArray(typeList) ? typeList : []);
       } catch (err) {
         if (active) setLoadError(getErrorMessage(err));
       } finally {
         if (active) setIsLoadingPage(false);
       }
     }
-
     loadPageData();
     return () => {
       active = false;
@@ -162,12 +230,10 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
       setCustomerSearchError("");
       return;
     }
-
     let active = true;
     const timer = window.setTimeout(async () => {
       setIsSearchingCustomers(true);
       setCustomerSearchError("");
-
       try {
         const results = await customerService.listCustomers({
           search: customerSearch.trim(),
@@ -179,7 +245,6 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
         if (active) setIsSearchingCustomers(false);
       }
     }, 300);
-
     return () => {
       active = false;
       window.clearTimeout(timer);
@@ -187,19 +252,23 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
   }, [customerSearch]);
 
   useEffect(() => {
-    const name = productName.trim();
-    if (!name) {
+    const payloadItems = items
+      .map((item) => ({
+        productName: item.productName.trim(),
+        productType: item.productType,
+        quantity: item.quantity || "1",
+      }))
+      .filter((item) => item.productName);
+    if (!payloadItems.length) {
       setValidation(null);
       return;
     }
-
     let active = true;
     const timer = window.setTimeout(async () => {
       setIsValidating(true);
-
       try {
         const result = await orderConsignmentService.validateConsignmentItems({
-          items: [{ productName: name, productType, quantity: "1" }],
+          items: payloadItems,
         });
         if (active) setValidation(result);
       } catch {
@@ -208,12 +277,60 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
         if (active) setIsValidating(false);
       }
     }, 500);
-
     return () => {
       active = false;
       window.clearTimeout(timer);
     };
-  }, [productName, productType]);
+  }, [items]);
+
+  async function handleUploadImages(itemKey, fileList) {
+    const files = [...(fileList || [])];
+    if (!files.length) return;
+
+    const item = items.find((entry) => entry.key === itemKey);
+    if (!item) return;
+
+    const remaining = MAX_IMAGES_PER_ITEM - item.imageUrls.length;
+    if (remaining <= 0) {
+      toast.error(`Mỗi kiện tối đa ${MAX_IMAGES_PER_ITEM} ảnh.`);
+      return;
+    }
+
+    const accepted = [];
+    for (const file of files.slice(0, remaining)) {
+      if (!ALLOWED_IMAGE_TYPES.has(file.type) && !/\.(jpe?g|png|webp)$/i.test(file.name)) {
+        toast.error(`File ${file.name} không đúng định dạng (JPG/PNG/WEBP).`);
+        continue;
+      }
+      if (file.size > MAX_IMAGE_BYTES) {
+        toast.error(`File ${file.name} vượt quá 5MB.`);
+        continue;
+      }
+      accepted.push(file);
+    }
+    if (!accepted.length) return;
+
+    setUploadingItemKey(itemKey);
+    try {
+      const urls = await uploadsService.uploadImages(accepted);
+      if (!urls.length) throw new Error("Upload không trả về URL.");
+      setItems((current) =>
+        current.map((entry) =>
+          entry.key !== itemKey
+            ? entry
+            : {
+                ...entry,
+                imageUrls: [...entry.imageUrls, ...urls].slice(0, MAX_IMAGES_PER_ITEM),
+              }
+        )
+      );
+      toast.success(`Đã tải ${urls.length} ảnh.`);
+    } catch (err) {
+      toast.error(getErrorMessage(err, "Upload ảnh thất bại."));
+    } finally {
+      setUploadingItemKey("");
+    }
+  }
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -223,31 +340,49 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
       setSubmitError("Vui lòng chọn khách hàng.");
       return;
     }
-    if (!productName.trim()) {
-      setSubmitError("Vui lòng nhập tên hàng hóa.");
-      return;
-    }
     if (!selectedRouteOption || !isConfiguredServicePricing(selectedPricing)) {
-      setSubmitError(
-        "Chưa có bảng giá dịch vụ khả dụng. Liên hệ Admin cấu hình service-pricings trên BE."
-      );
+      setSubmitError("Vui lòng chọn tuyến hàng và hình thức vận chuyển.");
       return;
     }
-    if (useWarehousePicker && !warehouseId) {
-      setSubmitError("Vui lòng chọn kho quốc tế.");
+    if (!receiverName.trim() || !receiverPhone.trim() || !receiverAddress.trim()) {
+      setSubmitError("Vui lòng nhập đủ thông tin người nhận (tên, SĐT, địa chỉ).");
       return;
     }
-    if (!weightKg || Number(weightKg) <= 0) {
-      setSubmitError("Vui lòng nhập khối lượng (kg).");
+    if (notes.length > 1000) {
+      setSubmitError("Ghi chú tối đa 1000 ký tự.");
       return;
     }
-    if (!volumeCm3 || Number(volumeCm3) <= 0) {
-      setSubmitError("Vui lòng nhập thể tích (cm³).");
-      return;
-    }
-    if (!packageCount || Number(packageCount) < 1) {
-      setSubmitError("Vui lòng nhập số kiện.");
-      return;
+
+    for (let index = 0; index < items.length; index += 1) {
+      const item = items[index];
+      const label = `Kiện ${index + 1}`;
+      if (!item.productName.trim()) {
+        setSubmitError(`${label}: vui lòng nhập tên sản phẩm.`);
+        return;
+      }
+      if (!item.productType) {
+        setSubmitError(`${label}: vui lòng chọn loại hàng hóa.`);
+        return;
+      }
+      if (!item.quantity || Number(item.quantity) < 1) {
+        setSubmitError(`${label}: vui lòng nhập số lượng.`);
+        return;
+      }
+      if (!item.weightKg || Number(item.weightKg) <= 0) {
+        setSubmitError(`${label}: vui lòng nhập cân nặng (kg).`);
+        return;
+      }
+      if (
+        !item.lengthCm ||
+        !item.widthCm ||
+        !item.heightCm ||
+        Number(item.lengthCm) <= 0 ||
+        Number(item.widthCm) <= 0 ||
+        Number(item.heightCm) <= 0
+      ) {
+        setSubmitError(`${label}: vui lòng nhập kích thước D × R × C (cm).`);
+        return;
+      }
     }
 
     setIsSubmitting(true);
@@ -256,31 +391,34 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
     try {
       const response = await orderConsignmentService.createStaffConsignment({
         customerId: selectedCustomer.id,
-        warehouseId: warehouseId || undefined,
-        warehouseCode: selectedWarehouse?.code,
         serviceType,
         route: routeForCreate,
         originCountry: selectedPricing.originCountry,
         destinationCountry: selectedPricing.destinationCountry,
         pricingRuleIds: activePricingRuleIds,
-        weightKg: Number(weightKg),
-        volumeCm3: Number(volumeCm3),
-        packageCount: Number(packageCount),
+        receiverName: receiverName.trim(),
+        receiverPhone: receiverPhone.trim(),
+        receiverAddress: receiverAddress.trim(),
         salesNote: notes,
-        items: [
-          {
-            productName: productName.trim(),
-            productType: productType.trim(),
-            quantity: packageCount,
-            estimatedWeight: weightKg,
-            declaredValue,
-          },
-        ],
+        items: items.map((item) => ({
+          productName: item.productName.trim(),
+          productType: item.productType,
+          quantity: Number(item.quantity),
+          estimatedWeight: item.weightKg,
+          length: item.lengthCm,
+          width: item.widthCm,
+          height: item.heightCm,
+          declaredValue: item.declaredValue,
+          referenceUrls: item.imageUrls,
+        })),
       });
 
+      toast.success(response.message || "Tạo yêu cầu ký gửi thành công.");
       router.push(ROUTES.sales.consignment(response.orderId));
     } catch (err) {
-      setSubmitError(getErrorMessage(err));
+      const message = getErrorMessage(err);
+      setSubmitError(message);
+      toast.error(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -303,13 +441,13 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
           className="inline-flex items-center gap-2 text-sm font-semibold text-muted hover:text-ink mb-4"
         >
           <Icon icon="lucide:arrow-left" className="w-4 h-4" />
-          Quay lại danh sách
+          Quay lại
         </Link>
         <h1 className="text-3xl lg:text-4xl font-black tracking-tight font-['Oswald'] text-ink">
-          Tạo yêu cầu ký gửi thay khách
+          Ký gửi hàng hóa
         </h1>
         <p className="text-muted text-sm font-medium mt-2">
-          Chỉ ghi nhận yêu cầu. Báo giá được thực hiện riêng sau khi Sales mở chi tiết yêu cầu.
+          Tạo đơn hàng mới thay khách — cùng luồng với web khách.
         </p>
       </div>
 
@@ -321,8 +459,7 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
 
       {!routeOptions.length ? (
         <div className="rounded-lg border border-warning/30 bg-warning-bg px-4 py-3 text-sm text-warning-text">
-          Chưa có bảng giá dịch vụ trên hệ thống. Admin cần cấu hình mục Giá dịch vụ chính trước
-          khi Sales tạo yêu cầu.
+          Chưa có bảng giá dịch vụ. Admin cần cấu hình Giá dịch vụ chính trước khi tạo yêu cầu.
         </div>
       ) : null}
 
@@ -333,7 +470,10 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
             <div className="rounded-lg border border-border-muted bg-surface p-4 flex items-start justify-between gap-3">
               <div>
                 <p className="text-base font-bold text-ink">{selectedCustomer.fullName}</p>
-                <p className="text-xs text-muted mt-1">Mã: {selectedCustomer.id}</p>
+                <p className="text-xs text-muted mt-1">
+                  {[selectedCustomer.email, selectedCustomer.phone].filter(Boolean).join(" · ") ||
+                    `Mã: ${selectedCustomer.id}`}
+                </p>
               </div>
               <button
                 type="button"
@@ -351,7 +491,6 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
                   className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted"
                 />
                 <input
-                  id="customerSearch"
                   type="search"
                   value={customerSearch}
                   onChange={(event) => setCustomerSearch(event.target.value)}
@@ -373,6 +512,7 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
                           type="button"
                           onClick={() => {
                             setSelectedCustomer(customer);
+                            applyCustomerReceiverDefaults(customer);
                             setCustomerSearch("");
                             setCustomerResults([]);
                           }}
@@ -393,205 +533,447 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
         </section>
 
         <section className="rounded-xl border border-border-muted bg-surface-elevated p-6 space-y-4">
-          <h2 className="text-lg font-bold text-ink">Hàng hóa &amp; tuyến vận chuyển</h2>
+          <h2 className="text-lg font-bold text-ink">Tuyến hàng</h2>
+          <p className="text-xs text-muted -mt-2">
+            Chọn đúng tuyến vận chuyển phù hợp với nơi gửi và nơi nhận hàng.
+          </p>
+          <select
+            value={routeGroupKey}
+            onChange={(event) => setRouteGroupKey(event.target.value)}
+            className="form-select input-focus-ring"
+            required
+          >
+            <option value="">Chọn tuyến...</option>
+            {routeGroups.map((group) => (
+              <option key={group.key} value={group.key}>
+                {group.label}
+              </option>
+            ))}
+          </select>
+        </section>
+
+        <section className="rounded-xl border border-border-muted bg-surface-elevated p-6 space-y-4">
+          <h2 className="text-lg font-bold text-ink">Hình thức vận chuyển</h2>
+          <select
+            value={serviceOptionKey}
+            onChange={(event) => setServiceOptionKey(event.target.value)}
+            className="form-select input-focus-ring"
+            required
+            disabled={!serviceOptions.length}
+          >
+            <option value="">Chọn hình thức...</option>
+            {serviceOptions.map((option) => (
+              <option key={option.key} value={option.key}>
+                {formatServiceTypeLabel(option.serviceType)}
+              </option>
+            ))}
+          </select>
+          {routeForCreate ? (
+            <p className="text-xs text-muted">
+              Route gửi BE: <span className="font-mono">{routeForCreate}</span>
+            </p>
+          ) : null}
+        </section>
+
+        <section className="rounded-xl border border-border-muted bg-surface-elevated p-6 space-y-4">
+          <h2 className="text-lg font-bold text-ink">Người nhận</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2 sm:col-span-2">
-              <FieldLabel htmlFor="productName" required>
-                Hàng hóa
+            <div className="space-y-2">
+              <FieldLabel htmlFor="receiverName" required>
+                Tên người nhận
               </FieldLabel>
               <input
-                id="productName"
-                value={productName}
-                onChange={(event) => setProductName(event.target.value)}
-                placeholder="VD: Loa Bluetooth JBL Charge 5"
+                id="receiverName"
+                value={receiverName}
+                onChange={(event) => setReceiverName(event.target.value)}
                 className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
               />
             </div>
             <div className="space-y-2">
-              <FieldLabel htmlFor="productType">Loại hàng</FieldLabel>
-              <input
-                id="productType"
-                value={productType}
-                onChange={(event) => setProductType(event.target.value)}
-                placeholder="VD: Điện tử"
-                className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
-              />
-            </div>
-            <div className="space-y-2">
-              <FieldLabel htmlFor="declaredValue">Giá trị khai báo (VND)</FieldLabel>
-              <VndMoneyInput
-                id="declaredValue"
-                value={declaredValue}
-                onChange={setDeclaredValue}
-              />
-            </div>
-            <div className="space-y-2 sm:col-span-2">
-              <FieldLabel htmlFor="routeKey" required>
-                Tuyến &amp; loại dịch vụ
-              </FieldLabel>
-              <select
-                id="routeKey"
-                value={routeKey}
-                onChange={(event) => setRouteKey(event.target.value)}
-                className="form-select input-focus-ring"
-                required
-              >
-                <option value="">Chọn tuyến...</option>
-                {routeOptions.map((option) => (
-                  <option key={option.key} value={option.key}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-              {routeForCreate ? (
-                <p className="text-xs text-muted">
-                  Route gửi BE: <span className="font-mono">{routeForCreate}</span>
-                  {" · "}
-                  Dịch vụ: {formatServiceTypeLabel(serviceType)}
-                </p>
-              ) : null}
-            </div>
-            {boxPricingRules.length ? (
-              <fieldset className="space-y-3 sm:col-span-2">
-                <legend className="text-sm font-semibold text-ink">
-                  Dịch vụ khách chọn (Sales sẽ tính phí khi báo giá)
-                </legend>
-                <div className="grid gap-2">
-                  {boxPricingRules.map((rule) => {
-                    const checked =
-                      rule.isRequired || selectedPricingRuleIds.includes(rule.id);
-                    return (
-                      <label
-                        key={rule.id}
-                        className="flex items-start gap-3 rounded-lg border border-border-muted bg-surface px-4 py-3 cursor-pointer"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          disabled={rule.isRequired}
-                          onChange={(event) =>
-                            setSelectedPricingRuleIds((current) =>
-                              event.target.checked
-                                ? [...new Set([...current, rule.id])]
-                                : current.filter((id) => id !== rule.id)
-                            )
-                          }
-                          className="mt-0.5 h-4 w-4 accent-primary"
-                        />
-                        <span className="min-w-0 flex-1">
-                          <span className="block text-sm font-semibold text-ink">
-                            {rule.name}
-                            {rule.isRequired ? " (bắt buộc)" : ""}
-                          </span>
-                          <span className="block text-xs text-muted mt-0.5">
-                            {[rule.description, formatFeeAmount(rule)]
-                              .filter(Boolean)
-                              .join(" · ")}
-                          </span>
-                        </span>
-                      </label>
-                    );
-                  })}
-                </div>
-              </fieldset>
-            ) : null}
-            {useWarehousePicker ? (
-              <div className="space-y-2 sm:col-span-2">
-                <FieldLabel htmlFor="warehouseId" required>
-                  Kho quốc tế
-                </FieldLabel>
-                <select
-                  id="warehouseId"
-                  value={warehouseId}
-                  onChange={(event) => setWarehouseId(event.target.value)}
-                  className="form-select input-focus-ring"
-                >
-                  <option value="">Chọn kho...</option>
-                  {warehouses.map((warehouse) => (
-                    <option key={warehouse.id} value={warehouse.id}>
-                      {formatInternationalWarehouseLabel(warehouse)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            ) : null}
-            <div className="space-y-2">
-              <FieldLabel htmlFor="weightKg" required>
-                Khối lượng (kg)
+              <FieldLabel htmlFor="receiverPhone" required>
+                Số điện thoại
               </FieldLabel>
               <input
-                id="weightKg"
-                type="number"
-                min="0.01"
-                step="0.01"
-                value={weightKg}
-                onChange={(event) => setWeightKg(event.target.value)}
-                className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
-              />
-            </div>
-            <div className="space-y-2">
-              <FieldLabel htmlFor="volumeCm3" required>
-                Thể tích (cm³)
-              </FieldLabel>
-              <input
-                id="volumeCm3"
-                type="number"
-                min="1"
-                step="1"
-                value={volumeCm3}
-                onChange={(event) => setVolumeCm3(event.target.value)}
-                placeholder="vd. 12000"
-                className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
-              />
-              {volumeCm3 && Number(volumeCm3) >= 1000 ? (
-                <p className="text-xs text-muted">
-                  ≈ {formatVolumeCm3(Number(volumeCm3))}
-                </p>
-              ) : null}
-            </div>
-            <div className="space-y-2">
-              <FieldLabel htmlFor="packageCount" required>
-                Số kiện
-              </FieldLabel>
-              <input
-                id="packageCount"
-                type="number"
-                min="1"
-                value={packageCount}
-                onChange={(event) => setPackageCount(event.target.value)}
+                id="receiverPhone"
+                value={receiverPhone}
+                onChange={(event) => setReceiverPhone(event.target.value)}
                 className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
               />
             </div>
             <div className="space-y-2 sm:col-span-2">
-              <FieldLabel htmlFor="notes">Ghi chú</FieldLabel>
+              <FieldLabel htmlFor="receiverAddress" required>
+                Địa chỉ nhận hàng
+              </FieldLabel>
               <textarea
-                id="notes"
-                rows={3}
-                value={notes}
-                onChange={(event) => setNotes(event.target.value)}
+                id="receiverAddress"
+                rows={2}
+                value={receiverAddress}
+                onChange={(event) => setReceiverAddress(event.target.value)}
                 className="w-full px-4 py-3 rounded-lg border border-border-muted text-sm input-focus-ring resize-y"
               />
             </div>
           </div>
+        </section>
 
-          {(isValidating || validationWarnings.length > 0) && productName.trim() ? (
-            <div className="space-y-2">
-              {validationWarnings.map((warning) => (
-                <div
-                  key={`${warning.productName}-${warning.restrictionType}`}
-                  className={`rounded-lg border px-4 py-3 text-sm ${
-                    ITEM_VALIDATION_STYLES[warning.restrictionType] ||
-                    "bg-surface text-muted border-border-muted"
-                  }`}
-                >
-                  <p className="font-bold">
-                    {ITEM_VALIDATION_LABELS[warning.restrictionType] || warning.restrictionType}
+        {items.map((item, index) => {
+          const volume = itemVolumeCm3(item);
+          const isUploading = uploadingItemKey === item.key;
+          return (
+            <section
+              key={item.key}
+              className="rounded-xl border border-border-muted bg-surface-elevated p-6 space-y-4"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary text-white text-sm font-bold">
+                    {index + 1}
+                  </span>
+                  <h2 className="text-lg font-bold text-ink">
+                    Thông tin sản phẩm kiện thứ {index + 1}
+                  </h2>
+                </div>
+                {items.length > 1 ? (
+                  <button
+                    type="button"
+                    onClick={() => removeItem(item.key)}
+                    className="text-sm font-semibold text-danger hover:underline"
+                  >
+                    Xóa kiện
+                  </button>
+                ) : null}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2 sm:col-span-2">
+                  <FieldLabel htmlFor={`productName-${item.key}`} required>
+                    Tên sản phẩm
+                  </FieldLabel>
+                  <input
+                    id={`productName-${item.key}`}
+                    value={item.productName}
+                    onChange={(event) => updateItem(item.key, { productName: event.target.value })}
+                    placeholder="VD: Loa Bluetooth JBL Charge 5"
+                    className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <FieldLabel htmlFor={`productType-${item.key}`} required>
+                    Loại hàng hóa
+                  </FieldLabel>
+                  <select
+                    id={`productType-${item.key}`}
+                    value={item.productType}
+                    onChange={(event) => updateItem(item.key, { productType: event.target.value })}
+                    className="form-select input-focus-ring"
+                  >
+                    <option value="">Chọn loại hàng...</option>
+                    {productTypes.map((type) => (
+                      <option key={type.id} value={type.id}>
+                        {type.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <FieldLabel htmlFor={`quantity-${item.key}`} required>
+                    Số lượng sản phẩm
+                  </FieldLabel>
+                  <input
+                    id={`quantity-${item.key}`}
+                    type="number"
+                    min="1"
+                    value={item.quantity}
+                    onChange={(event) => updateItem(item.key, { quantity: event.target.value })}
+                    className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <FieldLabel htmlFor={`declaredValue-${item.key}`}>
+                    Giá trị kiện hàng (VND)
+                  </FieldLabel>
+                  <VndMoneyInput
+                    id={`declaredValue-${item.key}`}
+                    value={item.declaredValue}
+                    onChange={(value) => updateItem(item.key, { declaredValue: value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <FieldLabel htmlFor={`weightKg-${item.key}`} required>
+                    Cân nặng kiện hàng (kg)
+                  </FieldLabel>
+                  <input
+                    id={`weightKg-${item.key}`}
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    value={item.weightKg}
+                    onChange={(event) => updateItem(item.key, { weightKg: event.target.value })}
+                    className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <FieldLabel htmlFor={`lengthCm-${item.key}`} required>
+                    Dài (cm)
+                  </FieldLabel>
+                  <input
+                    id={`lengthCm-${item.key}`}
+                    type="number"
+                    min="0.1"
+                    step="0.1"
+                    value={item.lengthCm}
+                    onChange={(event) => updateItem(item.key, { lengthCm: event.target.value })}
+                    className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <FieldLabel htmlFor={`widthCm-${item.key}`} required>
+                    Rộng (cm)
+                  </FieldLabel>
+                  <input
+                    id={`widthCm-${item.key}`}
+                    type="number"
+                    min="0.1"
+                    step="0.1"
+                    value={item.widthCm}
+                    onChange={(event) => updateItem(item.key, { widthCm: event.target.value })}
+                    className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <FieldLabel htmlFor={`heightCm-${item.key}`} required>
+                    Cao (cm)
+                  </FieldLabel>
+                  <input
+                    id={`heightCm-${item.key}`}
+                    type="number"
+                    min="0.1"
+                    step="0.1"
+                    value={item.heightCm}
+                    onChange={(event) => updateItem(item.key, { heightCm: event.target.value })}
+                    className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <FieldLabel htmlFor={`volume-${item.key}`}>Thể tích (tự tính)</FieldLabel>
+                  <p
+                    id={`volume-${item.key}`}
+                    className="h-11 px-4 rounded-lg border border-border-muted bg-surface text-sm flex items-center text-muted"
+                  >
+                    {volume != null
+                      ? `${volume.toLocaleString("vi-VN")} cm³ ≈ ${formatVolumeCm3(volume)}`
+                      : "Nhập D × R × C"}
                   </p>
                 </div>
-              ))}
-            </div>
-          ) : null}
+                <div className="space-y-2 sm:col-span-2">
+                  <FieldLabel htmlFor={`images-${item.key}`}>
+                    Ảnh sản phẩm kiện {index + 1}
+                  </FieldLabel>
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => {
+                      if (isUploading || item.imageUrls.length >= MAX_IMAGES_PER_ITEM) return;
+                      document.getElementById(`images-${item.key}`)?.click();
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key !== "Enter" && event.key !== " ") return;
+                      event.preventDefault();
+                      if (isUploading || item.imageUrls.length >= MAX_IMAGES_PER_ITEM) return;
+                      document.getElementById(`images-${item.key}`)?.click();
+                    }}
+                    onDragEnter={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      if (!isUploading && item.imageUrls.length < MAX_IMAGES_PER_ITEM) {
+                        setDragOverItemKey(item.key);
+                      }
+                    }}
+                    onDragOver={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                    }}
+                    onDragLeave={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      if (event.currentTarget.contains(event.relatedTarget)) return;
+                      setDragOverItemKey((current) => (current === item.key ? "" : current));
+                    }}
+                    onDrop={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      setDragOverItemKey("");
+                      if (isUploading || item.imageUrls.length >= MAX_IMAGES_PER_ITEM) return;
+                      void handleUploadImages(item.key, event.dataTransfer.files);
+                    }}
+                    className={`flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed px-4 py-6 text-center cursor-pointer transition-colors ${
+                      isUploading ? "opacity-60 pointer-events-none " : ""
+                    }${
+                      dragOverItemKey === item.key
+                        ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                        : "border-border-muted bg-surface hover:bg-surface-elevated"
+                    }`}
+                  >
+                    <Icon
+                      icon={
+                        isUploading
+                          ? "lucide:loader-2"
+                          : dragOverItemKey === item.key
+                            ? "lucide:download"
+                            : "lucide:image-plus"
+                      }
+                      className={`w-6 h-6 ${
+                        dragOverItemKey === item.key ? "text-primary" : "text-muted"
+                      } ${isUploading ? "animate-spin" : ""}`}
+                    />
+                    <span className="text-sm font-semibold text-ink">
+                      {isUploading
+                        ? "Đang tải ảnh..."
+                        : dragOverItemKey === item.key
+                          ? "Thả ảnh vào đây"
+                          : "Kéo ảnh vào đây hoặc bấm để chọn"}
+                    </span>
+                    <span className="text-xs text-muted">
+                      JPG, PNG, WEBP — tối đa 5MB/ảnh — tối đa {MAX_IMAGES_PER_ITEM} ảnh/kiện
+                    </span>
+                    <span className="text-xs font-medium text-muted">
+                      {item.imageUrls.length}/{MAX_IMAGES_PER_ITEM} ảnh
+                    </span>
+                  </div>
+                  <input
+                    id={`images-${item.key}`}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+                    multiple
+                    className="sr-only"
+                    disabled={isUploading || item.imageUrls.length >= MAX_IMAGES_PER_ITEM}
+                    onChange={(event) => {
+                      void handleUploadImages(item.key, event.target.files);
+                      event.target.value = "";
+                    }}
+                  />
+                  {item.imageUrls.length ? (
+                    <ul className="flex flex-wrap gap-3 pt-1">
+                      {item.imageUrls.map((url) => (
+                        <li key={url} className="relative w-20 h-20 rounded-lg overflow-hidden border border-border-muted">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={url} alt="" className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updateItem(item.key, {
+                                imageUrls: item.imageUrls.filter((entry) => entry !== url),
+                              })
+                            }
+                            className="absolute top-1 right-1 rounded-full bg-black/60 p-0.5 text-white"
+                            aria-label="Xóa ảnh"
+                          >
+                            <Icon icon="lucide:x" className="w-3.5 h-3.5" />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
+              </div>
+            </section>
+          );
+        })}
+
+        <button
+          type="button"
+          onClick={addItem}
+          className="inline-flex items-center gap-2 h-11 px-4 rounded-lg border border-border-muted text-sm font-bold text-ink hover:bg-surface"
+        >
+          <Icon icon="lucide:plus" className="w-4 h-4" />
+          Thêm kiện hàng mới
+        </button>
+
+        <section className="rounded-xl border border-border-muted bg-surface-elevated p-6 space-y-4">
+          <h2 className="text-lg font-bold text-ink">
+            Ghi chú chung cho đơn ký gửi &amp; lựa chọn dịch vụ
+          </h2>
+
+          {boxPricingRules.length ? (
+            <fieldset className="space-y-3">
+              <legend className="text-sm font-semibold text-ink">Chọn loại dịch vụ</legend>
+              <p className="text-xs text-muted">Dịch vụ áp dụng cho toàn bộ đơn — không bắt buộc</p>
+              <div className="grid gap-2">
+                {boxPricingRules.map((rule) => {
+                  const checked =
+                    rule.isRequired || selectedPricingRuleIds.includes(rule.id);
+                  return (
+                    <label
+                      key={rule.id}
+                      className="flex items-start gap-3 rounded-lg border border-border-muted bg-surface px-4 py-3 cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        disabled={rule.isRequired}
+                        onChange={(event) =>
+                          setSelectedPricingRuleIds((current) =>
+                            event.target.checked
+                              ? [...new Set([...current, rule.id])]
+                              : current.filter((id) => id !== rule.id)
+                          )
+                        }
+                        className="mt-0.5 h-4 w-4 accent-primary"
+                      />
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-semibold text-ink">
+                          {rule.name}
+                          {rule.isRequired ? " (bắt buộc)" : ""}
+                        </span>
+                        <span className="block text-xs text-muted mt-0.5">
+                          {[rule.description, formatFeeAmount(rule)].filter(Boolean).join(" · ")}
+                        </span>
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </fieldset>
+          ) : (
+            <p className="text-sm text-muted">Không có dịch vụ phụ cho tuyến này.</p>
+          )}
+
+          <div className="space-y-2">
+            <FieldLabel htmlFor="notes">Ghi chú đơn hàng</FieldLabel>
+            <textarea
+              id="notes"
+              rows={3}
+              maxLength={1000}
+              value={notes}
+              onChange={(event) => setNotes(event.target.value)}
+              className="w-full px-4 py-3 rounded-lg border border-border-muted text-sm input-focus-ring resize-y"
+            />
+            <p className="text-xs text-muted text-right">{notes.length}/1000 ký tự</p>
+          </div>
+
+          <p className="text-xs text-muted rounded-lg border border-border-muted bg-surface px-4 py-3">
+            Lưu ý: Đơn hàng sẽ được nhân viên kiểm tra và xác nhận lại thông tin trước khi xử lý
+            (trạng thái chờ báo giá).
+          </p>
         </section>
+
+        {(isValidating || validationWarnings.length > 0) && (
+          <div className="space-y-2">
+            {validationWarnings.map((warning) => (
+              <div
+                key={`${warning.productName}-${warning.restrictionType}`}
+                className={`rounded-lg border px-4 py-3 text-sm ${
+                  ITEM_VALIDATION_STYLES[warning.restrictionType] ||
+                  "bg-surface text-muted border-border-muted"
+                }`}
+              >
+                <p className="font-bold">
+                  {ITEM_VALIDATION_LABELS[warning.restrictionType] || warning.restrictionType}
+                  {warning.productName ? ` — ${warning.productName}` : ""}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
 
         {submitError ? (
           <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
@@ -601,7 +983,7 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
 
         <button
           type="submit"
-          disabled={isSubmitting || hasBannedItem || !routeOptions.length}
+          disabled={isSubmitting || hasBannedItem || !routeOptions.length || Boolean(uploadingItemKey)}
           className="inline-flex items-center justify-center gap-2 h-11 px-6 rounded-lg bg-primary text-white text-sm font-bold hover:bg-primary/90 disabled:opacity-50"
         >
           {isSubmitting ? (
@@ -611,8 +993,8 @@ export default function CreateConsignmentRequestPage({ preselectedCustomerId }) 
             </>
           ) : (
             <>
-              <Icon icon="lucide:plus" className="w-4 h-4" />
-              Tạo yêu cầu ký gửi
+              <Icon icon="lucide:check" className="w-4 h-4" />
+              Xác nhận yêu cầu ký gửi
             </>
           )}
         </button>
