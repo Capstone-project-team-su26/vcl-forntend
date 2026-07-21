@@ -14,6 +14,7 @@ import { getErrorMessage } from "@/utils/apiError";
 import { isMockMode } from "@/utils/mocks/dataSource";
 import { ROUTES } from "@/utils/appRoutes";
 import VndMoneyInput from "@/app/components/VndMoneyInput";
+import { useToast } from "@/app/components/ToastProvider";
 import {
   mergeConsignmentDetail,
   resolveConsignmentPackageCount,
@@ -218,6 +219,7 @@ function StatusBadge({ status }) {
 
 export default function ConsignmentQuotationPanel({ id, backHref, readOnly = false }) {
   const router = useRouter();
+  const toast = useToast();
   const [detail, setDetail] = useState(null);
   const [warehouses, setWarehouses] = useState([]);
   const [servicePricings, setServicePricings] = useState([]);
@@ -749,7 +751,9 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
     if (!detail || !canSend || isSubmitting) return;
 
     if (!selectedServicePricing || !isConfiguredServicePricing(selectedServicePricing)) {
-      setSubmitError("Không tìm thấy giá dịch vụ chính cho tuyến/dịch vụ đã chọn.");
+      const message = "Không tìm thấy giá dịch vụ chính cho tuyến/dịch vụ đã chọn.";
+      setSubmitError(message);
+      toast.error(message);
       return;
     }
 
@@ -758,19 +762,24 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
       !selectedServicePricing.originCountry ||
       !selectedServicePricing.destinationCountry
     ) {
-      setSubmitError(
-        "Giá dịch vụ thiếu thông tin tuyến (unitType, quốc gia). Kiểm tra cấu hình bảng giá."
-      );
+      const message =
+        "Giá dịch vụ thiếu thông tin tuyến (unitType, quốc gia). Kiểm tra cấu hình bảng giá.";
+      setSubmitError(message);
+      toast.error(message);
       return;
     }
 
     if (totals.total <= 0) {
-      setSubmitError("Tổng báo giá phải lớn hơn 0.");
+      const message = "Tổng báo giá phải lớn hơn 0.";
+      setSubmitError(message);
+      toast.error(message);
       return;
     }
 
     if (!salesNote.trim()) {
-      setSubmitError("Vui lòng nhập ghi chú tư vấn trước khi gửi báo giá.");
+      const message = "Vui lòng nhập ghi chú tư vấn trước khi gửi báo giá.";
+      setSubmitError(message);
+      toast.error(message);
       return;
     }
 
@@ -850,9 +859,12 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
           quotation: mergedQuotation,
         });
       }
+      toast.success(response.message || "Gửi báo giá thành công.");
       router.replace(ROUTES.sales.consignment(detail.id));
     } catch (err) {
-      setSubmitError(getErrorMessage(err));
+      const message = getErrorMessage(err);
+      setSubmitError(message);
+      toast.error(message);
     } finally {
       setIsSubmitting(false);
     }

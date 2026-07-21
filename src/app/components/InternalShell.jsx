@@ -14,6 +14,7 @@ export default function InternalShell({
   activeNav,
   roleLabel,
   logoHref,
+  fullBleed = false,
   children,
 }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -98,8 +99,20 @@ export default function InternalShell({
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto custom-scrollbar bg-background print:overflow-visible">
-          <div className="p-4 lg:p-8 max-w-[1200px] mx-auto print:p-0 print:max-w-none">{children}</div>
+        <main
+          className={`flex-1 bg-background print:overflow-visible ${
+            fullBleed ? "overflow-hidden" : "overflow-y-auto custom-scrollbar"
+          }`}
+        >
+          <div
+            className={
+              fullBleed
+                ? "h-full max-w-none p-0"
+                : "p-4 lg:p-8 max-w-[1200px] mx-auto print:p-0 print:max-w-none"
+            }
+          >
+            {children}
+          </div>
         </main>
       </div>
     </div>

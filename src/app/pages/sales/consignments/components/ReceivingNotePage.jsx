@@ -7,6 +7,7 @@ import {
   CONSIGNMENT_TYPE_LABELS,
   formatConsignmentDate,
 } from "@/modules/consignments";
+import { useToast } from "@/app/components/ToastProvider";
 import { getErrorMessage } from "@/utils/apiError";
 import { ROUTES } from "@/utils/appRoutes";
 import * as receivingNoteService from "@/modules/consignments";
@@ -21,11 +22,10 @@ function DetailRow({ label, value }) {
 }
 
 export default function ReceivingNotePage({ consignmentId }) {
+  const toast = useToast();
   const [pageData, setPageData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
-  const [submitError, setSubmitError] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
   const [createdNoteCode, setCreatedNoteCode] = useState("");
   const [warehouseId, setWarehouseId] = useState("");
   const [warehouseNote, setWarehouseNote] = useState("");
@@ -39,8 +39,6 @@ export default function ReceivingNotePage({ consignmentId }) {
     async function load() {
       setIsLoading(true);
       setLoadError("");
-      setSubmitError("");
-      setSuccessMessage("");
       setCreatedNoteCode("");
 
       try {
@@ -70,13 +68,11 @@ export default function ReceivingNotePage({ consignmentId }) {
     if (!pageData?.canCreate || isSubmitting) return;
 
     if (!warehouseId) {
-      setSubmitError("Vui lòng chọn kho tiếp nhận.");
+      toast.error("Vui lòng chọn kho tiếp nhận.");
       return;
     }
 
     setIsSubmitting(true);
-    setSubmitError("");
-    setSuccessMessage("");
     setCreatedNoteCode("");
 
     try {
@@ -87,11 +83,15 @@ export default function ReceivingNotePage({ consignmentId }) {
       });
 
       const note = response.receivingNote;
-      setSuccessMessage(
+      const message =
         response.message ||
-          "Gửi phiếu tiếp nhận kho thành công. Kho nhận thông tin online trên hệ thống."
-      );
+        "Gửi phiếu tiếp nhận kho thành công. Kho nhận thông tin online trên hệ thống.";
       setCreatedNoteCode(note?.receivingNoteCode ?? "");
+      toast.success(
+        note?.receivingNoteCode
+          ? `${message} Mã phiếu: ${note.receivingNoteCode}`
+          : message
+      );
       setPageData((current) =>
         current
           ? {
@@ -102,7 +102,7 @@ export default function ReceivingNotePage({ consignmentId }) {
           : current
       );
     } catch (err) {
-      setSubmitError(getErrorMessage(err));
+      toast.error(getErrorMessage(err));
     } finally {
       setIsSubmitting(false);
     }
@@ -158,24 +158,16 @@ export default function ReceivingNotePage({ consignmentId }) {
         </div>
       ) : consignment ? (
         <>
-          {successMessage ? (
+          {createdNoteCode ? (
             <div className="rounded-lg border border-success/30 bg-success-bg px-4 py-3 text-sm text-success-text">
-              <p className="font-semibold">{successMessage}</p>
-              {createdNoteCode ? (
-                <p className="mt-1">
-                  Mã phiếu tiếp nhận:{" "}
-                  <span className="font-bold text-ink">{createdNoteCode}</span>
-                </p>
-              ) : null}
+              <p className="font-semibold">Phiếu tiếp nhận đã gửi.</p>
+              <p className="mt-1">
+                Mã phiếu tiếp nhận:{" "}
+                <span className="font-bold text-ink">{createdNoteCode}</span>
+              </p>
               <p className="mt-2 text-success-text/90">
                 Kho có thể tra cứu và xử lý phiếu ngay trên app / web ops.
               </p>
-            </div>
-          ) : null}
-
-          {submitError ? (
-            <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
-              {submitError}
             </div>
           ) : null}
 

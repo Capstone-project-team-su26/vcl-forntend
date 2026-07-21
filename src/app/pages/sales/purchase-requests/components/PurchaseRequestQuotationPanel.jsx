@@ -4,9 +4,10 @@ import { Icon } from "@iconify/react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import * as purchaseRequestService from "@/modules/purchase-requests";
+import VndMoneyInput from "@/app/components/VndMoneyInput";
+import { useToast } from "@/app/components/ToastProvider";
 import { getErrorMessage } from "@/utils/apiError";
 import { ROUTES } from "@/utils/appRoutes";
-import VndMoneyInput from "@/app/components/VndMoneyInput";
 
 const {
   PURCHASE_REQUEST_STATUS_LABELS,
@@ -32,11 +33,10 @@ export default function PurchaseRequestQuotationPanel({
   id,
   backHref,
 }) {
+  const toast = useToast();
   const [detail, setDetail] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
-  const [submitError, setSubmitError] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [itemPrices, setItemPrices] = useState({});
@@ -54,8 +54,6 @@ export default function PurchaseRequestQuotationPanel({
     async function load() {
       setIsLoading(true);
       setLoadError("");
-      setSubmitError("");
-      setSuccessMessage("");
 
       try {
         const data = await purchaseRequestService.getPurchaseRequest(id);
@@ -115,8 +113,6 @@ export default function PurchaseRequestQuotationPanel({
 
   function updateItemPrice(itemId, value) {
     setItemPrices((current) => ({ ...current, [itemId]: value }));
-    setSubmitError("");
-    setSuccessMessage("");
   }
 
   async function handleSubmit(event) {
@@ -125,8 +121,6 @@ export default function PurchaseRequestQuotationPanel({
     if (!detail || !canCreate || isSubmitting) return;
 
     setIsSubmitting(true);
-    setSubmitError("");
-    setSuccessMessage("");
 
     try {
       const response = await purchaseRequestService.createPurchaseRequestQuotation(detail.id, {
@@ -150,13 +144,13 @@ export default function PurchaseRequestQuotationPanel({
         }
       }
 
-      setSuccessMessage(
+      toast.success(
         `${response.message || "Gửi báo giá thành công."} Trạng thái: ${
           PURCHASE_REQUEST_STATUS_LABELS[response.status] || response.status
         }.`
       );
     } catch (err) {
-      setSubmitError(getErrorMessage(err));
+      toast.error(getErrorMessage(err));
     } finally {
       setIsSubmitting(false);
     }
@@ -221,18 +215,6 @@ export default function PurchaseRequestQuotationPanel({
         <div className="rounded-lg border border-warning/30 bg-warning-bg/40 px-4 py-3 text-sm text-ink">
           Yêu cầu không ở trạng thái hợp lệ để tạo báo giá. Cần nhận xử lý yêu cầu (
           <span className="font-semibold">IN_REVIEW</span>) trước khi báo giá.
-        </div>
-      ) : null}
-
-      {successMessage ? (
-        <div className="rounded-lg border border-success/30 bg-success-bg px-4 py-3 text-sm text-success-text">
-          {successMessage}
-        </div>
-      ) : null}
-
-      {submitError ? (
-        <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
-          {submitError}
         </div>
       ) : null}
 
@@ -324,8 +306,6 @@ export default function PurchaseRequestQuotationPanel({
               disabled={!canCreate || isSubmitting || detail.status === "QUOTED"}
               onChange={(value) => {
                 setPurchaseServiceFee(value);
-                setSubmitError("");
-                setSuccessMessage("");
               }}
               placeholder="VD: 150.000"
             />
@@ -340,8 +320,6 @@ export default function PurchaseRequestQuotationPanel({
               disabled={!canCreate || isSubmitting || detail.status === "QUOTED"}
               onChange={(value) => {
                 setEstimatedShippingFee(value);
-                setSubmitError("");
-                setSuccessMessage("");
               }}
               placeholder="Tùy chọn"
             />
@@ -359,8 +337,6 @@ export default function PurchaseRequestQuotationPanel({
             value={quotationNote}
             onChange={(event) => {
               setQuotationNote(event.target.value);
-              setSubmitError("");
-              setSuccessMessage("");
             }}
             placeholder="Ghi chú gửi kèm báo giá cho Customer..."
             className="w-full px-4 py-3 rounded-lg border border-border-muted text-sm resize-y input-focus-ring min-h-[88px] disabled:opacity-60"

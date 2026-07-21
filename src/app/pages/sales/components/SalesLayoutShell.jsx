@@ -18,6 +18,7 @@ function resolveActiveNav(pathname) {
 export default function SalesLayoutShell({ children }) {
   const pathname = usePathname();
   const activeNav = resolveActiveNav(pathname);
+  const fullBleed = pathname?.startsWith(ROUTES.sales.messages);
 
   return (
     <InternalShell
@@ -25,6 +26,7 @@ export default function SalesLayoutShell({ children }) {
       activeNav={activeNav}
       roleLabel="Sales"
       logoHref={ROUTES.sales.home}
+      fullBleed={fullBleed}
     >
       {children}
     </InternalShell>

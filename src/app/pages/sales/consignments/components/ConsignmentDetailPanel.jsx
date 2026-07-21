@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import * as orderConsignmentService from "@/modules/consignments";
 import * as consignmentQuotationService from "@/modules/consignments/quotation";
+import { toast, useToast } from "@/app/components/ToastProvider";
 import { getErrorMessage } from "@/utils/apiError";
 import { ROUTES } from "@/utils/appRoutes";
 import ConsignmentStatusBadge from "@/app/pages/sales/consignments/components/ConsignmentStatusBadge";
@@ -95,9 +96,11 @@ function CopyCodeButton({ value }) {
     try {
       await navigator.clipboard.writeText(value);
       setCopied(true);
+      toast.success("Đã sao chép mã.");
       window.setTimeout(() => setCopied(false), 2000);
     } catch {
       setCopied(false);
+      toast.error("Không sao chép được mã.");
     }
   }
 
@@ -554,12 +557,11 @@ export default function ConsignmentDetailPanel({
   readOnly = false,
   quotationHref,
 }) {
+  const toast = useToast();
   const [detail, setDetail] = useState(null);
   const [feeCatalog, setFeeCatalog] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
-  const [actionError, setActionError] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
   const [rejectionReason, setRejectionReason] = useState("");
   const [rejectValidation, setRejectValidation] = useState("");
   const [isApproving, setIsApproving] = useState(false);
@@ -595,8 +597,6 @@ export default function ConsignmentDetailPanel({
     async function load() {
       setIsLoading(true);
       setError("");
-      setActionError("");
-      setSuccessMessage("");
       setApprovedTrackingCode(null);
       setRejectionReason("");
       setRejectValidation("");
@@ -624,8 +624,7 @@ export default function ConsignmentDetailPanel({
 
   function applyUpdatedConsignment(next, message, tracking) {
     setDetail(next);
-    setSuccessMessage(message);
-    setActionError("");
+    toast.success(tracking ? `${message} Mã gửi hàng: ${tracking}` : message);
     setRejectValidation("");
     if (tracking) setApprovedTrackingCode(tracking);
   }
@@ -634,8 +633,6 @@ export default function ConsignmentDetailPanel({
     if (!detail || !canApprove || isSubmitting) return;
 
     setIsApproving(true);
-    setActionError("");
-    setSuccessMessage("");
 
     try {
       const response = await orderConsignmentService.updateStaffConsignmentStatus(detail.id, {
@@ -653,7 +650,7 @@ export default function ConsignmentDetailPanel({
         code
       );
     } catch (err) {
-      setActionError(getErrorMessage(err));
+      toast.error(getErrorMessage(err));
     } finally {
       setIsApproving(false);
     }
@@ -669,8 +666,6 @@ export default function ConsignmentDetailPanel({
     }
 
     setIsRejecting(true);
-    setActionError("");
-    setSuccessMessage("");
     setRejectValidation("");
 
     try {
@@ -688,7 +683,7 @@ export default function ConsignmentDetailPanel({
         response.message || "Đã từ chối yêu cầu ký gửi."
       );
     } catch (err) {
-      setActionError(getErrorMessage(err));
+      toast.error(getErrorMessage(err));
     } finally {
       setIsRejecting(false);
     }
@@ -747,23 +742,6 @@ export default function ConsignmentDetailPanel({
               address={detail.receiverAddress || detail.customer?.address}
             />
           </div>
-
-          {successMessage ? (
-            <NoticeBanner variant="success" icon="lucide:check-circle">
-              <p className="font-semibold">{successMessage}</p>
-              {trackingCode && detail.status === "APPROVED" ? (
-                <p className="mt-1">
-                  Mã gửi hàng: <span className="font-bold">{trackingCode}</span>
-                </p>
-              ) : null}
-            </NoticeBanner>
-          ) : null}
-
-          {actionError ? (
-            <NoticeBanner variant="error" icon="lucide:alert-circle">
-              {actionError}
-            </NoticeBanner>
-          ) : null}
 
           <NextStepCard detail={detail} canSendQuotation={canSendQuotation} />
 

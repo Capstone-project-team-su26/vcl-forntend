@@ -9,6 +9,7 @@ import {
   PURCHASE_ORDER_STATUS_STYLES,
   canUpdatePurchaseOrderStatus,
 } from "@/modules/purchase-orders";
+import { useToast } from "@/app/components/ToastProvider";
 import { getErrorMessage } from "@/utils/apiError";
 import { ROUTES } from "@/utils/appRoutes";
 
@@ -48,11 +49,10 @@ export default function PurchaseRequestDetailPanel({
   id,
   backHref = ROUTES.sales.purchaseRequests,
 }) {
+  const toast = useToast();
   const [detail, setDetail] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
-  const [actionError, setActionError] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
   const [actionReason, setActionReason] = useState("");
   const [reasonValidation, setReasonValidation] = useState("");
   const [pendingAction, setPendingAction] = useState(null);
@@ -70,8 +70,6 @@ export default function PurchaseRequestDetailPanel({
     async function load() {
       setIsLoading(true);
       setError("");
-      setActionError("");
-      setSuccessMessage("");
       setActionReason("");
       setReasonValidation("");
       setPendingAction(null);
@@ -94,8 +92,7 @@ export default function PurchaseRequestDetailPanel({
 
   function applyUpdatedRequest(next, message) {
     setDetail(next);
-    setSuccessMessage(message);
-    setActionError("");
+    toast.success(message);
     setReasonValidation("");
     setActionReason("");
     setPendingAction(null);
@@ -117,8 +114,6 @@ export default function PurchaseRequestDetailPanel({
     }
 
     setPendingAction(status);
-    setActionError("");
-    setSuccessMessage("");
     setReasonValidation("");
 
     try {
@@ -140,7 +135,7 @@ export default function PurchaseRequestDetailPanel({
         response.message || "Cập nhật trạng thái yêu cầu mua hộ thành công."
       );
     } catch (err) {
-      setActionError(getErrorMessage(err));
+      toast.error(getErrorMessage(err));
     } finally {
       setPendingAction(null);
     }
@@ -197,21 +192,6 @@ export default function PurchaseRequestDetailPanel({
           <StatusBadge status={detail.status} />
         </div>
       </div>
-
-      {successMessage ? (
-        <div className="rounded-lg border border-success/30 bg-success-bg px-4 py-3 text-sm text-success-text">
-          {successMessage}
-          <p className="mt-1 font-semibold">
-            Trạng thái mới: {PURCHASE_REQUEST_STATUS_LABELS[detail.status] || detail.status}
-          </p>
-        </div>
-      ) : null}
-
-      {actionError ? (
-        <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
-          {actionError}
-        </div>
-      ) : null}
 
       <section className="rounded-xl border border-border-muted bg-surface-elevated p-6">
         <h2 className="text-lg font-bold text-ink mb-2">Thông tin yêu cầu</h2>

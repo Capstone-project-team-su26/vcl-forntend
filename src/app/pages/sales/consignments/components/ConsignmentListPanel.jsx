@@ -20,6 +20,7 @@ import { getErrorMessage } from "@/utils/apiError";
 import { ROUTES } from "@/utils/appRoutes";
 import { useAuth } from "@/hooks/useAuth";
 import { isMockMode } from "@/utils/mocks/dataSource";
+import { toast } from "@/app/components/ToastProvider";
 
 const {
   CONSIGNMENT_TYPE_LABELS,
@@ -142,8 +143,12 @@ function ConsignmentCard({ item, onOpen, detailLoading }) {
   async function handleCopy(event) {
     event.stopPropagation();
     const ok = await copyText(String(trackingCode));
-    if (!ok) return;
+    if (!ok) {
+      toast.error("Không sao chép được mã.");
+      return;
+    }
     setCopied(true);
+    toast.success("Đã sao chép mã.");
     window.setTimeout(() => setCopied(false), 1500);
   }
 

@@ -14,7 +14,7 @@ import {
   markConversationAsReadMock,
 } from "./mock";
 
-export { dedupeConversations } from "./mappers";
+export { dedupeConversations, normalizeConversationMessage, resolveMediaUrl } from "./mappers";
 
 export const CONVERSATION_RELATED_TYPE_LABELS = {
   GENERAL: "Trao đổi chung",

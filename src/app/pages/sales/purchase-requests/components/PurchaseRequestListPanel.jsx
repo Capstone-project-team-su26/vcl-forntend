@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import * as purchaseRequestService from "@/modules/purchase-requests";
+import { toast } from "@/app/components/ToastProvider";
 import { getErrorMessage } from "@/utils/apiError";
 import { ROUTES } from "@/utils/appRoutes";
 
@@ -173,8 +174,12 @@ function PurchaseRequestCard({ item, onOpen, detailLoading }) {
   async function handleCopy(event) {
     event.stopPropagation();
     const ok = await copyText(String(requestCode));
-    if (!ok) return;
+    if (!ok) {
+      toast.error("Không sao chép được mã.");
+      return;
+    }
     setCopied(true);
+    toast.success("Đã sao chép mã.");
     window.setTimeout(() => setCopied(false), 1500);
   }
 

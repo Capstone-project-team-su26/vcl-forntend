@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import * as customerService from "@/modules/customers";
 import * as purchaseRequestService from "@/modules/purchase-requests";
+import { useToast } from "@/app/components/ToastProvider";
 import { getErrorMessage } from "@/utils/apiError";
 import { ROUTES } from "@/utils/appRoutes";
 
@@ -30,12 +31,11 @@ function StatusBadge({ status }) {
 }
 
 export default function PurchaseRequestPurchaseOrderPanel({ id, backHref }) {
+  const toast = useToast();
   const [detail, setDetail] = useState(null);
   const [customer, setCustomer] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
-  const [submitError, setSubmitError] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [supplier, setSupplier] = useState("");
@@ -54,8 +54,6 @@ export default function PurchaseRequestPurchaseOrderPanel({ id, backHref }) {
     async function load() {
       setIsLoading(true);
       setLoadError("");
-      setSubmitError("");
-      setSuccessMessage("");
 
       try {
         const data = await purchaseRequestService.getPurchaseRequest(id);
@@ -98,8 +96,6 @@ export default function PurchaseRequestPurchaseOrderPanel({ id, backHref }) {
     if (!detail || !canCreate || isSubmitting) return;
 
     setIsSubmitting(true);
-    setSubmitError("");
-    setSuccessMessage("");
 
     try {
       const response = await purchaseRequestService.createPurchaseRequestPurchaseOrder(
@@ -126,13 +122,13 @@ export default function PurchaseRequestPurchaseOrderPanel({ id, backHref }) {
         );
       }
 
-      setSuccessMessage(
+      toast.success(
         `${response.message || "Tạo đơn mua hàng thành công."} Trạng thái: ${
           PURCHASE_REQUEST_STATUS_LABELS[response.status] || response.status
         }.`
       );
     } catch (err) {
-      setSubmitError(getErrorMessage(err));
+      toast.error(getErrorMessage(err));
     } finally {
       setIsSubmitting(false);
     }
@@ -210,18 +206,6 @@ export default function PurchaseRequestPurchaseOrderPanel({ id, backHref }) {
             {detail.purchaseOrder.purchaseOrderCode}
           </span>
           . Không thể tạo trùng.
-        </div>
-      ) : null}
-
-      {successMessage ? (
-        <div className="rounded-lg border border-success/30 bg-success-bg px-4 py-3 text-sm text-success-text">
-          {successMessage}
-        </div>
-      ) : null}
-
-      {submitError ? (
-        <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
-          {submitError}
         </div>
       ) : null}
 
@@ -325,8 +309,6 @@ export default function PurchaseRequestPurchaseOrderPanel({ id, backHref }) {
               value={supplier}
               onChange={(event) => {
                 setSupplier(event.target.value);
-                setSubmitError("");
-                setSuccessMessage("");
               }}
               placeholder="VD: Amazon US, Apple Store Online..."
               className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring disabled:opacity-60"
@@ -344,8 +326,6 @@ export default function PurchaseRequestPurchaseOrderPanel({ id, backHref }) {
               value={purchaseNote}
               onChange={(event) => {
                 setPurchaseNote(event.target.value);
-                setSubmitError("");
-                setSuccessMessage("");
               }}
               placeholder="Ghi chú nội bộ cho Buying Team khi đặt hàng với nhà cung cấp..."
               className="w-full px-4 py-3 rounded-lg border border-border-muted text-sm resize-y input-focus-ring min-h-[88px] disabled:opacity-60"
