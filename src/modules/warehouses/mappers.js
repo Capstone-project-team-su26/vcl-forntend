@@ -1,4 +1,5 @@
 export function normalizeWarehouseFromApi(item) {
+  const capacityRaw = item.capacity ?? item.Capacity;
   return {
     id: item.id ?? item.warehouseId,
     name: item.name ?? item.warehouseName ?? "—",
@@ -6,6 +7,8 @@ export function normalizeWarehouseFromApi(item) {
     address: item.address ?? null,
     region: item.region ?? null,
     warehouseType: item.warehouseType ?? item.type ?? null,
+    capacity:
+      capacityRaw === "" || capacityRaw == null ? null : Number(capacityRaw),
     isActive: item.isActive !== false,
   };
 }
@@ -17,6 +20,8 @@ export function normalizeWarehouseListResponse(raw) {
 }
 
 export function toApiWarehousePayload(payload) {
+  // ponytail: CreateWarehouseRequestDto swagger (additionalProperties: false) chưa có capacity.
+  // Không gửi capacity lên BE để tránh 400; mock vẫn lưu; UI merge capacity sau save.
   return {
     name: payload.name?.trim(),
     code: payload.code?.trim(),

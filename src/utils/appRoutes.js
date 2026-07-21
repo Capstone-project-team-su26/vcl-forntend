@@ -9,6 +9,8 @@ export const ROUTES = {
   },
   admin: {
     users: `${PAGES}/admin/users`,
+    customerUsers: `${PAGES}/admin/customer-users`,
+    customerProfile: (id) => `${PAGES}/admin/customer-users/${id}`,
     consignments: `${PAGES}/admin/consignments`,
     consignment: (id) => `${PAGES}/admin/consignments/${id}`,
     consignmentQuotation: (id) => `${PAGES}/admin/consignments/${id}/quotation`,

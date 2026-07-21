@@ -1,6 +1,8 @@
 import { mockDelay } from "@/utils/mocks/mockDelay";
 import { resolveMockAccount } from "@/utils/mocks/mockAccounts";
 import { getMockStore } from "@/utils/mocks/mockStore";
+import { ApiError } from "@/utils/apiError";
+import { findDuplicateUser } from "@/modules/users/validateRegister";
 
 function mockAuthResponse({ email, role, fullName }) {
   return {
@@ -38,6 +40,14 @@ export async function mockResetPassword() {
 
 export async function mockAdminRegisterEmployee(payload) {
   await mockDelay();
+  const duplicate = findDuplicateUser(getMockStore().users, {
+    email: payload.email,
+    phone: payload.phone,
+  });
+  if (duplicate) {
+    throw new ApiError(409, { message: duplicate.message });
+  }
+
   const id = `mock-user-${Date.now()}`;
   const role = payload.role;
   const user = {

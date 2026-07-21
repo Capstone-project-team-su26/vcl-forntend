@@ -18,6 +18,11 @@ export {
   normalizeCustomerListResponse,
   toApiCustomerPayload,
 } from "./mappers";
+export {
+  findLinkedCustomerAccount,
+  findLinkedCustomerProfile,
+  isCustomerAccount,
+} from "./linkAccount";
 
 export const CUSTOMER_STATUS_LABELS = {
   ACTIVE: "Hoạt động",

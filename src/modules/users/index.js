@@ -3,6 +3,12 @@ import { listUsersApi, lockUserApi, unlockUserApi } from "./api";
 import { listUsersMock, lockUserMock, unlockUserMock } from "./mock";
 
 export { normalizeUserFromApi, normalizeEmployeeRole } from "./mappers";
+export {
+  findDuplicateUser,
+  normalizeEmail,
+  normalizePhone,
+  validateEmployeeRegister,
+} from "./validateRegister";
 
 export async function listUsers() {
   if (isMockMode()) return listUsersMock();

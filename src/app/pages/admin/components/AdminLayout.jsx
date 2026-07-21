@@ -10,7 +10,18 @@ import { ROUTES } from "@/utils/appRoutes";
 
 const navItems = [
   { id: "dashboard", label: "Tổng quan", icon: "lucide:layout-dashboard" },
-  { id: "users", label: "Người dùng", icon: "lucide:users", href: ROUTES.admin.users },
+  {
+    id: "users",
+    label: "Nhân viên nội bộ",
+    icon: "lucide:briefcase",
+    href: ROUTES.admin.users,
+  },
+  {
+    id: "customer-users",
+    label: "Quản lý khách",
+    icon: "lucide:users",
+    href: ROUTES.admin.customerUsers,
+  },
   {
     id: "consignments",
     label: "Yêu cầu ký gửi",

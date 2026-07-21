@@ -23,23 +23,37 @@ export default function WarehouseFormModal({ open, mode, warehouse, onClose, onS
     setError("");
 
     const form = event.currentTarget;
+    const capacityRaw = form.elements.namedItem("capacity").value.trim();
     const payload = {
       name: form.elements.namedItem("name").value.trim(),
       code: form.elements.namedItem("code").value.trim(),
       address: form.elements.namedItem("address").value.trim(),
       region: form.elements.namedItem("region").value.trim().toUpperCase(),
       warehouseType: form.elements.namedItem("warehouseType").value || null,
+      capacity: capacityRaw === "" ? null : Number(capacityRaw),
       isActive: form.elements.namedItem("isActive").checked,
     };
+
+    if (payload.capacity != null && (Number.isNaN(payload.capacity) || payload.capacity < 0)) {
+      setError("Sức chứa phải là số ≥ 0.");
+      return;
+    }
 
     setIsSubmitting(true);
     try {
       if (mode === "create") {
         const response = await warehouseService.createWarehouse(payload);
-        onSaved(response.warehouse, response.message || "Thêm kho thành công.");
+        // ponytail: BE CreateWarehouseRequestDto chưa có capacity — giữ giá trị form trên UI.
+        onSaved(
+          { ...response.warehouse, capacity: payload.capacity ?? response.warehouse?.capacity },
+          response.message || "Thêm kho thành công."
+        );
       } else if (warehouse) {
         const response = await warehouseService.updateWarehouse(warehouse.id, payload);
-        onSaved(response.warehouse, response.message || "Cập nhật kho thành công.");
+        onSaved(
+          { ...response.warehouse, capacity: payload.capacity ?? response.warehouse?.capacity },
+          response.message || "Cập nhật kho thành công."
+        );
       }
       onClose();
     } catch (err) {
@@ -134,19 +148,37 @@ export default function WarehouseFormModal({ open, mode, warehouse, onClose, onS
             </select>
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="region" className="text-sm font-semibold text-ink">
-              Region (mã quốc gia)
-            </label>
-            <input
-              id="region"
-              name="region"
-              defaultValue={warehouse?.region ?? ""}
-              maxLength={2}
-              pattern="[A-Za-z]{2}"
-              placeholder="VD: CN, JP, KR, VN"
-              className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm uppercase input-focus-ring"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label htmlFor="region" className="text-sm font-semibold text-ink">
+                Region (mã quốc gia)
+              </label>
+              <input
+                id="region"
+                name="region"
+                defaultValue={warehouse?.region ?? ""}
+                maxLength={2}
+                pattern="[A-Za-z]{2}"
+                placeholder="VD: CN, JP, KR, VN"
+                className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm uppercase input-focus-ring"
+              />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="capacity" className="text-sm font-semibold text-ink">
+                Sức chứa
+              </label>
+              <input
+                id="capacity"
+                name="capacity"
+                type="number"
+                min={0}
+                step={1}
+                defaultValue={warehouse?.capacity ?? ""}
+                placeholder="VD: 1000"
+                className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
+              />
+              <p className="text-xs text-muted">Đơn vị nội bộ (kiện / CBM / slot — theo quy ước kho).</p>
+            </div>
           </div>
 
           <label className="flex items-center gap-2.5 cursor-pointer">

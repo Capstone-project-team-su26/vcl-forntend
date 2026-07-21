@@ -1,9 +1,16 @@
 import { mockDelay } from "@/utils/mocks/mockDelay";
 import { getMockStore } from "@/utils/mocks/mockStore";
+import { normalizeUserFromApi } from "./mappers";
 
 export async function listUsersMock() {
   await mockDelay();
-  return getMockStore().users.map((user) => ({ ...user }));
+  return getMockStore().users.map((user) =>
+    normalizeUserFromApi({
+      ...user,
+      fullName: user.fullName ?? user.name,
+      userType: user.userType ?? (user.role === "Customer" ? "Customer" : "Employee"),
+    })
+  );
 }
 
 export async function lockUserMock(userId) {

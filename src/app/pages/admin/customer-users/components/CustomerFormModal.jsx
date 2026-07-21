@@ -61,7 +61,7 @@ export default function CustomerFormModal({ open, mode, customer, onClose, onSav
       <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto bg-surface-elevated rounded-xl border border-border-muted shadow-xl">
         <div className="flex items-center justify-between px-6 py-4 border-b border-border-muted sticky top-0 bg-surface-elevated">
           <h2 className="text-lg font-bold text-ink">
-            {mode === "create" ? "Thêm khách hàng" : "Chỉnh sửa khách hàng"}
+            {mode === "create" ? "Thêm hồ sơ khách" : "Chỉnh sửa hồ sơ khách"}
           </h2>
           <button type="button" onClick={onClose} className="p-2 text-muted hover:text-ink">
             <Icon icon="lucide:x" className="w-5 h-5" />

@@ -34,12 +34,20 @@ function validateWarehousePayload(payload, { requireAll = false } = {}) {
     if (!code) throw new ApiError(400, { message: "Vui lòng nhập mã kho." });
   }
 
+  const capacity =
+    payload.capacity === undefined
+      ? undefined
+      : payload.capacity === "" || payload.capacity == null
+        ? null
+        : Number(payload.capacity);
+
   return {
     name,
     code,
     address: payload.address?.trim() || null,
     region: payload.region?.trim().toUpperCase() || null,
     warehouseType: payload.warehouseType || null,
+    ...(capacity !== undefined ? { capacity } : {}),
     isActive: payload.isActive !== false,
   };
 }

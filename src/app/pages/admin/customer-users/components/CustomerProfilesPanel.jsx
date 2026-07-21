@@ -4,14 +4,21 @@ import { Icon } from "@iconify/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import CustomerFormModal from "@/app/pages/sales/customers/components/CustomerFormModal";
+import ActionNotice from "../../components/ActionNotice";
+import CustomerFormModal from "./CustomerFormModal";
 import DataTable from "@/app/components/DataTable";
 import * as customerService from "@/modules/customers";
+import * as userService from "@/modules/users";
 import { getErrorMessage } from "@/utils/apiError";
 import { ROUTES } from "@/utils/appRoutes";
 
-const { CUSTOMER_STATUS_LABELS, CUSTOMER_STATUS_STYLES, buildCreateConsignmentUrl } =
-  customerService;
+const { CUSTOMER_STATUS_LABELS, CUSTOMER_STATUS_STYLES } = customerService;
+
+const ACCOUNT_STATUS_LABEL = {
+  ACTIVE: "Đang hoạt động",
+  LOCKED: "Đã khóa",
+  PENDING_VERIFICATION: "Chờ xác minh",
+};
 
 const STATUS_FILTER_OPTIONS = Object.entries(CUSTOMER_STATUS_LABELS).map(([value, label]) => ({
   value,
@@ -30,9 +37,28 @@ function StatusBadge({ status }) {
   );
 }
 
-export default function CustomerListPanel() {
+function AccountLinkBadge({ link }) {
+  if (!link?.user) {
+    return <span className="text-xs text-muted">Chưa có TK</span>;
+  }
+  const status = link.user.status;
+  const tone =
+    status === "LOCKED"
+      ? "bg-danger/10 text-danger"
+      : status === "PENDING_VERIFICATION"
+        ? "bg-warning-bg text-warning-text"
+        : "bg-success-bg text-success-text";
+  return (
+    <span className={`inline-block px-2.5 py-0.5 rounded-md text-[11px] font-bold ${tone}`}>
+      {ACCOUNT_STATUS_LABEL[status] || status}
+    </span>
+  );
+}
+
+export default function CustomerProfilesPanel() {
   const router = useRouter();
   const [customers, setCustomers] = useState([]);
+  const [users, setUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
@@ -44,10 +70,14 @@ export default function CustomerListPanel() {
     async function load() {
       setIsLoading(true);
       setError("");
-
       try {
-        const data = await customerService.listCustomers();
-        if (active) setCustomers(data);
+        const [customerData, userData] = await Promise.all([
+          customerService.listCustomers(),
+          userService.listUsers(),
+        ]);
+        if (!active) return;
+        setCustomers(customerData);
+        setUsers(userData);
       } catch (err) {
         if (active) setError(getErrorMessage(err));
       } finally {
@@ -65,7 +95,7 @@ export default function CustomerListPanel() {
     setCustomers((current) => [customer, ...current]);
     setSuccessMessage(message);
     setError("");
-    router.push(ROUTES.sales.customer(customer.id));
+    router.push(ROUTES.admin.customerProfile(customer.id));
   }
 
   const columns = useMemo(
@@ -101,15 +131,28 @@ export default function CustomerListPanel() {
         render: (row) => row.email || "—",
       },
       {
-        key: "address",
-        title: "Địa chỉ",
-        headerClassName: "hidden lg:table-cell",
-        className: "text-muted hidden lg:table-cell max-w-xs truncate",
-        render: (row) => row.address || "—",
+        key: "account",
+        title: "Tài khoản",
+        sortable: true,
+        sortAccessor: (row) =>
+          customerService.findLinkedCustomerAccount(row, users)?.user?.status || "NONE",
+        filter: {
+          options: [
+            { value: "ACTIVE", label: "TK hoạt động" },
+            { value: "LOCKED", label: "TK đã khóa" },
+            { value: "PENDING_VERIFICATION", label: "TK chờ xác minh" },
+            { value: "NONE", label: "Chưa có TK" },
+          ],
+        },
+        filterAccessor: (row) =>
+          customerService.findLinkedCustomerAccount(row, users)?.user?.status || "NONE",
+        render: (row) => (
+          <AccountLinkBadge link={customerService.findLinkedCustomerAccount(row, users)} />
+        ),
       },
       {
         key: "status",
-        title: "Trạng thái",
+        title: "Hồ sơ",
         sortable: true,
         filter: { options: STATUS_FILTER_OPTIONS },
         render: (row) => <StatusBadge status={row.status} />,
@@ -119,78 +162,50 @@ export default function CustomerListPanel() {
         title: "Thao tác",
         align: "right",
         render: (row) => (
-          <div className="flex items-center justify-end gap-1">
-            <Link
-              href={buildCreateConsignmentUrl(row.id)}
-              className="p-2 text-primary hover:bg-primary/10 rounded-lg"
-              title="Tạo ký gửi thay khách"
-            >
-              <Icon icon="lucide:package-plus" className="w-4 h-4" />
-            </Link>
-            <Link
-              href={buildCreateConsignmentUrl(row.id, "PURCHASE_ORDER")}
-              className="p-2 text-secondary hover:bg-secondary/10 rounded-lg"
-              title="Mua hộ thay khách"
-            >
-              <Icon icon="lucide:shopping-cart" className="w-4 h-4" />
-            </Link>
-            <Link
-              href={ROUTES.sales.customer(row.id)}
-              className="p-2 text-muted hover:text-ink hover:bg-surface rounded-lg"
-              title="Xem chi tiết / chỉnh sửa"
-            >
-              <Icon icon="lucide:eye" className="w-4 h-4" />
-            </Link>
-          </div>
+          <Link
+            href={ROUTES.admin.customerProfile(row.id)}
+            className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-border-muted text-muted hover:text-ink hover:bg-surface-muted"
+            title="Xem hồ sơ & tài khoản"
+            aria-label="Xem hồ sơ & tài khoản"
+          >
+            <Icon icon="lucide:eye" className="w-4 h-4" />
+          </Link>
         ),
       },
     ],
-    []
+    [users]
   );
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl lg:text-4xl font-black tracking-tight font-['Oswald'] text-ink">
-            Hồ sơ khách hàng
-          </h1>
-          <p className="text-muted text-sm font-medium mt-2">
-            Tìm kiếm, tạo mới và quản lý thông tin khách để phục vụ ký gửi hoặc mua hộ thay khách.
-          </p>
-        </div>
+    <div className="space-y-5">
+      <div className="flex justify-end">
         <button
           type="button"
           onClick={() => setModalMode("create")}
-          className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-lg bg-primary text-white text-sm font-bold hover:bg-primary/90 shrink-0"
+          className="inline-flex items-center justify-center gap-2 h-10 px-4 bg-insight hover:bg-secondary text-white text-sm font-bold rounded-lg transition-colors shrink-0"
         >
           <Icon icon="lucide:user-plus" className="w-4 h-4" />
-          Thêm khách hàng
+          Thêm hồ sơ
         </button>
       </div>
 
-      {error ? (
-        <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
-          {error}
-        </div>
-      ) : null}
-
-      {successMessage ? (
-        <div className="rounded-lg border border-success/30 bg-success-bg px-4 py-3 text-sm text-success-text">
-          {successMessage}
-        </div>
-      ) : null}
+      <ActionNotice message={error} tone="danger" onDismiss={() => setError("")} />
+      <ActionNotice
+        message={successMessage}
+        tone="success"
+        onDismiss={() => setSuccessMessage("")}
+      />
 
       <DataTable
         columns={columns}
         rows={customers}
         loading={isLoading}
-        title="Danh sách khách hàng"
-        countLabel="khách hàng"
+        title="Danh sách hồ sơ khách"
+        countLabel="hồ sơ"
         searchPlaceholder="Tìm theo mã, tên, SĐT hoặc email..."
-        emptyText="Chưa có khách hàng nào."
-        emptyFilteredText="Không tìm thấy khách hàng phù hợp."
-        minWidth={960}
+        emptyText="Chưa có hồ sơ khách nào."
+        emptyFilteredText="Không tìm thấy hồ sơ phù hợp."
+        minWidth={1020}
       />
 
       <CustomerFormModal
