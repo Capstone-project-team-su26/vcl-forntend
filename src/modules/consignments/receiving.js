@@ -4,6 +4,7 @@ import { getMockStore, nextMockId } from "@/utils/mocks/mockStore";
 import { apiRequest } from "@/utils/apiClient";
 import { ApiError } from "@/utils/apiError";
 import { normalizeWarehouseListResponse } from "@/modules/warehouses/mappers";
+import { filterWarehousesByType, isWarehouseType } from "@/modules/warehouses";
 import {
   normalizeReceivingNoteCreateResponse,
   normalizeReceivingNoteFromApi,
@@ -84,7 +85,10 @@ export function getExpectedTotalQuantity(consignment) {
 
 async function listWarehousesMock() {
   await mockDelay();
-  return getMockStore().warehouses.map((item) => ({ ...item }));
+  return filterWarehousesByType(
+    getMockStore().warehouses.map((item) => ({ ...item })),
+    "Destination"
+  );
 }
 
 async function getActiveReceivingNoteMock(consignmentOrderId) {
@@ -116,8 +120,10 @@ async function createReceivingNoteMock({ consignmentOrderId, warehouseId, wareho
   }
 
   const warehouse = getMockStore().warehouses.find((item) => item.id === warehouseId);
-  if (!warehouse) {
-    throw new ApiError(400, { message: "Kho tiếp nhận không hợp lệ." });
+  if (!warehouse || !isWarehouseType(warehouse, "Destination")) {
+    throw new ApiError(400, {
+      message: "Kho tiếp nhận không hợp lệ. Chỉ chọn kho đích (Destination).",
+    });
   }
 
   const receivingNoteCode = `WRN-${Date.now().toString().slice(-8)}`;
@@ -141,10 +147,11 @@ async function createReceivingNoteMock({ consignmentOrderId, warehouseId, wareho
 }
 
 export async function listReceivingWarehouses() {
+  // Phiếu tiếp nhận = kho đích nhận hàng VN — không cho chọn Origin (pricing/route).
   if (isMockMode()) return listWarehousesMock();
 
   const raw = await apiRequest("/api/warehouses/active");
-  return normalizeWarehouseListResponse(raw);
+  return filterWarehousesByType(normalizeWarehouseListResponse(raw), "Destination");
 }
 
 export async function getActiveReceivingNoteByConsignment(consignmentOrderId) {
@@ -178,6 +185,13 @@ export async function getReceivingNotePageData(consignmentOrderId) {
 
 export async function createReceivingNote(payload) {
   if (isMockMode()) return createReceivingNoteMock(payload);
+
+  const destinations = await listReceivingWarehouses();
+  if (!destinations.some((entry) => entry.id === payload.warehouseId)) {
+    throw new ApiError(400, {
+      message: "Kho tiếp nhận không hợp lệ. Chỉ chọn kho đích (Destination).",
+    });
+  }
 
   const raw = await apiRequest("/api/warehouse-receiving-notes", {
     method: "POST",

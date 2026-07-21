@@ -27,11 +27,6 @@ function ActiveBadge({ isActive }) {
   );
 }
 
-function formatCapacity(capacity) {
-  if (capacity == null || Number.isNaN(Number(capacity))) return "—";
-  return `${Number(capacity).toLocaleString("vi-VN")}`;
-}
-
 export default function WarehousesPage() {
   const [warehouses, setWarehouses] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -113,9 +108,7 @@ export default function WarehousesPage() {
       });
       setWarehouses((current) =>
         current.map((entry) =>
-          entry.id === warehouse.id
-            ? { ...response.warehouse, capacity: entry.capacity ?? response.warehouse.capacity }
-            : entry
+          entry.id === warehouse.id ? response.warehouse : entry
         )
       );
       setActionMessage(
@@ -157,7 +150,7 @@ export default function WarehousesPage() {
               Quản lý kho
             </h1>
             <p className="text-sm text-muted mt-1 leading-relaxed">
-              Tạo kho và khai báo sức chứa. Không quản lý Zone/Shelf/Bin hay luồng chi tiết tại đây.
+              Master kho (Origin / Destination). Phân bố vị trí và sức chứa bin do Operations quản lý.
             </p>
           </div>
           <button
@@ -225,12 +218,11 @@ export default function WarehousesPage() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm min-w-[720px]">
+              <table className="w-full text-sm min-w-[640px]">
                 <thead>
                   <tr className="text-left text-xs uppercase tracking-wide text-muted border-b border-border-muted">
                     <th className="px-6 py-3 font-bold">Kho</th>
                     <th className="px-4 py-3 font-bold">Loại</th>
-                    <th className="px-4 py-3 font-bold">Sức chứa</th>
                     <th className="px-4 py-3 font-bold">Trạng thái</th>
                     <th className="px-4 py-3 font-bold text-right">Thao tác</th>
                   </tr>
@@ -253,9 +245,6 @@ export default function WarehousesPage() {
                         </td>
                         <td className="px-4 py-4 text-muted font-semibold">
                           {formatWarehouseType(warehouse.warehouseType)}
-                        </td>
-                        <td className="px-4 py-4 font-semibold text-ink tabular-nums">
-                          {formatCapacity(warehouse.capacity)}
                         </td>
                         <td className="px-4 py-4">
                           <ActiveBadge isActive={warehouse.isActive} />

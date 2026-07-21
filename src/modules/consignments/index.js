@@ -99,8 +99,10 @@ export const CONSIGNMENT_STATUS_LABELS = {
   APPROVED: "Đã duyệt",
   REJECTED: "Từ chối",
   IN_PROGRESS: "Đang xử lý",
-  IN_WAREHOUSE: "Đã nhập kho",
-  WAREHOUSE_RECEIVED: "Đã nhận tại kho",
+  WAITING_FOR_PARCEL: "Chờ hàng về kho",
+  // Check-in kiện — chưa chắc đã put-away / ghi tồn.
+  IN_WAREHOUSE: "Đã check-in tại kho",
+  WAREHOUSE_RECEIVED: "Đã nhận tại kho (check-in)",
   CANCELLED: "Đã hủy",
   COMPLETED: "Hoàn tất",
 };
@@ -119,8 +121,9 @@ export const CONSIGNMENT_STATUS_STYLES = {
   APPROVED: "bg-success-bg text-success-text border-2 border-primary",
   REJECTED: "bg-danger-bg text-danger border-2 border-danger-border",
   IN_PROGRESS: "bg-info-bg text-info-text border-2 border-primary",
+  WAITING_FOR_PARCEL: "bg-warning-bg text-warning-text border-2 border-primary",
   IN_WAREHOUSE: "bg-info-bg text-info-text border-2 border-primary",
-  WAREHOUSE_RECEIVED: "bg-success-bg text-success-text border-2 border-primary",
+  WAREHOUSE_RECEIVED: "bg-info-bg text-info-text border-2 border-primary",
   CANCELLED: "bg-surface-muted text-ink border-2 border-border",
   COMPLETED: "bg-success-bg text-success-text border-2 border-primary",
 };
@@ -139,6 +142,7 @@ export const CONSIGNMENT_STATUS_ICONS = {
   APPROVED: "lucide:package-check",
   REJECTED: "lucide:ban",
   IN_PROGRESS: "lucide:truck",
+  WAITING_FOR_PARCEL: "lucide:package-search",
   IN_WAREHOUSE: "lucide:warehouse",
   WAREHOUSE_RECEIVED: "lucide:package",
   CANCELLED: "lucide:minus-circle",

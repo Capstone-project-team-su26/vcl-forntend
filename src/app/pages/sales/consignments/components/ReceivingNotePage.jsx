@@ -142,8 +142,8 @@ export default function ReceivingNotePage({ consignmentId }) {
           Phiếu tiếp nhận kho
         </h1>
         <p className="text-muted text-sm mt-2 max-w-xl">
-          Gửi phiếu tiếp nhận trực tiếp trên hệ thống. Kho xử lý online — không cần in bản cứng
-          hay quy trình offline.
+          Thông báo kho đích chờ nhận hàng. Phiếu chưa ghi tồn kho — kho check-in / put-away trên
+          hệ thống riêng.
         </p>
       </div>
 
@@ -292,22 +292,29 @@ export default function ReceivingNotePage({ consignmentId }) {
               <section className="space-y-4 pt-2 border-t border-surface-muted">
                 <h2 className="text-lg font-extrabold font-['Oswald']">Gửi phiếu tiếp nhận</h2>
                 <p className="text-sm text-muted">
-                  Phiếu sẽ được đồng bộ online tới kho đã chọn. Nhân viên kho xử lý trực tiếp trên
-                  hệ thống.
+                  Chỉ chọn kho đích (Destination). Phiếu đồng bộ online — kho check-in và xếp vị trí
+                  sau khi hàng về.
                 </p>
+
+                {!warehouses.length ? (
+                  <div className="rounded-lg border border-warning-bg bg-warning-bg/40 px-4 py-3 text-sm text-ink">
+                    Chưa có kho đích đang hoạt động. Nhờ Admin tạo kho loại Destination trước khi gửi
+                    phiếu.
+                  </div>
+                ) : null}
 
                 <div className="space-y-2">
                   <label htmlFor="warehouseId" className="text-sm font-bold text-ink">
-                    Kho tiếp nhận <span className="text-danger">*</span>
+                    Kho đích tiếp nhận <span className="text-danger">*</span>
                   </label>
                   <select
                     id="warehouseId"
                     value={warehouseId}
                     onChange={(e) => setWarehouseId(e.target.value)}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || !warehouses.length}
                     className="w-full h-11 px-4 rounded-lg border border-border-muted bg-surface-elevated text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
                   >
-                    <option value="">— Chọn kho tiếp nhận —</option>
+                    <option value="">— Chọn kho đích —</option>
                     {warehouses.map((warehouse) => (
                       <option key={warehouse.id} value={warehouse.id}>
                         {warehouse.name}
@@ -335,7 +342,7 @@ export default function ReceivingNotePage({ consignmentId }) {
                 <button
                   type="button"
                   onClick={handleCreate}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || !warehouses.length}
                   className="inline-flex items-center justify-center gap-2 h-11 px-6 rounded-lg bg-primary text-white text-sm font-bold hover:opacity-90 disabled:opacity-60 transition-opacity"
                 >
                   {isSubmitting ? (

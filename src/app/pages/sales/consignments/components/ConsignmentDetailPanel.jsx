@@ -821,7 +821,7 @@ export default function ConsignmentDetailPanel({
               <div>
                 <h3 className="text-lg font-extrabold font-['Oswald']">Phiếu tiếp nhận kho</h3>
                 <p className="text-sm text-subtle mt-1">
-                  Gửi phiếu tiếp nhận online — kho nhận và xử lý trực tiếp trên hệ thống.
+                  Gửi phiếu tới kho đích — kho check-in / xếp vị trí sau khi hàng về (chưa ghi tồn).
                 </p>
               </div>
               <Link

@@ -34,20 +34,12 @@ function validateWarehousePayload(payload, { requireAll = false } = {}) {
     if (!code) throw new ApiError(400, { message: "Vui lòng nhập mã kho." });
   }
 
-  const capacity =
-    payload.capacity === undefined
-      ? undefined
-      : payload.capacity === "" || payload.capacity == null
-        ? null
-        : Number(payload.capacity);
-
   return {
     name,
     code,
     address: payload.address?.trim() || null,
     region: payload.region?.trim().toUpperCase() || null,
     warehouseType: payload.warehouseType || null,
-    ...(capacity !== undefined ? { capacity } : {}),
     isActive: payload.isActive !== false,
   };
 }
@@ -222,4 +214,155 @@ export async function deleteWarehouseLocationMock(locationId) {
   );
 
   return { message: "Đã xóa vị trí lưu trữ." };
+}
+
+export async function listActiveWarehouseLocationsMock(warehouseId) {
+  const locations = await listWarehouseLocationsMock(warehouseId);
+  return locations.filter((entry) => entry.isActive !== false);
+}
+
+export async function createStorageLocationMock(warehouseId, payload) {
+  await mockDelay();
+
+  const warehouse = getMockStore().warehouses.find((entry) => entry.id === warehouseId);
+  if (!warehouse) {
+    throw new ApiError(404, { message: "Không tìm thấy kho." });
+  }
+
+  const zoneName = payload.zoneName?.trim();
+  const shelfCode = payload.shelfCode?.trim();
+  const binCode = payload.binCode?.trim();
+  if (!zoneName || !shelfCode || !binCode) {
+    throw new ApiError(400, { message: "Cần Zone, Shelf và Bin để tạo vị trí." });
+  }
+
+  const maxVolume =
+    payload.maxVolume === "" || payload.maxVolume == null
+      ? null
+      : Number(payload.maxVolume);
+  const maxWeight =
+    payload.maxWeight === "" || payload.maxWeight == null
+      ? null
+      : Number(payload.maxWeight);
+
+  const item = {
+    id: nextMockId("BIN"),
+    warehouseId,
+    zoneId: nextMockId("ZONE"),
+    zoneName,
+    zoneCode: zoneName.slice(0, 8).toUpperCase(),
+    shelfId: nextMockId("SHELF"),
+    shelfCode,
+    binId: null,
+    binCode,
+    maxVolume: Number.isFinite(maxVolume) ? maxVolume : null,
+    maxWeight: Number.isFinite(maxWeight) ? maxWeight : null,
+    currentVolume: 0,
+    locationType: "BIN",
+    code: binCode,
+    name: binCode,
+    parentId: null,
+    capacity: Number.isFinite(maxVolume) ? maxVolume : null,
+    isActive: payload.isActive !== false,
+    note: payload.note?.trim() || null,
+  };
+  item.binId = item.id;
+
+  getMockStore().warehouseLocations.unshift(item);
+  return { message: "Thêm vị trí lưu trữ thành công.", location: { ...item } };
+}
+
+function ensureLayoutStore() {
+  const store = getMockStore();
+  if (!Array.isArray(store.warehouseLayouts)) store.warehouseLayouts = [];
+  return store;
+}
+
+export async function listWarehouseLayoutMock(warehouseId) {
+  await mockDelay();
+  return ensureLayoutStore()
+    .warehouseLayouts.filter((entry) => entry.warehouseId === warehouseId)
+    .map((entry) => ({ ...entry }));
+}
+
+export async function listWarehouseLayoutStatusMock(warehouseId) {
+  const cells = await listWarehouseLayoutMock(warehouseId);
+  return cells.map((cell) => ({
+    ...cell,
+    fillRatio: cell.fillRatio ?? 0,
+    hasInventory: Boolean(cell.hasInventory),
+  }));
+}
+
+export async function createWarehouseLayoutCellMock(warehouseId, payload) {
+  await mockDelay();
+  const store = ensureLayoutStore();
+  const warehouse = store.warehouses.find((entry) => entry.id === warehouseId);
+  if (!warehouse) {
+    throw new ApiError(404, { message: "Không tìm thấy kho." });
+  }
+
+  const cell = {
+    id: nextMockId("LAY"),
+    warehouseId,
+    zoneId: payload.zoneId || null,
+    shelfId: payload.shelfId || null,
+    binId: payload.binId || null,
+    rowIndex: Number(payload.rowIndex),
+    columnIndex: Number(payload.columnIndex),
+    displayLabel: payload.displayLabel?.trim() || "Ô",
+    layoutType: payload.layoutType || "BIN",
+    status: payload.status || "ACTIVE",
+    width: payload.width == null ? 1 : Number(payload.width),
+    height: payload.height == null ? 1 : Number(payload.height),
+    colorCode: payload.colorCode || null,
+    fillRatio: 0,
+    hasInventory: false,
+  };
+
+  store.warehouseLayouts.unshift(cell);
+  return { message: "Đã thêm ô sơ đồ.", cell: { ...cell } };
+}
+
+export async function updateWarehouseLayoutCellMock(warehouseId, layoutId, payload) {
+  await mockDelay();
+  const store = ensureLayoutStore();
+  const cell = store.warehouseLayouts.find(
+    (entry) => entry.id === layoutId && entry.warehouseId === warehouseId
+  );
+  if (!cell) {
+    throw new ApiError(404, { message: "Không tìm thấy ô sơ đồ." });
+  }
+
+  Object.assign(cell, {
+    zoneId: payload.zoneId || null,
+    shelfId: payload.shelfId || null,
+    binId: payload.binId || null,
+    rowIndex: Number(payload.rowIndex),
+    columnIndex: Number(payload.columnIndex),
+    displayLabel: payload.displayLabel?.trim() || cell.displayLabel,
+    layoutType: payload.layoutType || cell.layoutType,
+    status: payload.status || cell.status,
+    width: payload.width == null ? cell.width : Number(payload.width),
+    height: payload.height == null ? cell.height : Number(payload.height),
+    colorCode: payload.colorCode === undefined ? cell.colorCode : payload.colorCode,
+  });
+
+  return { message: "Đã cập nhật ô sơ đồ.", cell: { ...cell } };
+}
+
+export async function deleteWarehouseLayoutCellMock(warehouseId, layoutId) {
+  await mockDelay();
+  const store = ensureLayoutStore();
+  const index = store.warehouseLayouts.findIndex(
+    (entry) => entry.id === layoutId && entry.warehouseId === warehouseId
+  );
+  if (index < 0) {
+    throw new ApiError(404, { message: "Không tìm thấy ô sơ đồ." });
+  }
+  if (store.warehouseLayouts[index].hasInventory) {
+    throw new ApiError(400, { message: "Không thể xóa ô đang có hàng tồn." });
+  }
+  store.warehouseLayouts.splice(index, 1);
+  return { message: "Đã xóa ô sơ đồ." };
 }

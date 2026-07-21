@@ -9,9 +9,14 @@ export const OPS_NAV = [
   },
   {
     id: "consolidation",
-    label: "Chuc nang gom hang",
+    label: "Chức năng gom hàng",
     href: ROUTES.operations.consolidate,
-    icon: "lucide:layout-dashboard",
+    icon: "lucide:boxes",
   },
-  
+  {
+    id: "warehouse-layout",
+    label: "Phân bố vị trí kho",
+    href: ROUTES.operations.warehouseLayout,
+    icon: "lucide:map",
+  },
 ];

@@ -305,7 +305,6 @@ const seed = {
       code: "VN-HCM",
       address: "123 Nguyễn Văn Cừ, Quận 5, TP. Hồ Chí Minh",
       warehouseType: "Destination",
-      capacity: 5000,
       isActive: true,
     },
     {
@@ -314,7 +313,6 @@ const seed = {
       code: "VN-HN",
       address: "45 Phạm Hùng, Nam Từ Liêm, Hà Nội",
       warehouseType: "Destination",
-      capacity: 3000,
       isActive: true,
     },
     {
@@ -323,7 +321,6 @@ const seed = {
       code: "VN-DN",
       address: "12 Nguyễn Tất Thành, Hải Châu, Đà Nẵng",
       warehouseType: "Destination",
-      capacity: 1500,
       isActive: true,
     },
     {
@@ -332,10 +329,10 @@ const seed = {
       code: "TH-BKK",
       address: "88 Sukhumvit Rd, Bangkok, Thailand",
       warehouseType: "Origin",
-      capacity: 2000,
       isActive: false,
     },
   ],
+  warehouseLayouts: [],
   internationalWarehouses: [
     { id: "wh-us", name: "Kho Mỹ", flag: "🇺🇸", code: "US", country: "US" },
     { id: "wh-cn", name: "Kho Trung Quốc", flag: "🇨🇳", code: "CN", country: "CN" },
