@@ -2,7 +2,7 @@
 
 import { Icon } from "@iconify/react";
 import { useState } from "react";
-import * as warehouseService from "@/utils/warehouseService";
+import * as warehouseService from "@/modules/warehouses";
 import { getErrorMessage } from "@/utils/apiError";
 
 const { WAREHOUSE_TYPE_LABELS } = warehouseService;
@@ -116,37 +116,38 @@ export default function WarehouseFormModal({ open, mode, warehouse, onClose, onS
             />
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="warehouseType" className="text-sm font-semibold text-ink">
-              Loại kho
-            </label>
-            <select
-              id="warehouseType"
-              name="warehouseType"
-              defaultValue={warehouse?.warehouseType ?? ""}
-              className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
-            >
-              {warehouseTypeOptions.map((option) => (
-                <option key={option.value || "none"} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="region" className="text-sm font-semibold text-ink">
-              Region (mã quốc gia)
-            </label>
-            <input
-              id="region"
-              name="region"
-              defaultValue={warehouse?.region ?? ""}
-              maxLength={2}
-              pattern="[A-Za-z]{2}"
-              placeholder="VD: CN, JP, KR, VN"
-              className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm uppercase input-focus-ring"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label htmlFor="warehouseType" className="text-sm font-semibold text-ink">
+                Loại kho
+              </label>
+              <select
+                id="warehouseType"
+                name="warehouseType"
+                defaultValue={warehouse?.warehouseType ?? ""}
+                className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring"
+              >
+                {warehouseTypeOptions.map((option) => (
+                  <option key={option.value || "none"} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="region" className="text-sm font-semibold text-ink">
+                Region (mã quốc gia)
+              </label>
+              <input
+                id="region"
+                name="region"
+                defaultValue={warehouse?.region ?? ""}
+                maxLength={2}
+                pattern="[A-Za-z]{2}"
+                placeholder="VD: CN, JP, KR, VN"
+                className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm uppercase input-focus-ring"
+              />
+            </div>
           </div>
 
           <label className="flex items-center gap-2.5 cursor-pointer">
@@ -158,6 +159,10 @@ export default function WarehouseFormModal({ open, mode, warehouse, onClose, onS
             />
             <span className="text-sm text-ink font-medium">Đang hoạt động</span>
           </label>
+
+          <p className="text-xs text-muted">
+            Sức chứa và sơ đồ Zone/Shelf/Bin do Operations quản lý trên trang phân bố vị trí.
+          </p>
 
           <div className="flex justify-end gap-3 pt-2">
             <button

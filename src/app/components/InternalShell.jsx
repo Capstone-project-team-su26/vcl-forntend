@@ -4,6 +4,7 @@ import { Icon } from "@iconify/react";
 import Link from "next/link";
 import { useState } from "react";
 import AppLogo from "@/app/components/AppLogo";
+import NotificationBell from "@/app/components/NotificationBell";
 import ThemeToggle from "@/app/components/ThemeToggle";
 import UserNavMenu from "@/app/components/UserNavMenu";
 
@@ -13,6 +14,7 @@ export default function InternalShell({
   activeNav,
   roleLabel,
   logoHref,
+  fullBleed = false,
   children,
 }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -92,16 +94,25 @@ export default function InternalShell({
           </button>
 
           <div className="flex items-center gap-4 ml-auto">
-            <button type="button" className="relative p-2 text-muted hover:text-ink" aria-label="Thông báo">
-              <Icon icon="lucide:bell" className="w-5 h-5" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-danger rounded-full" />
-            </button>
+            <NotificationBell />
             <UserNavMenu roleLabel={roleLabel} />
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto custom-scrollbar bg-background print:overflow-visible">
-          <div className="p-4 lg:p-8 max-w-[1200px] mx-auto print:p-0 print:max-w-none">{children}</div>
+        <main
+          className={`flex-1 bg-background print:overflow-visible ${
+            fullBleed ? "overflow-hidden" : "overflow-y-auto custom-scrollbar"
+          }`}
+        >
+          <div
+            className={
+              fullBleed
+                ? "h-full max-w-none p-0"
+                : "p-4 lg:p-8 max-w-[1200px] mx-auto print:p-0 print:max-w-none"
+            }
+          >
+            {children}
+          </div>
         </main>
       </div>
     </div>

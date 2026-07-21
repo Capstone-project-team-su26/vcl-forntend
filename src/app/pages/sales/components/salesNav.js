@@ -9,12 +9,6 @@ export const SALES_NAV = [
     icon: "lucide:layout-dashboard",
   },
   {
-    id: "customers",
-    label: "Khách hàng",
-    href: ROUTES.sales.customers,
-    icon: "lucide:users",
-  },
-  {
     id: "consignments",
     label: "Quản lý ký gửi",
     href: ROUTES.sales.consignments,

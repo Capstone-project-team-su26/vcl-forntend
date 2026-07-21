@@ -39,16 +39,35 @@ function nodeRequest(url, { method, headers, body }) {
         resolve({
           status: res.statusCode ?? 502,
           headers: res.headers,
-          body: Buffer.concat(chunks).toString("utf8"),
+          body: Buffer.concat(chunks),
         });
       });
     });
 
     req.on("error", reject);
 
-    if (body) req.write(body);
+    if (body != null && body !== "") {
+      req.write(body);
+    }
     req.end();
   });
+}
+
+/** Multipart/binary phải đọc arrayBuffer — request.text() làm hỏng file ảnh. */
+async function readRequestBody(request) {
+  if (request.method === "GET" || request.method === "HEAD") return undefined;
+
+  const contentType = request.headers.get("content-type") || "";
+  if (
+    contentType.includes("multipart/form-data") ||
+    contentType.includes("application/octet-stream") ||
+    contentType.includes("image/")
+  ) {
+    return Buffer.from(await request.arrayBuffer());
+  }
+
+  const text = await request.text();
+  return text || undefined;
 }
 
 async function proxyRequest(request, context) {
@@ -72,10 +91,10 @@ async function proxyRequest(request, context) {
   if (contentType) headers["content-type"] = contentType;
   if (authorization) headers.authorization = authorization;
 
-  const body =
-    request.method !== "GET" && request.method !== "HEAD"
-      ? await request.text()
-      : undefined;
+  const body = await readRequestBody(request);
+  if (Buffer.isBuffer(body)) {
+    headers["content-length"] = String(body.length);
+  }
 
   let response;
 

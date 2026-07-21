@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import AdminLayout from "@/app/pages/admin/components/AdminLayout";
 import CarrierFormModal from "@/app/pages/admin/carriers/components/CarrierFormModal";
 import DataTable from "@/app/components/DataTable";
-import * as carrierService from "@/utils/carrierService";
+import * as carrierService from "@/modules/carriers";
 import { getErrorMessage } from "@/utils/apiError";
 
 const { CARRIER_TYPE_LABELS } = carrierService;

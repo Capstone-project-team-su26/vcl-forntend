@@ -3,8 +3,9 @@
 import { Icon } from "@iconify/react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import * as customerService from "@/utils/customerService";
-import * as purchaseOrderService from "@/utils/purchaseOrderService";
+import * as customerService from "@/modules/customers";
+import * as purchaseOrderService from "@/modules/purchase-orders";
+import { useToast } from "@/app/components/ToastProvider";
 import { getErrorMessage } from "@/utils/apiError";
 import { ROUTES } from "@/utils/appRoutes";
 
@@ -33,12 +34,11 @@ export default function PurchaseOrderStatusPanel({
   id,
   backHref,
 }) {
+  const toast = useToast();
   const [detail, setDetail] = useState(null);
   const [customer, setCustomer] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
-  const [submitError, setSubmitError] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [nextStatus, setNextStatus] = useState("");
@@ -59,8 +59,6 @@ export default function PurchaseOrderStatusPanel({
     async function load() {
       setIsLoading(true);
       setLoadError("");
-      setSubmitError("");
-      setSuccessMessage("");
 
       try {
         const data = await purchaseOrderService.getPurchaseOrder(id);
@@ -97,8 +95,6 @@ export default function PurchaseOrderStatusPanel({
     if (!detail || !canUpdate || isSubmitting || !nextStatus) return;
 
     setIsSubmitting(true);
-    setSubmitError("");
-    setSuccessMessage("");
 
     try {
       const response = await purchaseOrderService.updatePurchaseOrderStatus(detail.id, {
@@ -124,13 +120,13 @@ export default function PurchaseOrderStatusPanel({
         setNextStatus("");
       }
 
-      setSuccessMessage(
+      toast.success(
         `${response.message || "Cập nhật trạng thái mua hàng thành công."} Trạng thái mới: ${
           PURCHASE_ORDER_STATUS_LABELS[response.status] || response.status
         }.`
       );
     } catch (err) {
-      setSubmitError(getErrorMessage(err));
+      toast.error(getErrorMessage(err));
     } finally {
       setIsSubmitting(false);
     }
@@ -209,18 +205,6 @@ export default function PurchaseOrderStatusPanel({
         <section className="rounded-lg border border-success/30 bg-success-bg px-4 py-3 text-sm text-success-text">
           Đơn mua hàng đã ở trạng thái chờ kho nhận. Có thể chuyển sang quy trình nhập kho.
         </section>
-      ) : null}
-
-      {successMessage ? (
-        <div className="rounded-lg border border-success/30 bg-success-bg px-4 py-3 text-sm text-success-text">
-          {successMessage}
-        </div>
-      ) : null}
-
-      {submitError ? (
-        <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
-          {submitError}
-        </div>
       ) : null}
 
       <section className="rounded-xl border border-border-muted bg-surface-elevated p-6 space-y-2">
@@ -317,8 +301,6 @@ export default function PurchaseOrderStatusPanel({
                 value={nextStatus}
                 onChange={(event) => {
                   setNextStatus(event.target.value);
-                  setSubmitError("");
-                  setSuccessMessage("");
                 }}
                 className="w-full h-11 px-4 rounded-lg border border-border-muted text-sm input-focus-ring disabled:opacity-60"
               >
@@ -348,8 +330,6 @@ export default function PurchaseOrderStatusPanel({
               value={processingNote}
               onChange={(event) => {
                 setProcessingNote(event.target.value);
-                setSubmitError("");
-                setSuccessMessage("");
               }}
               placeholder="Ghi chú tiến độ mua hàng với nhà cung cấp..."
               className="w-full px-4 py-3 rounded-lg border border-border-muted text-sm resize-y input-focus-ring min-h-[88px] disabled:opacity-60"

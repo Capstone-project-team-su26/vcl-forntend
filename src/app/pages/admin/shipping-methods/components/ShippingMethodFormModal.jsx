@@ -2,7 +2,7 @@
 
 import { Icon } from "@iconify/react";
 import { useState } from "react";
-import * as shippingMethodService from "@/utils/shippingMethodService";
+import * as shippingMethodService from "@/modules/shipping-methods";
 import { getErrorMessage } from "@/utils/apiError";
 
 export default function ShippingMethodFormModal({

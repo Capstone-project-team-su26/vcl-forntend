@@ -2,6 +2,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import DataSourceDevTools from "@/app/components/DataSourceDevTools";
 import ClientRootExtras from "@/app/components/ClientRootExtras";
 import ThemeProvider from "@/app/components/ThemeProvider";
+import ToastProvider from "@/app/components/ToastProvider";
 import { SITE_DESCRIPTION, SITE_NAME } from "@/utils/site";
 import "./globals.css";
 
@@ -44,9 +45,11 @@ export default function RootLayout({ children }) {
       </head>
       <body className="min-h-full flex flex-col bg-background text-ink">
         <ThemeProvider>
-          <ClientRootExtras />
-          {children}
-          <DataSourceDevTools />
+          <ToastProvider>
+            <ClientRootExtras />
+            {children}
+            <DataSourceDevTools />
+          </ToastProvider>
         </ThemeProvider>
       </body>
     </html>

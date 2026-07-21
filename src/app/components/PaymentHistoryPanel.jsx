@@ -4,7 +4,7 @@ import { Icon } from "@iconify/react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import DataTable from "@/app/components/DataTable";
-import * as orderPaymentService from "@/utils/orderPaymentService";
+import * as orderPaymentService from "@/modules/payments";
 import { getErrorMessage } from "@/utils/apiError";
 
 const {

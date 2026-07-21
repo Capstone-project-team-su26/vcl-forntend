@@ -2,8 +2,8 @@
 
 import { Icon } from "@iconify/react";
 import { useEffect, useState } from "react";
-import * as carrierService from "@/utils/carrierService";
-import * as shippingMethodService from "@/utils/shippingMethodService";
+import * as carrierService from "@/modules/carriers";
+import * as shippingMethodService from "@/modules/shipping-methods";
 import { getErrorMessage } from "@/utils/apiError";
 
 const { CARRIER_TYPE_LABELS } = carrierService;

@@ -3,7 +3,7 @@
  * Chạy: bun src/utils/normalizeConsignmentStatus.check.js
  */
 import { normalizeConsignmentStatus } from "./apiMappers.js";
-import { canStaffUpdateConsignmentStatus } from "./orderConsignmentService.js";
+import { canStaffUpdateConsignmentStatus } from "@/modules/consignments";
 
 function assert(cond, msg) {
   if (!cond) throw new Error(msg);

@@ -9,6 +9,8 @@ export const ROUTES = {
   },
   admin: {
     users: `${PAGES}/admin/users`,
+    customerUsers: `${PAGES}/admin/customer-users`,
+    customerProfile: (id) => `${PAGES}/admin/customer-users/${id}`,
     consignments: `${PAGES}/admin/consignments`,
     consignment: (id) => `${PAGES}/admin/consignments/${id}`,
     consignmentQuotation: (id) => `${PAGES}/admin/consignments/${id}/quotation`,
@@ -18,6 +20,7 @@ export const ROUTES = {
     shippingMethods: `${PAGES}/admin/shipping-methods`,
     carriers: `${PAGES}/admin/carriers`,
     additionalServiceFees: `${PAGES}/admin/additional-service-fees`,
+    packageConfigurations: `${PAGES}/admin/package-configurations`,
     payments: `${PAGES}/admin/payments`,
   },
   sales: {
@@ -41,6 +44,7 @@ export const ROUTES = {
   operations: {
     dashboard: `${PAGES}/operations`,
     consolidate: `${PAGES}/operations/consolidate`,
+    warehouseLayout: `${PAGES}/operations/warehouse-layout`,
   },
 };
 

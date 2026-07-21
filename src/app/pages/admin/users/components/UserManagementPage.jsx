@@ -2,10 +2,12 @@
 
 import { Icon } from "@iconify/react";
 import { useEffect, useMemo, useState } from "react";
+import ActionNotice from "../../components/ActionNotice";
 import AdminLayout from "../../components/AdminLayout";
+import LockAccountConfirmModal from "../../components/LockAccountConfirmModal";
 import CreateUserModal from "./CreateUserModal";
 import DataTable from "@/app/components/DataTable";
-import * as userService from "@/utils/userService";
+import * as userService from "@/modules/users";
 import { getErrorMessage } from "@/utils/apiError";
 
 const STATUS_FILTER_OPTIONS = [
@@ -14,20 +16,10 @@ const STATUS_FILTER_OPTIONS = [
   { value: "PENDING_VERIFICATION", label: "Chờ xác minh" },
 ];
 
-const USER_TYPE_FILTER_OPTIONS = [
-  { value: "Employee", label: "Nhân viên" },
-  { value: "Customer", label: "Khách hàng" },
-];
-
 const STATUS_LABEL = {
   ACTIVE: "Đang hoạt động",
   LOCKED: "Đã khóa",
   PENDING_VERIFICATION: "Chờ xác minh",
-};
-
-const USER_TYPE_LABEL = {
-  Employee: "Nhân viên",
-  Customer: "Khách hàng",
 };
 
 const ROLE_LABEL = {
@@ -36,8 +28,13 @@ const ROLE_LABEL = {
   Warehouse: "Warehouse",
   Delivery: "Delivery",
   Admin: "Admin",
-  Customer: "Customer",
 };
+
+function isCustomerUser(user) {
+  const type = String(user?.userType || "").toLowerCase();
+  const role = String(user?.role || "").toLowerCase();
+  return type === "customer" || role === "customer";
+}
 
 function RoleBadge({ role, region }) {
   return (
@@ -68,78 +65,6 @@ function StatusBadge({ status }) {
     >
       {STATUS_LABEL[status] || status}
     </span>
-  );
-}
-
-function LockConfirmModal({ user, pending, onConfirm, onClose }) {
-  if (!user) return null;
-  const isLocking = user.status === "ACTIVE";
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <button
-        type="button"
-        className="absolute inset-0 bg-background/70 backdrop-blur-sm"
-        aria-label="Đóng"
-        onClick={pending ? undefined : onClose}
-      />
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="lock-confirm-title"
-        className="relative w-full max-w-md rounded-xl border border-border bg-surface shadow-xl p-5"
-      >
-        <div className="flex items-start gap-3">
-          <span
-            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
-              isLocking ? "bg-danger/10 text-danger" : "bg-success-bg text-success-text"
-            }`}
-          >
-            <Icon icon={isLocking ? "lucide:lock" : "lucide:lock-open"} className="w-5 h-5" />
-          </span>
-          <div className="min-w-0">
-            <h2 id="lock-confirm-title" className="text-base font-bold text-ink">
-              {isLocking ? "Khóa tài khoản?" : "Mở khóa tài khoản?"}
-            </h2>
-            <p className="text-sm text-muted mt-1 leading-relaxed">
-              {isLocking
-                ? "Người dùng sẽ không đăng nhập được cho đến khi được mở khóa."
-                : "Người dùng sẽ có thể đăng nhập lại bình thường."}
-            </p>
-            <div className="mt-3 rounded-lg border border-border-muted bg-surface px-3 py-2.5">
-              <p className="text-sm font-semibold text-ink leading-snug">{user.name}</p>
-              <p className="text-sm text-muted leading-snug mt-0.5">{user.email}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-5 flex justify-end gap-2">
-          <button
-            type="button"
-            disabled={pending}
-            onClick={onClose}
-            className="h-9 px-4 rounded-lg border border-border-muted text-sm font-semibold text-muted hover:text-ink hover:bg-surface-muted disabled:opacity-50"
-          >
-            Hủy
-          </button>
-          <button
-            type="button"
-            disabled={pending}
-            onClick={onConfirm}
-            className={`inline-flex items-center gap-1.5 h-9 px-4 rounded-lg text-sm font-bold text-white disabled:opacity-50 ${
-              isLocking ? "bg-danger hover:opacity-90" : "bg-insight hover:bg-secondary"
-            }`}
-          >
-            {pending ? (
-              <Icon icon="lucide:loader-2" className="w-4 h-4 animate-spin" />
-            ) : (
-              <Icon icon={isLocking ? "lucide:lock" : "lucide:lock-open"} className="w-4 h-4" />
-            )}
-            {pending ? "Đang xử lý..." : isLocking ? "Khóa tài khoản" : "Mở khóa"}
-          </button>
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -205,7 +130,9 @@ export default function UserManagementPage() {
               : item
           )
         );
-        setActionMessage(response?.message || "Khóa tài khoản thành công.");
+        setActionMessage(
+          response?.message || `Đã khóa tài khoản ${user.email || user.name || ""}.`.trim()
+        );
       } else if (user.status === "LOCKED") {
         const response = await userService.unlockUser(user.id);
         setUsers((current) =>
@@ -215,7 +142,9 @@ export default function UserManagementPage() {
               : item
           )
         );
-        setActionMessage(response?.message || "Mở khóa tài khoản thành công.");
+        setActionMessage(
+          response?.message || `Đã mở khóa tài khoản ${user.email || user.name || ""}.`.trim()
+        );
       }
       setConfirmUser(null);
     } catch (error) {
@@ -225,22 +154,27 @@ export default function UserManagementPage() {
     }
   }
 
+  const employees = useMemo(
+    () => users.filter((user) => !isCustomerUser(user)),
+    [users]
+  );
+
   const stats = useMemo(() => {
-    const active = users.filter((user) => user.status === "ACTIVE").length;
-    const locked = users.filter((user) => user.status === "LOCKED").length;
-    return { total: users.length, active, locked };
-  }, [users]);
+    const active = employees.filter((user) => user.status === "ACTIVE").length;
+    const locked = employees.filter((user) => user.status === "LOCKED").length;
+    return { total: employees.length, active, locked };
+  }, [employees]);
 
   const roleFilterOptions = useMemo(() => {
-    const roles = Array.from(new Set(users.map((user) => user.role).filter(Boolean)));
+    const roles = Array.from(new Set(employees.map((user) => user.role).filter(Boolean)));
     return roles.map((role) => ({ value: role, label: ROLE_LABEL[role] || role }));
-  }, [users]);
+  }, [employees]);
 
   const columns = useMemo(
     () => [
       {
         key: "name",
-        title: "Người dùng",
+        title: "Nhân viên",
         sortable: true,
         searchable: true,
         searchAccessor: (user) =>
@@ -258,17 +192,6 @@ export default function UserManagementPage() {
               </p>
             </div>
           </div>
-        ),
-      },
-      {
-        key: "userType",
-        title: "Loại",
-        sortable: true,
-        filter: { options: USER_TYPE_FILTER_OPTIONS },
-        render: (user) => (
-          <span className="text-xs font-semibold text-muted">
-            {USER_TYPE_LABEL[user.userType] || user.userType || "—"}
-          </span>
         ),
       },
       {
@@ -340,14 +263,14 @@ export default function UserManagementPage() {
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div>
             <h1 className="text-xl lg:text-2xl font-bold text-ink tracking-tight">
-              Quản lý người dùng
+              Nhân viên nội bộ
             </h1>
             <p className="text-sm text-muted mt-1 leading-relaxed">
-              Tạo, khóa hoặc mở khóa tài khoản người dùng.
+              Tạo, khóa hoặc mở khóa tài khoản nhân viên (Sale, Operations, Warehouse, Admin).
             </p>
             {!isLoadingUsers && !loadFailed ? (
               <p className="text-sm text-muted mt-2">
-                <span className="font-semibold text-ink">{stats.total}</span> người dùng
+                <span className="font-semibold text-ink">{stats.total}</span> nhân viên
                 <span className="mx-1.5 text-border">·</span>
                 <span className="font-semibold text-success-text">{stats.active}</span> đang hoạt
                 động
@@ -362,18 +285,24 @@ export default function UserManagementPage() {
             className="inline-flex items-center justify-center gap-2 h-10 px-4 bg-insight hover:bg-secondary text-white text-sm font-bold rounded-lg transition-colors shrink-0"
           >
             <Icon icon="lucide:user-plus" className="w-4 h-4" />
-            Thêm người dùng
+            Thêm nhân viên
           </button>
         </div>
 
         {actionError ? (
-          <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <span>{actionError}</span>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="flex-1">
+              <ActionNotice
+                message={actionError}
+                tone="danger"
+                onDismiss={() => setActionError("")}
+              />
+            </div>
             {loadFailed ? (
               <button
                 type="button"
                 onClick={loadUsers}
-                className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-danger/30 text-xs font-bold hover:bg-danger/10 shrink-0"
+                className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-danger/30 text-xs font-bold text-danger hover:bg-danger/10 shrink-0"
               >
                 <Icon icon="lucide:refresh-cw" className="w-3.5 h-3.5" />
                 Thử lại
@@ -381,21 +310,21 @@ export default function UserManagementPage() {
             ) : null}
           </div>
         ) : null}
-        {actionMessage ? (
-          <div className="rounded-lg border border-success/30 bg-success-bg px-4 py-3 text-sm text-success-text">
-            {actionMessage}
-          </div>
-        ) : null}
+        <ActionNotice
+          message={actionMessage}
+          tone="success"
+          onDismiss={() => setActionMessage("")}
+        />
 
         <DataTable
           columns={columns}
-          rows={users}
+          rows={employees}
           loading={isLoadingUsers}
-          title="Danh sách người dùng"
-          countLabel="người dùng"
+          title="Danh sách nhân viên"
+          countLabel="nhân viên"
           searchPlaceholder="Tìm theo tên, email hoặc ID"
-          emptyText='Chưa có người dùng. Nhấn "Thêm người dùng" để tạo mới.'
-          emptyFilteredText="Không tìm thấy người dùng phù hợp."
+          emptyText='Chưa có nhân viên. Nhấn "Thêm nhân viên" để tạo mới.'
+          emptyFilteredText="Không tìm thấy nhân viên phù hợp."
           pageSize={20}
           minWidth={960}
         />
@@ -404,13 +333,16 @@ export default function UserManagementPage() {
       <CreateUserModal
         open={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
+        existingUsers={users}
         onCreated={(user) => {
           setUsers((current) => [user, ...current]);
-          setActionMessage("Tạo tài khoản nhân viên thành công.");
+          setActionMessage(
+            `Đã tạo tài khoản nhân viên ${user.email || user.name || ""}.`.trim()
+          );
         }}
       />
 
-      <LockConfirmModal
+      <LockAccountConfirmModal
         user={confirmUser}
         pending={Boolean(confirmUser && pendingUserId === confirmUser.id)}
         onConfirm={handleLockToggle}

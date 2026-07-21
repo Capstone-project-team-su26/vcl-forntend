@@ -1,9 +1,19 @@
 "use client";
-import { jsx } from "react/jsx-runtime";
-import OperationalConsolidate from "../components/OperationalConsolidate";
-function Page() {
-  return /* @__PURE__ */ jsx(OperationalConsolidate, {});
+
+import dynamic from "next/dynamic";
+
+const OperationalConsolidate = dynamic(
+  () => import("../components/OperationalConsolidate"),
+  {
+    loading: () => (
+      <div className="flex items-center justify-center py-24 text-muted">
+        Đang tải consolidation...
+      </div>
+    ),
+    ssr: false,
+  }
+);
+
+export default function Page() {
+  return <OperationalConsolidate />;
 }
-export {
-  Page as default
-};

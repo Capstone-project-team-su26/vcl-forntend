@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import AdminLayout from "@/app/pages/admin/components/AdminLayout";
 import ShippingMethodFormModal from "@/app/pages/admin/shipping-methods/components/ShippingMethodFormModal";
 import DataTable from "@/app/components/DataTable";
-import * as shippingMethodService from "@/utils/shippingMethodService";
+import * as shippingMethodService from "@/modules/shipping-methods";
 import { getErrorMessage } from "@/utils/apiError";
 
 const STATUS_FILTER_OPTIONS = [

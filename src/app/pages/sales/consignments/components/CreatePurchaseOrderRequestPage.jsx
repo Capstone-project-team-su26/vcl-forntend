@@ -3,9 +3,10 @@
 import { Icon } from "@iconify/react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import * as customerService from "@/utils/customerService";
-import * as shippingMethodService from "@/utils/shippingMethodService";
-import * as orderConsignmentService from "@/utils/orderConsignmentService";
+import * as customerService from "@/modules/customers";
+import * as shippingMethodService from "@/modules/shipping-methods";
+import * as orderConsignmentService from "@/modules/consignments";
+import { useToast } from "@/app/components/ToastProvider";
 import { getErrorMessage } from "@/utils/apiError";
 import { ROUTES } from "@/utils/appRoutes";
 
@@ -30,6 +31,7 @@ function FieldLabel({ htmlFor, children, required }) {
 }
 
 export default function CreatePurchaseOrderRequestPage({ preselectedCustomerId }) {
+  const toast = useToast();
   const [customerSearch, setCustomerSearch] = useState("");
   const [customerResults, setCustomerResults] = useState([]);
   const [isSearchingCustomers, setIsSearchingCustomers] = useState(false);
@@ -44,8 +46,6 @@ export default function CreatePurchaseOrderRequestPage({ preselectedCustomerId }
   const [salesNote, setSalesNote] = useState("");
   const [validation, setValidation] = useState(null);
   const [isValidating, setIsValidating] = useState(false);
-  const [submitError, setSubmitError] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const hasBannedItem = validation?.hasBanned === true;
@@ -133,8 +133,6 @@ export default function CreatePurchaseOrderRequestPage({ preselectedCustomerId }
     if (isSubmitting || hasBannedItem || !selectedCustomer || !shippingMethodId) return;
 
     setIsSubmitting(true);
-    setSubmitError("");
-    setSuccessMessage("");
 
     try {
       const response = await orderConsignmentService.createStaffConsignment({
@@ -144,9 +142,9 @@ export default function CreatePurchaseOrderRequestPage({ preselectedCustomerId }
         salesNote,
         items: [item],
       });
-      setSuccessMessage(response.message || "Tạo yêu cầu mua hộ thành công.");
+      toast.success(response.message || "Tạo yêu cầu mua hộ thành công.");
     } catch (err) {
-      setSubmitError(getErrorMessage(err));
+      toast.error(getErrorMessage(err));
     } finally {
       setIsSubmitting(false);
     }
@@ -182,11 +180,6 @@ export default function CreatePurchaseOrderRequestPage({ preselectedCustomerId }
       {loadError ? (
         <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
           {loadError}
-        </div>
-      ) : null}
-      {successMessage ? (
-        <div className="rounded-lg border border-success/30 bg-success-bg px-4 py-3 text-sm text-success-text">
-          {successMessage}
         </div>
       ) : null}
 
@@ -267,8 +260,6 @@ export default function CreatePurchaseOrderRequestPage({ preselectedCustomerId }
           placeholder="Ghi chú"
           className="w-full px-4 py-3 rounded-lg border border-border-muted text-sm input-focus-ring min-h-[88px]"
         />
-
-        {submitError ? <p className="text-sm text-danger">{submitError}</p> : null}
 
         <button
           type="submit"

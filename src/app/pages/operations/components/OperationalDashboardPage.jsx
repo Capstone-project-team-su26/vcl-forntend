@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 // Fetch consignments directly from the API
 import { useAuth } from "@/hooks/useAuth";
 import OperationsShell from "@/app/pages/operations/components/OperationsShell";
-import { formatProductTypeLabel } from "@/utils/productTypeService";
+import { formatProductTypeLabel } from "@/modules/product-types";
 import { normalizeConsignmentDetail } from "@/utils/apiMappers";
 
 export default function OperationalDashboardPage() {

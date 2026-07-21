@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import AdminLayout from "../../components/AdminLayout";
 import RestrictedItemFormModal from "./RestrictedItemFormModal";
 import DataTable from "@/app/components/DataTable";
-import * as restrictedItemService from "@/utils/restrictedItemService";
+import * as restrictedItemService from "@/modules/restricted-items";
 import { getErrorMessage } from "@/utils/apiError";
 
 const { RESTRICTION_TYPE_LABELS, formatRestrictedCountry } = restrictedItemService;

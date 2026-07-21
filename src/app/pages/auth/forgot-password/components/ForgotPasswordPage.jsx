@@ -3,7 +3,7 @@ import { jsx, jsxs } from "react/jsx-runtime";
 import Link from "next/link";
 import { useState } from "react";
 import AppLogo from "@/app/components/AppLogo";
-import * as authService from "@/utils/authService";
+import * as authService from "@/modules/auth";
 import { ROUTES } from "@/utils/appRoutes";
 import { ApiError } from "@/utils/apiError";
 import { getErrorMessage } from "@/utils/apiError";

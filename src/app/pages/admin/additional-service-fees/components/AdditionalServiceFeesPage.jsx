@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import AdminLayout from "@/app/pages/admin/components/AdminLayout";
 import AdditionalServiceFeeFormModal from "@/app/pages/admin/additional-service-fees/components/AdditionalServiceFeeFormModal";
 import DataTable from "@/app/components/DataTable";
-import * as feeService from "@/utils/additionalServiceFeeService";
+import * as feeService from "@/modules/additional-service-fees";
 import { getErrorMessage } from "@/utils/apiError";
 import {
   DEFAULT_QUOTATION_VAT_RATE,
@@ -14,7 +14,7 @@ import {
   isVolumetricDivisorRule,
   resolveVatRate,
   VAT_RULE,
-} from "@/utils/servicePricingService";
+} from "@/modules/service-pricing";
 
 const {
   formatFeeAmount,

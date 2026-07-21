@@ -10,7 +10,9 @@ export default function StaffPurchaseRequestDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { isReady, isSale } = useAuth();
-  const id = typeof params.id === "string" ? params.id : "";
+  const rawId = params?.id;
+  const id =
+    typeof rawId === "string" && rawId && rawId !== "undefined" ? rawId : "";
 
   useEffect(() => {
     if (!isReady) return;
@@ -23,6 +25,14 @@ export default function StaffPurchaseRequestDetailPage() {
     return (
       <div className="flex items-center justify-center py-24 text-muted">
         Đang kiểm tra quyền truy cập...
+      </div>
+    );
+  }
+
+  if (!id) {
+    return (
+      <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
+        Không tìm thấy mã yêu cầu mua hộ. Quay lại danh sách và mở lại chi tiết.
       </div>
     );
   }
