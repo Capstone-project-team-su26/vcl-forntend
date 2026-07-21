@@ -117,6 +117,9 @@ export function normalizeConsignmentSummary(item) {
     receiverPhone: receiver.phone ?? pickDisplayName(item.phone) ?? null,
     receiverAddress: receiver.address ?? pickDisplayName(item.address) ?? null,
     requiresInspection: item.requiresInspection === true,
+    requiresPacking: item.requiresPacking === true,
+    requiresWoodenCrate: item.requiresWoodenCrate === true,
+    requiresInsurance: item.requiresInsurance === true,
     pricingRuleIds: Array.isArray(item.pricingRuleIds) ? item.pricingRuleIds : [],
     productNames,
     consignmentType:
@@ -275,18 +278,51 @@ export function resolveConsignmentPackageCount({ packageCount, items, quantity }
   return Number.isFinite(explicit) && explicit > 0 ? Math.round(explicit) : null;
 }
 
+/** Gom URL ảnh từ BE (referenceUrls[]) + fallback field cũ. */
+function collectItemImageUrls(item) {
+  const candidates = [];
+
+  function pushEntry(entry) {
+    const url = typeof entry === "string" ? entry.trim() : entry?.url?.trim();
+    if (url) candidates.push(url);
+  }
+
+  for (const entry of item.referenceUrls ?? []) pushEntry(entry);
+  for (const entry of item.imageUrls ?? []) pushEntry(entry);
+  for (const entry of item.images ?? []) pushEntry(entry);
+  if (item.referenceUrl) pushEntry(item.referenceUrl);
+  if (item.imageUrl) pushEntry(item.imageUrl);
+
+  const seen = new Set();
+  const imageUrls = [];
+  for (const url of candidates) {
+    if (!isImageReferenceUrl(url) || seen.has(url)) continue;
+    seen.add(url);
+    imageUrls.push(url);
+  }
+  return imageUrls;
+}
+
+function resolveItemProductLink(item) {
+  const candidates = [
+    ...(Array.isArray(item.referenceUrls) ? item.referenceUrls : []),
+    item.referenceUrl,
+  ];
+
+  for (const entry of candidates) {
+    const url = typeof entry === "string" ? entry.trim() : "";
+    if (url && !isImageReferenceUrl(url)) return url;
+  }
+  return null;
+}
+
 function normalizeConsignmentItem(item) {
   if (!item) return item;
 
-  const referenceUrl = item.referenceUrl?.trim() || item.imageUrl?.trim() || null;
-  const extraImages = Array.isArray(item.images)
-    ? item.images.map((entry) => (typeof entry === "string" ? entry : entry?.url)).filter(Boolean)
-    : [];
-
-  const imageUrls = [
-    ...(isImageReferenceUrl(referenceUrl) ? [referenceUrl] : []),
-    ...extraImages.filter(isImageReferenceUrl),
-  ];
+  const imageUrls = collectItemImageUrls(item);
+  const productLink = resolveItemProductLink(item);
+  // ponytail: referenceUrl giữ 1 URL “chính” cho chỗ cũ còn đọc field đơn
+  const referenceUrl = productLink ?? imageUrls[0] ?? null;
 
   return {
     id: item.id,
@@ -299,6 +335,7 @@ function normalizeConsignmentItem(item) {
     length: item.length,
     declaredValue: item.declaredValue,
     referenceUrl,
+    productLink,
     imageUrls,
     domesticTrackingCode: item.domesticTrackingCode ?? null,
     packageConfigurationId:
@@ -354,13 +391,19 @@ export function normalizeConsignmentDetail(raw) {
     receiverPhone: receiver.phone,
     receiverAddress: receiver.address,
     requiresInspection: item.requiresInspection === true,
+    requiresPacking: item.requiresPacking === true,
+    requiresWoodenCrate: item.requiresWoodenCrate === true,
+    requiresInsurance: item.requiresInsurance === true,
     pricingRuleIds: Array.isArray(item.pricingRuleIds) ? item.pricingRuleIds : [],
     notes: item.note ?? item.notes,
     trackingCode: item.consignmentCode ?? item.trackingCode,
     rejectionReason: item.rejectionReason,
     items,
+    // ponytail: order-level images hiếm; ảnh chính nằm ở items[].referenceUrls
     images: Array.isArray(item.images)
-      ? item.images.filter((url) => isImageReferenceUrl(url))
+      ? item.images
+          .map((entry) => (typeof entry === "string" ? entry : entry?.url))
+          .filter((url) => isImageReferenceUrl(url))
       : [],
     quotation: (() => {
       const quotation = normalizeConsignmentQuotationFromApi(item.quotation);
@@ -713,22 +756,36 @@ export function toApiStaffConsignmentPayload(payload) {
     pricingRuleIds: Array.isArray(payload.pricingRuleIds)
       ? payload.pricingRuleIds.filter(isUuid)
       : [],
-    items: payload.items.map((item) => ({
-      productName: item.productName?.trim(),
-      productType: item.productType?.trim() || "GENERAL",
-      quantity: Number(item.quantity) || 1,
-      weight:
-        item.estimatedWeight === "" || item.estimatedWeight == null
-          ? payload.weightKg != null
-            ? Number(payload.weightKg)
-            : null
-          : Number(item.estimatedWeight),
-      declaredValue:
-        item.declaredValue === "" || item.declaredValue == null
-          ? null
-          : Number(item.declaredValue),
-      referenceUrl: item.referenceUrl?.trim() || null,
-    })),
+    items: payload.items.map((item) => {
+      const referenceUrls = (
+        Array.isArray(item.referenceUrls)
+          ? item.referenceUrls
+          : Array.isArray(item.imageUrls)
+            ? item.imageUrls
+            : item.referenceUrl
+              ? [item.referenceUrl]
+              : []
+      )
+        .map((url) => (typeof url === "string" ? url.trim() : ""))
+        .filter(Boolean);
+
+      return {
+        productName: item.productName?.trim(),
+        productType: item.productType?.trim() || "GENERAL",
+        quantity: Number(item.quantity) || 1,
+        weight:
+          item.estimatedWeight === "" || item.estimatedWeight == null
+            ? payload.weightKg != null
+              ? Number(payload.weightKg)
+              : null
+            : Number(item.estimatedWeight),
+        declaredValue:
+          item.declaredValue === "" || item.declaredValue == null
+            ? null
+            : Number(item.declaredValue),
+        referenceUrls: referenceUrls.length ? referenceUrls : null,
+      };
+    }),
   };
 }
 

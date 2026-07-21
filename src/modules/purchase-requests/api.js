@@ -11,20 +11,43 @@ import {
   normalizePurchaseRequestPurchaseOrderResponse,
 } from "./mappers";
 
-function buildQuery({ search, status }) {
+function buildQuery({ search, status, pageNumber = 1, pageSize = 5 }) {
   const params = new URLSearchParams();
-  if (search) params.set("search", search);
-  if (status) params.set("status", status);
+  params.set("pageNumber", String(pageNumber));
+  params.set("pageSize", String(pageSize));
+  if (search) params.set("searchKeyword", search);
+  // BE dùng PENDING_REVIEW; FE normalize về PENDING để UI thống nhất.
+  if (status) {
+    params.set("status", status === "PENDING" ? "PENDING_REVIEW" : status);
+  }
   const query = params.toString();
   return query ? `?${query}` : "";
 }
 
 export async function listPurchaseRequestsApi(params = {}) {
+  const pageNumber = params.page ?? params.pageNumber ?? 1;
+  const pageSize = params.pageSize ?? 5;
+
   try {
-    const raw = await apiRequest(`/api/purchase-requests${buildQuery(params)}`);
-    return normalizePurchaseRequestListResponse(raw);
+    const raw = await apiRequest(
+      `/api/purchase-requests${buildQuery({
+        search: params.search,
+        status: params.status,
+        pageNumber,
+        pageSize,
+      })}`
+    );
+    return normalizePurchaseRequestListResponse(raw, { pageNumber, pageSize });
   } catch (err) {
-    if (err instanceof ApiError && err.status === 404) return [];
+    if (err instanceof ApiError && err.status === 404) {
+      return {
+        items: [],
+        totalCount: 0,
+        pageNumber,
+        pageSize,
+        totalPages: 1,
+      };
+    }
     throw err;
   }
 }

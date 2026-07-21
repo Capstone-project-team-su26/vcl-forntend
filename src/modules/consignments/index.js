@@ -228,7 +228,7 @@ export async function sendConsignmentQuotation(orderId, payload) {
   return sendConsignmentQuotationApi(orderId, payload);
 }
 
-/** Danh sách ảnh hàng hóa từ chi tiết đơn (items.referenceUrl / images). */
+/** Danh sách ảnh hàng hóa từ chi tiết đơn (items.referenceUrls / imageUrls). */
 export function getConsignmentImageEntries(detail) {
   const entries = [];
   const seen = new Set();

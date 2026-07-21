@@ -144,10 +144,7 @@ export default function PackageConfigurationsPage() {
         searchable: true,
         searchAccessor: (item) => `${item.code || ""} ${item.name || ""}`,
         render: (item) => (
-          <div>
-            <p className="text-sm font-bold text-ink font-mono">{item.code || "—"}</p>
-            <p className="text-[10px] text-faint mt-0.5">{item.id}</p>
-          </div>
+          <p className="text-sm font-bold text-ink font-mono">{item.code || "—"}</p>
         ),
       },
       {

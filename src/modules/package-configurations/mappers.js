@@ -18,6 +18,10 @@ export function normalizePackageConfigurationFromApi(item) {
     height: item.height ?? item.heightCm ?? null,
     maxWeight: item.maxWeight ?? item.maxWeightKg ?? null,
     packageFee: item.packageFee ?? item.packageFeeAmount ?? null,
+    estimatedFee:
+      item.estimatedFee == null || item.estimatedFee === ""
+        ? null
+        : Number(item.estimatedFee),
     status,
     isActive: status === "ACTIVE",
   };

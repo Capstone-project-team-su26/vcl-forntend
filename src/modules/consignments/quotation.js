@@ -93,7 +93,36 @@ function isInspectionFee(fee) {
   );
 }
 
+/** Đóng thùng gỗ (WOODEN_BOX) — BE tính theo đơn, không theo kiện. */
+export function isWoodenCrateFee(fee) {
+  const key = [fee?.code, fee?.feeType, fee?.ruleType, fee?.ruleCode]
+    .map((value) => String(value ?? "").toUpperCase())
+    .join(" ");
+  return (
+    key.includes("WOOD_CRATE") ||
+    key.includes("WOODEN_CRATE") ||
+    key.includes("WOODEN_BOX") ||
+    key.includes("WOOD_BOX")
+  );
+}
+
+function isPerOrderFee(fee) {
+  if (isWoodenCrateFee(fee)) return true;
+  const raw = String(fee?.unit || fee?.unitNoun || fee?.conditionType || "").toLowerCase();
+  // tránh khớp nhầm "đơn vị"
+  if (raw.includes("đơn vị")) return false;
+  return (
+    raw.includes("/đơn") ||
+    raw.includes("theo đơn") ||
+    raw.includes("per_order") ||
+    raw.includes("per order") ||
+    raw.includes("per_shipment") ||
+    raw === "đơn"
+  );
+}
+
 function isPerPackageFee(fee) {
+  if (isPerOrderFee(fee)) return false;
   const billingBasis = String(fee?.unit || fee?.conditionType || "").toLowerCase();
   return (
     billingBasis.includes("kiện") ||
@@ -129,11 +158,12 @@ export function isPackingFee(fee) {
 
 function shouldDefaultEnableFee(
   fee,
-  { requiresInspection = false, declaredValue = 0 } = {}
+  { requiresInspection = false, requiresWoodenCrate = false, declaredValue = 0 } = {}
 ) {
   if (fee.isRequired === true) return true;
   if (isDomesticFee(fee)) return true;
   if (isPackingFee(fee)) return true;
+  if (requiresWoodenCrate && isWoodenCrateFee(fee)) return true;
   // Kiểm hàng chỉ bật khi khách chọn (pricingRuleIds) hoặc rule catalog isRequired.
   if (isInspectionFee(fee)) return false;
 
@@ -219,8 +249,9 @@ export function isPercentageFee(fee) {
   return String(fee?.feeCalculationType ?? "").toUpperCase() === "PERCENTAGE";
 }
 
-/** Danh từ đơn vị số lượng để hiển thị (kiện / lần / ngày…). */
+/** Danh từ đơn vị số lượng để hiển thị (đơn / kiện / lần / ngày…). */
 function feeUnitNoun(fee) {
+  if (isPerOrderFee(fee)) return "đơn";
   const raw = String(fee?.unit ?? "").toLowerCase();
   if (isPerPackageFee(fee) || raw.includes("kiện")) return "kiện";
   const afterSlash = raw.match(/\/\s*([^\s.]+)/);
@@ -230,9 +261,15 @@ function feeUnitNoun(fee) {
   return "đơn vị";
 }
 
-/** Số lượng mặc định: phí theo kiện = số kiện, còn lại = 1. Percentage không có số lượng. */
+/**
+ * Số lượng mặc định:
+ * - WOOD_CRATE / theo đơn → 1 (không nhân số kiện)
+ * - theo kiện → số kiện
+ * - percentage → null
+ */
 export function getFeeDefaultQuantity(fee, { packageCount = 1 } = {}) {
   if (isPercentageFee(fee)) return null;
+  if (isPerOrderFee(fee)) return 1;
   return isPerPackageFee(fee) ? Math.max(1, Math.round(Number(packageCount) || 1)) : 1;
 }
 
@@ -352,6 +389,7 @@ export function buildDefaultAdditionalFeeLines({
   quantityByFeeId,
   selectedPricingRuleIds,
   requiresInspection = false,
+  requiresWoodenCrate = false,
 }) {
   const context = { packageCount, declaredValue, mainServiceAmount };
   const selectedSet =
@@ -369,7 +407,11 @@ export function buildDefaultAdditionalFeeLines({
           ? enabledFeeIds[fee.id] === true
           : selectedSet
             ? feeMatchesSelectedIds(fee, selectedSet)
-            : shouldDefaultEnableFee(fee, { requiresInspection, declaredValue });
+            : shouldDefaultEnableFee(fee, {
+                requiresInspection,
+                requiresWoodenCrate,
+                declaredValue,
+              });
       const quantity =
         quantityByFeeId && quantityByFeeId[fee.id] != null
           ? quantityByFeeId[fee.id]
@@ -672,6 +714,24 @@ function resolveLineAmountFromApiFee(fee, { enabled, context, catalogFee }) {
     return roundMoney(Number(fee.amount) || 0);
   }
 
+  // WOOD_CRATE theo đơn: ưu tiên unitPrice × 1 (hoặc quantity API nếu có).
+  if (isWoodenCrateFee(fee) || (catalogFee && isWoodenCrateFee(catalogFee))) {
+    const source = catalogFee && isWoodenCrateFee(catalogFee) ? catalogFee : fee;
+    const unitPrice =
+      catalogFee && isWoodenCrateFee(catalogFee)
+        ? Number(catalogFee.fixedAmount) || 0
+        : fee.unitPrice != null
+          ? Number(fee.unitPrice) || 0
+          : Number(fee.fixedAmount) || 0;
+    const quantity =
+      fee.quantity != null && fee.quantity !== ""
+        ? Number(fee.quantity) || 1
+        : 1;
+    if (unitPrice > 0) return roundMoney(unitPrice * quantity);
+    if (fee.amount != null && fee.amount !== "") return roundMoney(Number(fee.amount) || 0);
+    return calculateAdditionalFeeAmount(source, { ...context, quantity });
+  }
+
   if (catalogFee) {
     const quantity =
       fee.quantity != null && fee.quantity !== ""
@@ -718,6 +778,8 @@ export function buildAdditionalFeeLinesFromQuotation(
     return apiFees.map((fee) => {
       const catalogFee = findCatalogFee(catalogFees, fee);
       const packing = isPackingFee(fee) || (catalogFee ? isPackingFee(catalogFee) : false);
+      const wooden =
+        isWoodenCrateFee(fee) || (catalogFee ? isWoodenCrateFee(catalogFee) : false);
       // Chỉ khóa khi catalog/API đánh dấu isRequired — không tự ép INSPECTION.
       // PACKING_FEE khóa UI: Sales không đổi loại thùng / số lượng vỏ thùng.
       const isRequired =
@@ -728,7 +790,12 @@ export function buildAdditionalFeeLinesFromQuotation(
       if (catalogFee && !packing) {
         const line = buildFeeLine(catalogFee, {
           enabled,
-          quantity: fee.quantity,
+          // Đóng thùng gỗ theo đơn: luôn qty=1 trừ khi API/Sales đã set rõ.
+          quantity: wooden
+            ? fee.quantity != null && fee.quantity !== ""
+              ? Number(fee.quantity) || 1
+              : 1
+            : fee.quantity,
           isRequired,
           context,
         });
@@ -736,14 +803,26 @@ export function buildAdditionalFeeLinesFromQuotation(
           ...line,
           label: fee.label ?? fee.name ?? line.label,
           description: fee.description ?? line.description,
+          unitNoun: wooden ? "đơn" : line.unitNoun,
         };
       }
 
       const unitPrice = fee.unitPrice != null ? Number(fee.unitPrice) : null;
       const feeCalculationType = String(fee.feeCalculationType ?? "").toUpperCase() || null;
-      const quantity =
-        fee.quantity != null ? Number(fee.quantity) || 0 : feeCalculationType === "PERCENTAGE" ? null : 1;
-      const amount = resolveLineAmountFromApiFee(fee, { enabled, context, catalogFee: packing ? null : catalogFee });
+      const quantity = wooden
+        ? fee.quantity != null && fee.quantity !== ""
+          ? Number(fee.quantity) || 1
+          : 1
+        : fee.quantity != null
+          ? Number(fee.quantity) || 0
+          : feeCalculationType === "PERCENTAGE"
+            ? null
+            : 1;
+      const amount = resolveLineAmountFromApiFee(fee, {
+        enabled,
+        context,
+        catalogFee: packing ? null : catalogFee,
+      });
 
       return {
         feeId: fee.feeId ?? fee.code ?? fee.id,
@@ -753,10 +832,12 @@ export function buildAdditionalFeeLinesFromQuotation(
         description: fee.description ?? "",
         feeCalculationType,
         unitPrice,
-        unitNoun: fee.unitNoun ?? null,
+        unitNoun: wooden ? "đơn" : fee.unitNoun ?? null,
         quantity,
         quantityEditable: !packing && feeCalculationType !== "PERCENTAGE",
-        amount,
+        amount: wooden && enabled && unitPrice != null
+          ? roundMoney(unitPrice * quantity)
+          : amount,
         enabled,
         isRequired,
         isPackingFee: packing,
@@ -808,6 +889,7 @@ function mergeMissingCatalogFeeLines(apiLines, catalogFees, context) {
     mainServiceAmount: context.mainServiceAmount,
     selectedPricingRuleIds: context.selectedPricingRuleIds,
     requiresInspection: context.requiresInspection,
+    requiresWoodenCrate: context.requiresWoodenCrate,
   });
 
   // Bỏ dòng gộp SERVICE_FEE nếu đã tách được phụ phí catalog (tránh cộng đôi).
@@ -820,6 +902,75 @@ function mergeMissingCatalogFeeLines(apiLines, catalogFees, context) {
   return [...withoutAggregate, ...catalogLines];
 }
 
+/**
+ * Phí 1 thùng từ package-configuration.
+ * Standard = packageFee; CUSTOM = packageFee × ceil(cm³ / 1000); ưu tiên estimatedFee từ BE.
+ */
+export function resolvePackageConfigurationUnitFee(config, item = null) {
+  if (!config) return 0;
+
+  const estimated = Number(config.estimatedFee);
+  if (Number.isFinite(estimated) && estimated > 0) return roundMoney(estimated);
+
+  const packageFee = Number(config.packageFee) || 0;
+  if (packageFee <= 0) return 0;
+
+  const code = String(config.code ?? "").toUpperCase();
+  if (code === "CUSTOM" || code.includes("CUSTOM")) {
+    const length = Number(item?.length ?? config.length) || 0;
+    const width = Number(item?.width ?? config.width) || 0;
+    const height = Number(item?.height ?? config.height) || 0;
+    const volumeCm3 = length * width * height;
+    if (volumeCm3 <= 0) return roundMoney(packageFee);
+    return roundMoney(packageFee * Math.ceil(volumeCm3 / 1000));
+  }
+
+  return roundMoney(packageFee);
+}
+
+/** Dựng dòng PACKING_FEE từ cấu hình thùng Customer chọn (khi báo giá chưa có dòng này). */
+export function buildPackingFeeLinesFromConsignment(consignment) {
+  const items = Array.isArray(consignment?.items) ? consignment.items : [];
+  const lines = [];
+
+  items.forEach((item, index) => {
+    const config = item.packageConfiguration ?? null;
+    const packageConfigurationId = item.packageConfigurationId ?? config?.id ?? null;
+    if (!packageConfigurationId && !config) return;
+
+    const unitPrice = resolvePackageConfigurationUnitFee(config, item);
+    if (unitPrice <= 0) return;
+
+    const labelName = config?.name || config?.code || "thùng";
+    lines.push({
+      // ponytail: nhiều item có thể cùng packageConfigurationId → gắn itemId/index để React key không trùng
+      feeId: `packing-${packageConfigurationId || "cfg"}-${item.id || index}`,
+      code: "PACKING_FEE",
+      feeType: "PACKING_FEE",
+      label: `Phí đóng thùng (${labelName})`,
+      description: "Phí vỏ thùng từ cấu hình Customer chọn",
+      feeCalculationType: "FIXED",
+      unitPrice,
+      unitNoun: "thùng",
+      quantity: 1,
+      quantityEditable: false,
+      amount: unitPrice,
+      enabled: true,
+      isRequired: true,
+      isPackingFee: true,
+    });
+  });
+
+  return lines;
+}
+
+function mergePackingFeeLinesFromConsignment(lines, consignment) {
+  if (!consignment || lines.some((line) => isPackingFee(line))) return lines;
+  const packingLines = buildPackingFeeLinesFromConsignment(consignment);
+  if (!packingLines.length) return lines;
+  return [...packingLines, ...lines];
+}
+
 export function resolveQuotationAdditionalFees({
   consignment,
   estimate,
@@ -830,6 +981,7 @@ export function resolveQuotationAdditionalFees({
   selectedPricingRuleIds,
 }) {
   const requiresInspection = consignment?.requiresInspection === true;
+  const requiresWoodenCrate = consignment?.requiresWoodenCrate === true;
   const quotationSource = estimate?.quotation ?? estimate ?? consignment?.quotation;
   const itemizedFees = quotationSource?.additionalFees;
   // Còn chỉnh được → luôn ưu tiên pricingRuleIds khách chọn (không tin snapshot BE thưa).
@@ -843,6 +995,7 @@ export function resolveQuotationAdditionalFees({
     declaredValue,
     mainServiceAmount,
     requiresInspection,
+    requiresWoodenCrate,
     selectedPricingRuleIds: resolvedSelectedIds,
   };
 
@@ -868,6 +1021,7 @@ export function resolveQuotationAdditionalFees({
         mainServiceAmount,
         selectedPricingRuleIds: resolvedSelectedIds,
         requiresInspection,
+        requiresWoodenCrate,
       }),
       fromApi: false,
     };
@@ -885,6 +1039,11 @@ export function resolveQuotationAdditionalFees({
       result = { lines: [], fromApi: false };
     }
   }
+
+  result = {
+    ...result,
+    lines: mergePackingFeeLinesFromConsignment(result.lines, consignment),
+  };
 
   if (resolvedSelectedIds?.length && result.lines.length) {
     return {
@@ -1295,6 +1454,7 @@ if (typeof process !== "undefined" && process.env?.NODE_ENV !== "production") {
         name: "Đóng thùng gỗ",
         feeCalculationType: "FIXED",
         fixedAmount: 35000,
+        unit: "VND/kiện", // legacy unit — vẫn phải theo đơn
       },
       {
         id: "domestic",
@@ -1305,14 +1465,55 @@ if (typeof process !== "undefined" && process.env?.NODE_ENV !== "production") {
         ruleType: "DOMESTIC_FEE",
       },
     ],
-    packageCount: 1,
+    packageCount: 4,
     declaredValue: 0,
     mainServiceAmount: 300000,
     selectedPricingRuleIds: ["wood"],
   });
+  const _woodLine = _selectedLines.find((line) => line.feeId === "wood");
   console.assert(
-    _selectedLines.find((line) => line.feeId === "wood")?.enabled === true &&
+    _woodLine?.enabled === true &&
       _selectedLines.find((line) => line.feeId === "domestic")?.enabled === true,
     "selectedPricingRuleIds must keep domestic fee enabled"
+  );
+  console.assert(
+    _woodLine?.quantity === 1 && _woodLine?.amount === 35000 && _woodLine?.unitNoun === "đơn",
+    "WOOD_CRATE must bill per order (qty=1), not packageCount"
+  );
+
+  const _packingLines = buildPackingFeeLinesFromConsignment({
+    items: [
+      {
+        id: "item-1",
+        productName: "Loa",
+        packageConfigurationId: "pkg-1",
+        packageConfiguration: {
+          id: "pkg-1",
+          code: "MEDIUM",
+          name: "Medium Box",
+          packageFee: 25000,
+        },
+      },
+      {
+        id: "item-2",
+        productName: "CUSTOM box",
+        length: 50,
+        width: 40,
+        height: 30,
+        packageConfigurationId: "pkg-2",
+        packageConfiguration: {
+          id: "pkg-2",
+          code: "CUSTOM",
+          name: "Custom",
+          packageFee: 1000,
+        },
+      },
+    ],
+  });
+  console.assert(_packingLines.length === 2, "packing lines from packageConfiguration");
+  console.assert(_packingLines[0].amount === 25000, "standard packageFee");
+  console.assert(
+    _packingLines[1].amount === 60000,
+    "CUSTOM packageFee × ceil(volume/1000) expected 60000"
   );
 }

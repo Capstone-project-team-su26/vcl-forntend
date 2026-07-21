@@ -217,11 +217,21 @@ export default function PurchaseRequestDetailPanel({
         <h2 className="text-lg font-bold text-ink mb-2">Thông tin yêu cầu</h2>
         <dl>
           <DetailRow label="Khách hàng" value={detail.customerName} />
+          {detail.route ? <DetailRow label="Tuyến" value={detail.route} /> : null}
           <DetailRow label="Ngày tạo" value={formatPurchaseRequestDate(detail.createdAt)} />
+          <DetailRow label="Người nhận" value={detail.receiverName || "—"} />
+          <DetailRow label="SĐT nhận" value={detail.receiverPhone || "—"} />
+          <DetailRow label="Địa chỉ nhận" value={detail.receiverAddress || "—"} />
           <DetailRow
             label="Ghi chú của Customer"
             value={detail.customerNote || "—"}
           />
+          {detail.requiresInspection ? (
+            <DetailRow label="Kiểm hàng" value="Có" />
+          ) : null}
+          {detail.requiresQuantityCheck ? (
+            <DetailRow label="Kiểm số lượng" value="Có" />
+          ) : null}
           {detail.statusReason ? (
             <DetailRow label="Lý do xử lý" value={detail.statusReason} />
           ) : null}
@@ -233,9 +243,10 @@ export default function PurchaseRequestDetailPanel({
           <h2 className="text-lg font-bold text-ink">Sản phẩm cần mua</h2>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm min-w-[720px]">
             <thead>
               <tr className="text-left text-xs uppercase tracking-wide text-muted border-b border-border-muted bg-surface/50">
+                <th className="px-6 py-3 font-bold">Ảnh</th>
                 <th className="px-6 py-3 font-bold">Tên sản phẩm</th>
                 <th className="px-6 py-3 font-bold">Link mua hàng</th>
                 <th className="px-6 py-3 font-bold">SL</th>
@@ -243,11 +254,32 @@ export default function PurchaseRequestDetailPanel({
               </tr>
             </thead>
             <tbody>
-              {detail.items.map((product) => (
+              {detail.items.map((product, index) => (
                 <tr
-                  key={product.id}
+                  key={product.id ?? `${product.productName}-${index}`}
                   className="border-b border-border-muted/60 last:border-0"
                 >
+                  <td className="px-6 py-4">
+                    {product.imageUrl ? (
+                      <a
+                        href={product.imageUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block w-12 h-12 rounded-lg overflow-hidden border border-border-muted bg-surface"
+                      >
+                        <img
+                          src={product.imageUrl}
+                          alt={product.productName || "Ảnh sản phẩm"}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                      </a>
+                    ) : (
+                      <div className="w-12 h-12 rounded-lg border border-dashed border-border-muted bg-surface flex items-center justify-center">
+                        <Icon icon="lucide:image-off" className="w-4 h-4 text-muted" />
+                      </div>
+                    )}
+                  </td>
                   <td className="px-6 py-4 font-semibold text-ink">{product.productName}</td>
                   <td className="px-6 py-4">
                     {product.productLink ? (

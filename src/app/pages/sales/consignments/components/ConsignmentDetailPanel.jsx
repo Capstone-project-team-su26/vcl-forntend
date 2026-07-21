@@ -27,7 +27,7 @@ const {
   canStaffRejectConsignmentStatus,
   formatConsignmentDate,
   formatConsignmentDisplayCode,
-  isImageReferenceUrl,
+  getConsignmentImageEntries,
 } = orderConsignmentService;
 
 const {
@@ -218,6 +218,92 @@ function formatItemWeightDisplay(weight, quantity) {
   };
 }
 
+function ConsignmentImageGallery({ images }) {
+  if (!images.length) return null;
+
+  return (
+    <div className="bg-surface-elevated rounded-xl p-6 border border-border space-y-4">
+      <div className="flex items-center gap-2">
+        <Icon icon="lucide:images" className="w-5 h-5 text-secondary" />
+        <h3 className="text-lg font-extrabold font-['Oswald'] text-ink">Hình ảnh hàng hóa</h3>
+        <span className="text-xs font-semibold text-faint tabular-nums">({images.length})</span>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+        {images.map((entry, index) => (
+          <a
+            key={`${entry.url}-${index}`}
+            href={entry.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group relative aspect-square rounded-lg overflow-hidden border border-surface-muted bg-surface"
+            title={entry.productName || "Xem ảnh"}
+          >
+            <img
+              src={entry.url}
+              alt={entry.productName || `Ảnh hàng hóa ${index + 1}`}
+              className="w-full h-full object-cover transition-transform group-hover:scale-105"
+              loading="lazy"
+            />
+            {entry.productName ? (
+              <span className="absolute inset-x-0 bottom-0 truncate bg-ink/70 px-2 py-1 text-[11px] font-medium text-white">
+                {entry.productName}
+              </span>
+            ) : null}
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ProductImageThumbs({ urls, productName }) {
+  if (!urls?.length) {
+    return (
+      <div className="w-14 h-14 rounded-lg border border-dashed border-surface-muted bg-surface flex items-center justify-center">
+        <Icon icon="lucide:image-off" className="w-5 h-5 text-muted" />
+      </div>
+    );
+  }
+
+  const preview = urls.slice(0, 3);
+  const extra = urls.length - preview.length;
+
+  return (
+    <div className="flex items-end gap-1">
+      {preview.map((url, index) => (
+        <a
+          key={`${url}-${index}`}
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`block rounded-lg overflow-hidden border border-surface-muted bg-surface ${
+            index === 0 ? "w-14 h-14" : "w-10 h-10"
+          }`}
+          title={productName || "Xem ảnh"}
+        >
+          <img
+            src={url}
+            alt={productName ? `${productName} (${index + 1})` : `Ảnh ${index + 1}`}
+            className="w-full h-full object-cover"
+            loading="lazy"
+          />
+        </a>
+      ))}
+      {extra > 0 ? (
+        <a
+          href={urls[0]}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex h-10 min-w-10 items-center justify-center rounded-lg border border-surface-muted bg-surface px-1.5 text-xs font-bold text-secondary"
+          title={`Còn ${extra} ảnh`}
+        >
+          +{extra}
+        </a>
+      ) : null}
+    </div>
+  );
+}
+
 function ConsignmentProductsTable({ items, volumetricDivisor = VOLUMETRIC_DIVISOR_CM3 }) {
   if (!items?.length) return null;
 
@@ -251,8 +337,7 @@ function ConsignmentProductsTable({ items, volumetricDivisor = VOLUMETRIC_DIVISO
           </thead>
           <tbody>
             {items.map((item, index) => {
-              const thumbUrl =
-                item.imageUrls?.[0] ?? (isImageReferenceUrl(item.referenceUrl) ? item.referenceUrl : null);
+              const imageUrls = item.imageUrls?.length ? item.imageUrls : [];
               const dimensions = formatItemDimensions(item.length, item.width, item.height);
               const dimDisplay = formatDimDisplay(
                 item.length,
@@ -261,8 +346,7 @@ function ConsignmentProductsTable({ items, volumetricDivisor = VOLUMETRIC_DIVISO
                 volumetricDivisor
               );
               const weightDisplay = formatItemWeightDisplay(item.weight, item.quantity);
-              const productLink =
-                item.referenceUrl && !isImageReferenceUrl(item.referenceUrl) ? item.referenceUrl : null;
+              const productLink = item.productLink || null;
               // ponytail: chỉ hiện mã vận đơn nội địa — không fallback sang GUID item.id.
               const skuLabel = item.domesticTrackingCode
                 ? shortenReferenceId(item.domesticTrackingCode)
@@ -277,25 +361,7 @@ function ConsignmentProductsTable({ items, volumetricDivisor = VOLUMETRIC_DIVISO
                 >
                   <td className="px-4 py-4 text-subtle font-semibold tabular-nums">{index + 1}</td>
                   <td className="px-4 py-4">
-                    {thumbUrl ? (
-                      <a
-                        href={thumbUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block w-14 h-14 rounded-lg overflow-hidden border border-surface-muted bg-surface"
-                      >
-                        <img
-                          src={thumbUrl}
-                          alt={item.productName || "Ảnh sản phẩm"}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                        />
-                      </a>
-                    ) : (
-                      <div className="w-14 h-14 rounded-lg border border-dashed border-surface-muted bg-surface flex items-center justify-center">
-                        <Icon icon="lucide:image-off" className="w-5 h-5 text-muted" />
-                      </div>
-                    )}
+                    <ProductImageThumbs urls={imageUrls} productName={item.productName} />
                   </td>
                   <td className="px-4 py-4 min-w-[180px]">
                     <p className="font-semibold text-ink">{item.productName || "—"}</p>
@@ -322,6 +388,9 @@ function ConsignmentProductsTable({ items, volumetricDivisor = VOLUMETRIC_DIVISO
                         <Icon icon="lucide:external-link" className="w-3.5 h-3.5" />
                         Link tham chiếu
                       </a>
+                    ) : null}
+                    {imageUrls.length > 1 ? (
+                      <p className="mt-1 text-xs text-faint tabular-nums">{imageUrls.length} ảnh</p>
                     ) : null}
                   </td>
                   <td className="px-4 py-4 text-right font-semibold text-ink tabular-nums">
@@ -512,6 +581,10 @@ export default function ConsignmentDetailPanel({
   const volumetricDivisorRule = useMemo(
     () => feeCatalog.find(isVolumetricDivisorRule) ?? null,
     [feeCatalog]
+  );
+  const imageEntries = useMemo(
+    () => (detail ? getConsignmentImageEntries(detail) : []),
+    [detail]
   );
 
   useEffect(() => {
@@ -751,6 +824,8 @@ export default function ConsignmentDetailPanel({
               Khách đã thanh toán đặt cọc. Bạn có thể duyệt yêu cầu và tạo phiếu nhập kho.
             </NoticeBanner>
           ) : null}
+
+          <ConsignmentImageGallery images={imageEntries} />
 
           {detail.items?.length ? (
             <ConsignmentProductsTable

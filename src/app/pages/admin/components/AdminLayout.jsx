@@ -4,6 +4,7 @@ import { Icon } from "@iconify/react";
 import Link from "next/link";
 import { useState } from "react";
 import AppLogo from "@/app/components/AppLogo";
+import NotificationBell from "@/app/components/NotificationBell";
 import ThemeToggle from "@/app/components/ThemeToggle";
 import UserNavMenu from "@/app/components/UserNavMenu";
 import { ROUTES } from "@/utils/appRoutes";
@@ -159,14 +160,7 @@ export default function AdminLayout({ activeNav, children }) {
           </button>
 
           <div className="flex items-center gap-3 lg:gap-5 ml-auto">
-            <button
-              type="button"
-              className="relative p-2 text-muted hover:text-ink"
-              aria-label="Thông báo"
-            >
-              <Icon icon="lucide:bell" className="w-5 h-5" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-danger rounded-full" />
-            </button>
+            <NotificationBell />
             <div className="hidden sm:block h-8 w-px bg-border-muted" />
             <UserNavMenu roleLabel="Quản trị" />
           </div>

@@ -1,10 +1,43 @@
+/** Chuẩn hóa status BE → FE (PENDING_REVIEW = chờ Sales xử lý). */
+function normalizePurchaseRequestStatus(status) {
+  const raw = String(status ?? "PENDING").trim().toUpperCase();
+  if (raw === "PENDING_REVIEW") return "PENDING";
+  return raw || "PENDING";
+}
+
+function collectItemImageUrls(item) {
+  const urls = [];
+  const seen = new Set();
+
+  function push(url) {
+    const trimmed = typeof url === "string" ? url.trim() : "";
+    if (!trimmed || seen.has(trimmed)) return;
+    seen.add(trimmed);
+    urls.push(trimmed);
+  }
+
+  if (Array.isArray(item.imageUrls)) {
+    for (const entry of item.imageUrls) push(entry);
+  }
+  push(item.imageUrl);
+
+  return urls;
+}
+
 function normalizePurchaseRequestItemFromApi(item) {
+  const imageUrls = collectItemImageUrls(item);
+
   return {
     id: item.id ?? item.itemId,
     productName: item.productName ?? item.name ?? "—",
     productLink: item.productLink ?? item.link ?? item.url ?? null,
+    sourceWebsite: item.sourceWebsite ?? null,
+    productType: item.productType ?? null,
     quantity: item.quantity ?? 1,
     attributes: item.attributes ?? item.variant ?? item.productAttributes ?? null,
+    note: item.note ?? null,
+    imageUrl: imageUrls[0] ?? null,
+    imageUrls,
     unitPrice:
       item.unitPrice === "" || item.unitPrice == null ? null : Number(item.unitPrice),
   };
@@ -50,26 +83,65 @@ export function normalizePurchaseRequestFromApi(raw) {
   const item = raw?.data ?? raw?.purchaseRequest ?? raw;
 
   return {
-    id: item.id ?? item.requestId,
-    requestCode: item.requestCode ?? item.code ?? item.id,
+    id: item.id ?? item.purchaseRequestId ?? item.requestId ?? null,
+    requestCode:
+      item.purchaseCode ?? item.requestCode ?? item.code ?? item.purchaseRequestId ?? item.id,
     customerId: item.customerId ?? item.customer?.id ?? null,
-    customerName: item.customerName ?? item.customer?.fullName ?? "—",
+    customerName:
+      item.customerName ??
+      item.customer?.fullName ??
+      item.createdByName ??
+      item.receiverName ??
+      "—",
     customerPhone: item.customerPhone ?? item.customer?.phone ?? null,
     customerEmail: item.customerEmail ?? item.customer?.email ?? null,
-    status: String(item.status ?? "PENDING").toUpperCase(),
-    customerNote: item.customerNote ?? item.note ?? item.notes ?? null,
+    receiverName: item.receiverName ?? null,
+    receiverPhone: item.receiverPhone ?? null,
+    receiverAddress: item.receiverAddress ?? null,
+    route: item.route ?? null,
+    requiresInspection: item.requiresInspection === true,
+    requiresQuantityCheck: item.requiresQuantityCheck === true,
+    status: normalizePurchaseRequestStatus(item.status),
+    customerNote: item.generalNote ?? item.customerNote ?? item.note ?? item.notes ?? null,
     statusReason: item.statusReason ?? item.reason ?? item.rejectionReason ?? null,
     createdAt: item.createdAt,
+    itemCount: item.itemCount ?? null,
+    totalQuantity: item.totalQuantity ?? null,
     items: (item.items ?? item.products ?? []).map(normalizePurchaseRequestItemFromApi),
     quotation: normalizePurchaseRequestQuotationFromApi(item.quotation),
     purchaseOrder: normalizePurchaseRequestPurchaseOrderFromApi(item.purchaseOrder),
   };
 }
 
-export function normalizePurchaseRequestListResponse(raw) {
+export function normalizePurchaseRequestListResponse(raw, { pageNumber = 1, pageSize = 10 } = {}) {
   const data = raw?.data ?? raw;
-  const items = Array.isArray(data) ? data : data?.items ?? [];
-  return items.map(normalizePurchaseRequestFromApi);
+  const items = (Array.isArray(data) ? data : data?.items ?? [])
+    .map(normalizePurchaseRequestFromApi)
+    .filter((entry) => entry.id);
+
+  if (Array.isArray(data)) {
+    return {
+      items,
+      totalCount: items.length,
+      pageNumber: 1,
+      pageSize: items.length || pageSize,
+      totalPages: 1,
+    };
+  }
+
+  const totalCount = Number(data?.totalCount ?? items.length) || 0;
+  const resolvedPageSize = Number(data?.pageSize ?? pageSize) || pageSize;
+  const totalPages =
+    Number(data?.totalPages) ||
+    Math.max(1, Math.ceil(totalCount / Math.max(resolvedPageSize, 1)));
+
+  return {
+    items,
+    totalCount,
+    pageNumber: Number(data?.pageNumber ?? pageNumber) || 1,
+    pageSize: resolvedPageSize,
+    totalPages,
+  };
 }
 
 export function normalizePurchaseRequestStatusUpdate(raw) {
@@ -77,8 +149,8 @@ export function normalizePurchaseRequestStatusUpdate(raw) {
 
   return {
     message: raw?.message ?? "Cập nhật trạng thái thành công.",
-    status: raw?.status ?? request?.status,
-    statusReason: raw?.statusReason ?? request?.statusReason,
+    status: normalizePurchaseRequestStatus(raw?.status ?? request?.status),
+    statusReason: raw?.statusReason ?? request?.statusReason ?? request?.reason,
     purchaseRequest: request ? normalizePurchaseRequestFromApi(request) : undefined,
   };
 }
@@ -87,7 +159,6 @@ export function toApiPurchaseRequestStatusPayload({ status, reason }) {
   return {
     status,
     reason: reason?.trim() || null,
-    statusReason: reason?.trim() || null,
   };
 }
 
@@ -112,7 +183,7 @@ export function normalizePurchaseRequestQuotationResponse(raw) {
 
   return {
     message: raw?.message ?? "Gửi báo giá thành công.",
-    status: raw?.status ?? request?.status ?? "QUOTED",
+    status: normalizePurchaseRequestStatus(raw?.status ?? request?.status ?? "QUOTED"),
     totalAmount: raw?.totalAmount ?? request?.quotation?.totalAmount ?? null,
     purchaseRequest: request ? normalizePurchaseRequestFromApi(request) : undefined,
   };
@@ -131,7 +202,9 @@ export function normalizePurchaseRequestPurchaseOrderResponse(raw) {
 
   return {
     message: raw?.message ?? "Tạo đơn mua hàng thành công.",
-    status: raw?.status ?? request?.status ?? "PURCHASE_ORDER_CREATED",
+    status: normalizePurchaseRequestStatus(
+      raw?.status ?? request?.status ?? "PURCHASE_ORDER_CREATED"
+    ),
     purchaseOrder: purchaseOrder
       ? normalizePurchaseRequestPurchaseOrderFromApi(purchaseOrder)
       : undefined,

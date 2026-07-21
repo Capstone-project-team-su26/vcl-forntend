@@ -84,7 +84,20 @@ function filterPurchaseRequests(items, { search, status }) {
 
 export async function listPurchaseRequestsMock(params = {}) {
   await mockDelay();
-  return filterPurchaseRequests(getMockStore().purchaseRequests, params);
+  const page = Math.max(1, Number(params.page ?? params.pageNumber) || 1);
+  const pageSize = Math.max(1, Number(params.pageSize) || 5);
+  const filtered = filterPurchaseRequests(getMockStore().purchaseRequests, params);
+  const totalCount = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const start = (page - 1) * pageSize;
+
+  return {
+    items: filtered.slice(start, start + pageSize),
+    totalCount,
+    pageNumber: page,
+    pageSize,
+    totalPages,
+  };
 }
 
 export async function getPurchaseRequestMock(id) {

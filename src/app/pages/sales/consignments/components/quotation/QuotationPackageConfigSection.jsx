@@ -87,6 +87,7 @@ export default function QuotationPackageConfigSection({
           <p className="text-sm text-muted mt-1">
             Chỉ xem — Sales không đổi loại thùng thay Customer. Phí vỏ thùng lấy từ API
             (`packageConfiguration` / dòng <span className="font-mono">PACKING_FEE</span>).
+            Đóng thùng gỗ (<span className="font-mono">WOOD_CRATE</span>) tính <strong>theo đơn</strong>, tách với phí vỏ thùng.
           </p>
         </div>
         {packingInQuote > 0 ? (

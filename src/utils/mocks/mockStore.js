@@ -1041,8 +1041,8 @@ const seed = {
       feeCalculationType: "FIXED",
       fixedAmount: 35000,
       percentageRate: null,
-      unit: "VND/kiện",
-      description: "Đóng gói thùng gỗ chuyên dụng cho hàng cồng kềnh hoặc dễ vỡ.",
+      unit: "VND/đơn",
+      description: "Đóng gói thùng gỗ chuyên dụng — tính theo đơn (không theo kiện).",
       isActive: true,
     },
     {

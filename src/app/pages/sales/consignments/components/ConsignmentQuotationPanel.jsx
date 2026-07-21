@@ -29,6 +29,7 @@ const {
   buildDefaultAdditionalFeeLines,
   buildConsignmentQuotationDraft,
   buildEnabledFeeStateFromLines,
+  buildPackingFeeLinesFromConsignment,
   calculateQuotationTotal,
   estimateConsignmentQuotation,
   fetchActiveAdditionalFees,
@@ -636,21 +637,27 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
             ? selectedPricingRuleIds
             : undefined,
         requiresInspection: detail?.requiresInspection === true,
+        requiresWoodenCrate: detail?.requiresWoodenCrate === true,
       });
 
-      // Giữ dòng PACKING_FEE từ API (không có trong catalog phụ phí).
+      // Giữ / bổ sung dòng PACKING_FEE từ API hoặc từ cấu hình thùng Customer.
       const packingLines = current.filter((line) => isPackingFee(line));
-      if (!packingLines.length) return next;
+      const fallbackPacking =
+        packingLines.length || !detail
+          ? packingLines
+          : buildPackingFeeLinesFromConsignment(detail);
+      if (!fallbackPacking.length) return next;
 
-      const present = new Set(
-        next.flatMap((line) =>
-          [line.feeId, line.code].filter(Boolean).map((value) => String(value).toUpperCase())
-        )
+      const presentIds = new Set(
+        next
+          .map((line) => line.feeId)
+          .filter(Boolean)
+          .map((value) => String(value).toUpperCase())
       );
-      const missingPacking = packingLines.filter((line) => {
+      // Không so theo code PACKING_FEE — nhiều dòng thùng cùng code nhưng khác feeId.
+      const missingPacking = fallbackPacking.filter((line) => {
         const id = line.feeId != null ? String(line.feeId).toUpperCase() : null;
-        const code = line.code != null ? String(line.code).toUpperCase() : null;
-        return !((id && present.has(id)) || (code && present.has(code)));
+        return !(id && presentIds.has(id));
       });
       return missingPacking.length ? [...missingPacking, ...next] : next;
     });
@@ -664,9 +671,11 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
     feeCatalog,
     volumetricDivisor,
     detail?.requiresInspection,
+    detail?.requiresWoodenCrate,
     detail?.pricingRuleIds,
     detail?.quotation,
     detail?.status,
+    detail?.items,
   ]);
 
   useEffect(() => {
@@ -724,8 +733,13 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
             ? selectedPricingRuleIds
             : undefined,
         requiresInspection: detail?.requiresInspection === true,
+        requiresWoodenCrate: detail?.requiresWoodenCrate === true,
       });
-      return packingLines.length ? [...packingLines, ...next] : next;
+      const fallbackPacking =
+        packingLines.length || !detail
+          ? packingLines
+          : buildPackingFeeLinesFromConsignment(detail);
+      return fallbackPacking.length ? [...fallbackPacking, ...next] : next;
     });
     resetSubmitState();
   }
@@ -1224,12 +1238,15 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
                       {formatMoney(mainServiceAmount)}
                     </td>
                   </tr>
-                  {allAdditionalFeeLines.map((line) => {
+                  {allAdditionalFeeLines.map((line, index) => {
                     const isPercentage = line.feeCalculationType === "PERCENTAGE";
                     const packing = line.isPackingFee === true || isPackingFee(line);
                     const locked = packing || line.isRequired || !line.quantityEditable;
                     return (
-                    <tr key={line.feeId} className="border-b border-border-muted/60 align-top">
+                    <tr
+                      key={`${line.feeId}-${line.code ?? ""}-${index}`}
+                      className="border-b border-border-muted/60 align-top"
+                    >
                       <td className="px-4 py-3">
                         <p className="font-medium text-ink">{line.label}</p>
                         {packing ? (
@@ -1239,6 +1256,10 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
                         ) : line.isRequired ? (
                           <span className="inline-block mt-1 text-[10px] font-bold uppercase tracking-wide text-primary">
                             Bắt buộc · khóa
+                          </span>
+                        ) : String(line.code ?? "").toUpperCase().includes("WOOD") ? (
+                          <span className="inline-block mt-1 text-[10px] font-bold uppercase tracking-wide text-muted">
+                            Theo đơn
                           </span>
                         ) : line.description ? (
                           <p className="text-xs text-muted mt-0.5">{line.description}</p>

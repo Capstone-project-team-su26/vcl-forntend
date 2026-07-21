@@ -9,8 +9,12 @@ import {
 } from "./apiMappers.js";
 import {
   buildPackageConfigMismatchWarnings,
+  buildPackingFeeLinesFromConsignment,
+  getFeeDefaultQuantity,
   isPackingFee,
+  isWoodenCrateFee,
   resolveCustomerPackageSelections,
+  resolvePackageConfigurationUnitFee,
 } from "../modules/consignments/quotation.js";
 
 const ruleId = "11111111-1111-1111-1111-111111111111";
@@ -114,10 +118,21 @@ if (quotation.domesticShippingFee !== 5000) throw new Error("domesticShippingFee
 if (quotation.consignmentCode !== "KG-001") throw new Error("consignmentCode normalize mismatch");
 if (quotation.parcels?.[0]?.packageCode !== "P-1") throw new Error("parcels normalize mismatch");
 if (!isPackingFee(quotation.additionalFees[0])) throw new Error("isPackingFee mismatch");
+if (!isWoodenCrateFee(quotation.additionalFees[1])) throw new Error("isWoodenCrateFee mismatch");
+if (getFeeDefaultQuantity(quotation.additionalFees[1], { packageCount: 5 }) !== 1) {
+  throw new Error("WOOD_CRATE default quantity must be 1 per order");
+}
 
 const packageInfo = resolveCustomerPackageSelections(detail, quotation);
 if (!packageInfo.hasCustomerSelection) throw new Error("customer package selection missing");
 if (packageInfo.packingFeeTotal !== 50000) throw new Error("packingFeeTotal mismatch");
+
+const synthesizedPacking = buildPackingFeeLinesFromConsignment(detail);
+if (synthesizedPacking.length !== 1) throw new Error("synthesized packing line missing");
+if (synthesizedPacking[0].amount !== 25000) throw new Error("packageFee packing amount mismatch");
+if (resolvePackageConfigurationUnitFee({ code: "CUSTOM", packageFee: 1000 }, { length: 50, width: 40, height: 30 }) !== 60000) {
+  throw new Error("CUSTOM package fee formula mismatch");
+}
 
 const warnings = buildPackageConfigMismatchWarnings({
   selections: packageInfo.selections,
