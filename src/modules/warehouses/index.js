@@ -209,6 +209,9 @@ export function getParentLocationLabel(locations, parentId) {
 
 export function buildLayoutGrid(cells, { minRows = 4, minCols = 6 } = {}) {
   const list = cells || [];
+  if (list.length === 0 && minRows <= 0 && minCols <= 0) {
+    return { rows: 0, cols: 0, grid: [] };
+  }
   const maxRow = list.reduce((max, cell) => Math.max(max, cell.rowIndex ?? 0), -1);
   const maxCol = list.reduce((max, cell) => Math.max(max, cell.columnIndex ?? 0), -1);
   const rows = Math.max(minRows, maxRow + 2);

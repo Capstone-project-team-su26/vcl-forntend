@@ -15,8 +15,8 @@ export const OPS_NAV = [
   },
   {
     id: "warehouse-layout",
-    label: "Phân bố vị trí kho",
+    label: "Bố trí vị trí kho",
     href: ROUTES.operations.warehouseLayout,
-    icon: "lucide:map",
+    icon: "lucide:map-pin",
   },
 ];

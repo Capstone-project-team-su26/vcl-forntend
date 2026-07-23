@@ -295,7 +295,7 @@ export async function createStorageLocationMock(warehouseId, payload) {
     parentId: null,
     capacity: Number.isFinite(maxVolume) ? maxVolume : null,
     isActive: payload.isActive !== false,
-    note: payload.note?.trim() || null,
+    note: payload.note?.trim() || "",
   };
   item.binId = item.id;
 

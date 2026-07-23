@@ -57,7 +57,8 @@ export function toApiCreateStorageLocationPayload(payload) {
     maxVolume: Number.isFinite(maxVolume) ? maxVolume : null,
     maxWeight: Number.isFinite(maxWeight) ? maxWeight : null,
     isActive: payload.isActive !== false,
-    note: payload.note?.trim() || null,
+    // BE Required Note — null bị omit → "The Note field is required."
+    note: payload.note?.trim() || "",
   };
 }
 
@@ -69,14 +70,14 @@ export function normalizeStorageLocationFromApi(item) {
   const zoneId = item.zoneId ?? item.zone_id ?? null;
 
   return {
-    id: item.id ?? binId ?? item.locationId,
+    id: item.id ?? item.locationId ?? binId,
     warehouseId: item.warehouseId ?? item.warehouse_id ?? null,
     zoneId,
     zoneName: item.zoneName ?? item.zone_name ?? null,
     zoneCode: item.zoneCode ?? item.zone_code ?? null,
     shelfId,
     shelfCode: item.shelfCode ?? item.shelf_code ?? null,
-    binId: binId ?? item.id ?? null,
+    binId: binId ?? item.id ?? item.locationId ?? null,
     binCode: item.binCode ?? item.bin_code ?? item.code ?? null,
     maxVolume:
       item.maxVolume == null && item.max_volume == null
@@ -132,6 +133,7 @@ export function toApiWarehouseLocationPayload(payload) {
         ? null
         : Number(payload.capacity),
     isActive: payload.isActive !== false,
+    note: payload.note?.trim() || "",
   };
 
   // Ops có thể đổi Zone/Shelf/Bin trên bản ghi storage (BE nhận nếu hỗ trợ).

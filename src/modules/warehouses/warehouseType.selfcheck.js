@@ -47,7 +47,12 @@ const storage = toApiCreateStorageLocationPayload({
   maxVolume: "100",
   maxWeight: "",
 });
-if (storage.zoneName !== "Khu A" || storage.maxVolume !== 100 || storage.maxWeight !== null) {
+if (
+  storage.zoneName !== "Khu A" ||
+  storage.maxVolume !== 100 ||
+  storage.maxWeight !== null ||
+  storage.note !== ""
+) {
   throw new Error("toApiCreateStorageLocationPayload mismatch");
 }
 

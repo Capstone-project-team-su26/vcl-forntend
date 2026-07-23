@@ -12,6 +12,7 @@
 ```text
 doc/
   DOCS.md                   ← file này
+  future-plans/             ← plan hoãn / làm sau (vd. full map kho)
   <alias-nguoi-dung>/
     prompts-2026-05-10.md   ← log prompt theo ngày (hoặc dùng prompts.log.md)
   vi-du-minh/
