@@ -185,6 +185,37 @@ export async function updateWarehouseLocationMock(locationId, payload) {
   const data = validateLocationPayload({ ...item, ...payload });
   Object.assign(item, data);
 
+  if (payload.zoneName !== undefined) {
+    item.zoneName = payload.zoneName?.trim() || null;
+    if (item.zoneName) item.zoneCode = item.zoneName.slice(0, 8).toUpperCase();
+  }
+  if (payload.shelfCode !== undefined) {
+    item.shelfCode = payload.shelfCode?.trim() || null;
+  }
+  if (payload.binCode !== undefined) {
+    const binCode = payload.binCode?.trim() || null;
+    item.binCode = binCode;
+    if (binCode) {
+      item.code = binCode;
+      item.name = binCode;
+    }
+  }
+  if (payload.maxVolume !== undefined) {
+    const maxVolume =
+      payload.maxVolume === "" || payload.maxVolume == null
+        ? null
+        : Number(payload.maxVolume);
+    item.maxVolume = Number.isFinite(maxVolume) ? maxVolume : null;
+    item.capacity = item.maxVolume;
+  }
+  if (payload.maxWeight !== undefined) {
+    const maxWeight =
+      payload.maxWeight === "" || payload.maxWeight == null
+        ? null
+        : Number(payload.maxWeight);
+    item.maxWeight = Number.isFinite(maxWeight) ? maxWeight : null;
+  }
+
   return { message: "Cập nhật vị trí lưu trữ thành công.", location: { ...item } };
 }
 
@@ -264,7 +295,7 @@ export async function createStorageLocationMock(warehouseId, payload) {
     parentId: null,
     capacity: Number.isFinite(maxVolume) ? maxVolume : null,
     isActive: payload.isActive !== false,
-    note: payload.note?.trim() || null,
+    note: payload.note?.trim() || "",
   };
   item.binId = item.id;
 

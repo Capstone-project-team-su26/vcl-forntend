@@ -107,9 +107,15 @@ export async function createWarehouseLocationApi(warehouseId, payload) {
 }
 
 export async function updateWarehouseLocationApi(locationId, payload) {
+  // BE PUT dùng CreateLocationRequestDto (zoneName/shelfCode/binCode…) — không gửi field legacy.
+  const body =
+    payload?.binCode != null || payload?.zoneName != null || payload?.shelfCode != null
+      ? toApiCreateStorageLocationPayload(payload)
+      : toApiWarehouseLocationPayload(payload);
+
   const raw = await apiRequest(`/api/warehouse-locations/${locationId}`, {
     method: "PUT",
-    body: JSON.stringify(toApiWarehouseLocationPayload(payload)),
+    body: JSON.stringify(body),
   });
 
   const location = normalizeWarehouseLocationFromApi(
