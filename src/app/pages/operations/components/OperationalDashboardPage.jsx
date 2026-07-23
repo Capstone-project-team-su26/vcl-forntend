@@ -1,344 +1,572 @@
 "use client";
 
-import { useEffect, useState } from "react";
-// Fetch consignments directly from the API
+import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Icon } from "@iconify/react";
 import { useAuth } from "@/hooks/useAuth";
+import {
+  CONSIGNMENT_STATUS_LABELS,
+  CONSIGNMENT_TYPE_FILTER_OPTIONS,
+} from "@/modules/consignments";
+import {
+  buildOperationalAnalytics,
+  createOperationalConsolidation,
+  getOperationalDashboard,
+} from "@/modules/operations";
+import { getErrorMessage } from "@/utils/apiError";
+import { ROUTES } from "@/utils/appRoutes";
+import DataTable from "@/app/components/DataTable";
+import ConsignmentStatusBadge from "@/app/pages/sales/consignments/components/ConsignmentStatusBadge";
 import OperationsShell from "@/app/pages/operations/components/OperationsShell";
-import { formatProductTypeLabel } from "@/modules/product-types";
-import { normalizeConsignmentDetail } from "@/utils/apiMappers";
+import OperationalConsignmentDialog from "./OperationalConsignmentDialog";
+import {
+  OperationsRouteRanking,
+  OperationsStatusChart,
+  OperationsTrendChart,
+} from "./OperationsDashboardCharts";
+
+const RANGE_OPTIONS = [
+  { value: 7, label: "7 ngày" },
+  { value: 30, label: "30 ngày" },
+  { value: 90, label: "90 ngày" },
+];
+
+const KPI_META = {
+  total: {
+    label: "Tổng lô hàng",
+    description: "Được tạo trong kỳ",
+    icon: "lucide:package-search",
+    tone: "bg-info-bg text-info-text",
+  },
+  ready: {
+    label: "Sẵn sàng gom",
+    description: "Đã duyệt, chờ consolidation",
+    icon: "lucide:combine",
+    tone: "bg-warning-bg text-warning-text",
+  },
+  moving: {
+    label: "Đang vận chuyển",
+    description: "Đang xử lý hoặc chờ hàng",
+    icon: "lucide:truck",
+    tone: "bg-primary/20 text-secondary",
+  },
+  completed: {
+    label: "Đã hoàn tất",
+    description: "Kết thúc trong kỳ",
+    icon: "lucide:circle-check-big",
+    tone: "bg-success-bg text-success-text",
+  },
+};
+
+function formatDateRange(range) {
+  const formatter = new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit" });
+  return `${formatter.format(range.from)} – ${formatter.format(range.to)}`;
+}
+
+function formatDateTime(value) {
+  if (!value) return "—";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? "—"
+    : new Intl.DateTimeFormat("vi-VN", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }).format(date);
+}
+
+function KpiCard({ item, loading }) {
+  const meta = KPI_META[item?.key] ?? KPI_META.total;
+
+  return (
+    <article className="relative overflow-hidden rounded-2xl border border-border-muted bg-surface-elevated p-4 shadow-sm sm:p-5">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-xs font-bold uppercase tracking-[0.08em] text-muted">{meta.label}</p>
+          {loading ? (
+            <div className="mt-3 h-9 w-20 animate-pulse rounded-lg bg-surface-muted" />
+          ) : (
+            <p className="mt-2 text-3xl font-black tabular-nums tracking-tight text-ink">
+              {item.value.toLocaleString("vi-VN")}
+            </p>
+          )}
+        </div>
+        <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${meta.tone}`}>
+          <Icon icon={meta.icon} className="h-5 w-5" aria-hidden />
+        </span>
+      </div>
+      <div className="mt-4 flex items-end justify-between gap-3">
+        <p className="text-xs leading-5 text-muted">{meta.description}</p>
+        {!loading ? (
+          <span
+            className={`inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[11px] font-bold tabular-nums ${
+              item.change > 0
+                ? "bg-success-bg text-success-text"
+                : item.change < 0
+                  ? "bg-danger-bg text-danger"
+                  : "bg-surface-muted text-muted"
+            }`}
+            title={`Kỳ trước: ${item.previousValue.toLocaleString("vi-VN")}`}
+          >
+            <Icon
+              icon={
+                item.change > 0
+                  ? "lucide:trending-up"
+                  : item.change < 0
+                    ? "lucide:trending-down"
+                    : "lucide:minus"
+              }
+              className="h-3 w-3"
+              aria-hidden
+            />
+            {Math.abs(item.change)}%
+          </span>
+        ) : null}
+      </div>
+    </article>
+  );
+}
 
 export default function OperationalDashboardPage() {
   const { session, isReady } = useAuth();
   const token = session?.token;
-  const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
-  const [dashboard, setDashboard] = useState(null);
-  const [consignments, setConsignments] = useState([]);
+  const [sourceItems, setSourceItems] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState("");
+  const [filters, setFilters] = useState({ days: 30, status: "", consignmentType: "" });
   const [selectedIds, setSelectedIds] = useState([]);
+  const [isConfirming, setIsConfirming] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [detailData, setDetailData] = useState(null);
-  const [isDetailLoading, setIsDetailLoading] = useState(false);
+  const [actionNotice, setActionNotice] = useState(null);
+  const [detailId, setDetailId] = useState(null);
+
+  const loadDashboard = useCallback(
+    async ({ refresh = false } = {}) => {
+      if (!token) {
+        setIsLoading(false);
+        setLoadError("Bạn cần đăng nhập để xem dashboard vận hành.");
+        return;
+      }
+      refresh ? setIsRefreshing(true) : setIsLoading(true);
+      setLoadError("");
+      try {
+        const result = await getOperationalDashboard();
+        setSourceItems(result?.items ?? []);
+      } catch (error) {
+        setLoadError(getErrorMessage(error, "Không thể tải dữ liệu dashboard."));
+      } finally {
+        setIsLoading(false);
+        setIsRefreshing(false);
+      }
+    },
+    [token]
+  );
 
   useEffect(() => {
-    if (!isReady) return;
-    if (!token) {
-      setIsLoading(false);
-      return;
-    }
+    if (!isReady) return undefined;
+    const timer = window.setTimeout(loadDashboard, 0);
+    return () => window.clearTimeout(timer);
+  }, [isReady, loadDashboard]);
 
-    let active = true;
-    const API_URL =
-      "https://api-vcl.zushin.io.vn/api/orders/consignments?pageNumber=1&pageSize=10&status=approved";
+  const analytics = useMemo(
+    () => buildOperationalAnalytics(sourceItems, filters),
+    [filters, sourceItems]
+  );
 
-    async function load() {
-      try {
-        const res = await fetch(API_URL, {
-          headers: authHeaders,
-        });
-        if (!res.ok) throw new Error("Network response was not ok");
-        const json = await res.json();
-        const items = (json?.data?.items) || [];
-        if (active) {
-          setConsignments(items);
-          setIsLoading(false);
-        }
-      } catch (err) {
-        if (active) setIsLoading(false);
-      }
-    }
+  const statusOptions = useMemo(() => {
+    const statuses = [...new Set(sourceItems.map((item) => item.status).filter(Boolean))];
+    return statuses
+      .sort((a, b) =>
+        String(CONSIGNMENT_STATUS_LABELS[a] || a).localeCompare(
+          String(CONSIGNMENT_STATUS_LABELS[b] || b),
+          "vi"
+        )
+      )
+      .map((value) => ({ value, label: CONSIGNMENT_STATUS_LABELS[value] || value }));
+  }, [sourceItems]);
 
-    load();
-    return () => {
-      active = false;
-    };
-  }, [authHeaders, isReady, token]);
+  const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+  const eligibleIds = useMemo(
+    () => analytics.rows.filter((item) => item.status === "APPROVED").map((item) => item.id),
+    [analytics.rows]
+  );
+  const allEligibleSelected =
+    eligibleIds.length > 0 && eligibleIds.every((id) => selectedSet.has(id));
 
-  function toggleSelectOne(id) {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+  function updateFilter(key, value) {
+    setFilters((current) => ({ ...current, [key]: value }));
+    setSelectedIds([]);
+    setIsConfirming(false);
+    setActionNotice(null);
+  }
+
+  const toggleOne = useCallback((id) => {
+    setSelectedIds((current) =>
+      current.includes(id) ? current.filter((value) => value !== id) : [...current, id]
     );
-  }
+    setIsConfirming(false);
+    setActionNotice(null);
+  }, []);
 
-  function toggleSelectAll() {
-    if (selectedIds.length === consignments.length) {
-      setSelectedIds([]);
-    } else {
-      setSelectedIds(consignments.map((c) => c.orderId).filter(Boolean));
-    }
-  }
+  const toggleAllEligible = useCallback(() => {
+    setSelectedIds((current) => {
+      if (allEligibleSelected) {
+        const eligible = new Set(eligibleIds);
+        return current.filter((id) => !eligible.has(id));
+      }
+      return [...new Set([...current, ...eligibleIds])];
+    });
+    setIsConfirming(false);
+    setActionNotice(null);
+  }, [allEligibleSelected, eligibleIds]);
 
   async function handleCreateConsolidation() {
-    if (selectedIds.length === 0) return;
-    const ok = window.confirm(`Tạo consolidation cho ${selectedIds.length} lô hàng?`);
-    if (!ok) return;
-
-    const API_URL = "https://api-vcl.zushin.io.vn/api/consolidation";
+    if (!selectedIds.length) return;
     setIsSubmitting(true);
+    setActionNotice(null);
     try {
-      const res = await fetch(API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...authHeaders,
-        },
-        body: JSON.stringify({ orderIds: selectedIds, status: "waiting" }),
+      await createOperationalConsolidation(selectedIds);
+      setActionNotice({
+        type: "success",
+        message: `Đã tạo consolidation cho ${selectedIds.length} lô hàng.`,
       });
-      if (!res.ok) throw new Error("Network response was not ok");
-      // optionally read response.json()
-      alert("Tạo consolidation thành công.");
       setSelectedIds([]);
-    } catch (err) {
-      console.error(err);
-      alert("Có lỗi khi tạo consolidation.");
+      setIsConfirming(false);
+      await loadDashboard({ refresh: true });
+    } catch (error) {
+      setActionNotice({
+        type: "error",
+        message: getErrorMessage(error, "Không thể tạo consolidation."),
+      });
     } finally {
       setIsSubmitting(false);
     }
   }
 
-  async function openDetail(orderId) {
-    if (!orderId) return;
-    setModalOpen(true);
-    setIsDetailLoading(true);
-    setDetailData(null);
-    try {
-      const res = await fetch(`https://api-vcl.zushin.io.vn/api/orders/consignments/${orderId}`, {
-        headers: authHeaders,
-      });
-      if (!res.ok) throw new Error('Network response was not ok');
-      const json = await res.json();
-      setDetailData(normalizeConsignmentDetail(json) ?? null);
-    } catch (err) {
-      console.error(err);
-      alert('Không thể tải chi tiết.');
-      setDetailData(null);
-    } finally {
-      setIsDetailLoading(false);
-    }
-  }
+  const columns = useMemo(
+    () => [
+      {
+        key: "select",
+        title: (
+          <input
+            type="checkbox"
+            checked={allEligibleSelected}
+            disabled={!eligibleIds.length}
+            onChange={toggleAllEligible}
+            onClick={(event) => event.stopPropagation()}
+            aria-label="Chọn tất cả lô đã duyệt"
+            className="h-4 w-4"
+          />
+        ),
+        className: "w-12",
+        render: (row) => (
+          <input
+            type="checkbox"
+            checked={selectedSet.has(row.id)}
+            disabled={row.status !== "APPROVED"}
+            onChange={() => toggleOne(row.id)}
+            onClick={(event) => event.stopPropagation()}
+            aria-label={`Chọn lô ${row.consignmentCode || row.id}`}
+            title={row.status === "APPROVED" ? "Chọn để tạo consolidation" : "Lô chưa đủ điều kiện gom"}
+            className="h-4 w-4 disabled:cursor-not-allowed disabled:opacity-35"
+          />
+        ),
+      },
+      {
+        key: "consignmentCode",
+        title: "Mã lô",
+        sortable: true,
+        searchable: true,
+        render: (row) => (
+          <span className="font-mono text-xs font-bold text-secondary">
+            {row.consignmentCode || "—"}
+          </span>
+        ),
+      },
+      {
+        key: "customerName",
+        title: "Khách hàng",
+        sortable: true,
+        searchable: true,
+      },
+      {
+        key: "route",
+        title: "Tuyến",
+        searchable: true,
+        render: (row) => <span className="text-muted">{row.route || row.destination || "—"}</span>,
+      },
+      {
+        key: "status",
+        title: "Trạng thái",
+        render: (row) => (
+          <ConsignmentStatusBadge status={row.status} className="px-2.5 py-1 text-[11px]" />
+        ),
+      },
+      {
+        key: "totalWeight",
+        title: "Trọng lượng",
+        align: "right",
+        sortable: true,
+        sortAccessor: (row) => Number(row.totalWeight) || 0,
+        render: (row) => (
+          <span className="whitespace-nowrap tabular-nums">
+            {row.totalWeight == null ? "—" : `${Number(row.totalWeight).toLocaleString("vi-VN")} kg`}
+          </span>
+        ),
+      },
+      {
+        key: "createdAt",
+        title: "Ngày tạo",
+        align: "right",
+        sortable: true,
+        sortAccessor: (row) => new Date(row.createdAt).getTime() || 0,
+        filter: { type: "dateRange" },
+        render: (row) => (
+          <span className="whitespace-nowrap text-xs text-muted">{formatDateTime(row.createdAt)}</span>
+        ),
+      },
+    ],
+    [allEligibleSelected, eligibleIds.length, selectedSet, toggleAllEligible, toggleOne]
+  );
 
-  function closeModal() {
-    setModalOpen(false);
-    setDetailData(null);
-    setIsDetailLoading(false);
-  }
-
-  const recentActivity = consignments;
-  const stats = dashboard?.stats ?? [];
-  const displayName = session?.fullName?.split(" ")?.[0] || "Ops";
+  const displayName = session?.fullName?.trim().split(/\s+/).at(-1) || "Ops";
+  const closeDetail = useCallback(() => setDetailId(null), []);
+  const tableHeaderRight = (
+    <button
+      type="button"
+      disabled={!selectedIds.length || isSubmitting}
+      onClick={() => setIsConfirming(true)}
+      className="inline-flex h-10 items-center gap-2 whitespace-nowrap rounded-lg bg-secondary px-3.5 text-xs font-bold text-white shadow-sm hover:bg-secondary-hover disabled:cursor-not-allowed disabled:opacity-45"
+    >
+      <Icon icon="lucide:combine" className="h-4 w-4" aria-hidden />
+      Gom {selectedIds.length ? `${selectedIds.length} lô` : "lô hàng"}
+    </button>
+  );
 
   return (
     <OperationsShell activeNav="dashboard">
-      <div className="space-y-8">
-        <section>
-          <h1 className="text-3xl lg:text-4xl font-black tracking-tight">
-            Xin chào, <span className="text-secondary">{displayName}</span>
-          </h1>
-          <p className="text-muted text-sm font-medium mt-2">
-            Dashboard vận hành — {dashboard?.activeShipments ?? 0} lô hàng đang vận chuyển.
-          </p>
-        </section>
-
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {isLoading ? (
-            <p className="text-sm text-muted col-span-full">Đang tải dữ liệu...</p>
-          ) : (
-            stats.map((stat) => (
-              <div
-                key={stat.label}
-                className="bg-white p-6 rounded-xl border border-surface-muted shadow-sm flex justify-between items-start"
-              >
-                <div>
-                  <p className="text-xs font-medium text-muted uppercase tracking-wide">{stat.label}</p>
-                  <p className="text-3xl font-bold font-['Oswald'] mt-2">{stat.value}</p>
-                  <p className="text-xs text-muted mt-2">{stat.sub}</p>
-                </div>
-                {stat.icon ? (
-                  <img src={stat.icon} className="w-6 h-6" alt="" />
-                ) : null}
+      <div className="space-y-5 pb-8">
+        <section className="relative overflow-hidden rounded-2xl border border-border-muted bg-surface-elevated px-4 py-5 shadow-sm sm:px-6 sm:py-6">
+          <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-primary/20 blur-3xl" />
+          <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-secondary">
+                <span className="h-2 w-2 rounded-full bg-primary shadow-[0_0_0_4px_color-mix(in_srgb,var(--theme-primary)_20%,transparent)]" />
+                Trung tâm vận hành
               </div>
-            ))
-          )}
-        </section>
-
-        <section className="bg-white rounded-xl border border-surface-muted overflow-hidden">
-          <div className="px-6 py-4 border-b border-surface-muted flex items-center justify-between">
-            <h2 className="text-lg font-bold font-['Oswald']">Hoạt động gần đây</h2>
-            <div className="flex items-center space-x-3">
-              <button
-                onClick={handleCreateConsolidation}
-                disabled={isLoading || isSubmitting || selectedIds.length === 0}
-                className="bg-primary text-white px-4 py-2 rounded-md text-sm disabled:opacity-50"
+              <h1 className="text-2xl font-black tracking-tight text-ink sm:text-3xl">
+                Chào {displayName}, tổng quan hôm nay
+              </h1>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
+                Theo dõi luồng hàng, nhận biết điểm nghẽn và xử lý các lô sẵn sàng gom trên cùng
+                một màn hình.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="rounded-xl border border-border-muted bg-surface/80 px-3.5 py-2">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-muted">Khối lượng kỳ</p>
+                <p className="mt-0.5 text-sm font-black tabular-nums text-ink">
+                  {analytics.totalWeight.toLocaleString("vi-VN")} kg
+                </p>
+              </div>
+              <Link
+                href={ROUTES.operations.consolidate}
+                className="inline-flex h-11 items-center gap-2 rounded-xl border border-border-muted bg-surface-elevated px-4 text-sm font-bold text-ink hover:bg-surface-muted focus-visible:ring-2 focus-visible:ring-secondary"
               >
-                {isSubmitting ? "Đang tạo..." : "Tạo consolidation"}
+                <Icon icon="lucide:layers-3" className="h-4 w-4 text-secondary" aria-hidden />
+                Danh sách gom
+              </Link>
+              <button
+                type="button"
+                disabled={isRefreshing || isLoading}
+                onClick={() => loadDashboard({ refresh: true })}
+                className="inline-flex h-11 items-center gap-2 rounded-xl bg-secondary px-4 text-sm font-bold text-white shadow-sm hover:bg-secondary-hover disabled:opacity-50"
+              >
+                <Icon
+                  icon="lucide:refresh-cw"
+                  className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`}
+                  aria-hidden
+                />
+                Làm mới
               </button>
             </div>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left min-w-[640px]">
-              <thead>
-                <tr className="border-b border-gray-50 text-sm font-bold">
-                  <th className="px-6 py-3">
-                    <input
-                      type="checkbox"
-                      onChange={toggleSelectAll}
-                      checked={selectedIds.length === consignments.length && consignments.length > 0}
-                      aria-label="select all"
-                    />
-                  </th>
-                  <th className="px-6 py-3">Mã</th>
-                  <th className="px-6 py-3">Người gửi</th>
-                  <th className="px-6 py-3">Điểm đến</th>
-                  <th className="px-6 py-3">Trạng thái</th>
-                  <th className="px-6 py-3">Trọng lượng</th>
-                  <th className="px-6 py-3 text-right">Ngày</th>
-                  <th className="px-6 py-3">Hành động</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50 text-sm">
-                {isLoading ? (
-                  <tr>
-                    <td colSpan={8} className="px-6 py-8 text-center text-muted">
-                      Đang tải...
-                    </td>
-                  </tr>
-                ) : recentActivity.length === 0 ? (
-                  <tr>
-                    <td colSpan={8} className="px-6 py-8 text-center text-muted">
-                      Chưa có hoạt động.
-                    </td>
-                  </tr>
-                ) : (
-                  recentActivity.map((row) => (
-                    <tr key={row.orderId || row.consignmentCode} className="hover:bg-gray-50">
-                      <td className="px-6 py-3">
-                        <input
-                          type="checkbox"
-                          checked={selectedIds.includes(row.orderId)}
-                          onChange={() => toggleSelectOne(row.orderId)}
-                        />
-                      </td>
-                      <td className="px-6 py-3 font-bold text-secondary">{row.consignmentCode}</td>
-                      <td className="px-6 py-3">{row.customerName}</td>
-                      <td className="px-6 py-3 text-muted">{row.route}</td>
-                      <td className="px-6 py-3">
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-bold`}>
-                          {row.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-3">{row.totalWeight ?? "-"} kg</td>
-                      <td className="px-6 py-3 text-right">{row.createdAt ? new Date(row.createdAt).toLocaleString() : "-"}</td>
-                      <td className="px-6 py-3">
-                        <button
-                          onClick={() => openDetail(row.orderId)}
-                          className="text-sm px-3 py-1 bg-surface-muted rounded-md"
-                        >
-                          Chi tiết
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+        </section>
+
+        <section
+          aria-label="Bộ lọc dashboard"
+          className="grid gap-3 rounded-2xl border border-border-muted bg-surface-elevated p-4 shadow-sm sm:grid-cols-3 lg:grid-cols-[1fr_1.5fr_1.5fr_auto] lg:items-end"
+        >
+          <label>
+            <span className="mb-1.5 block text-xs font-bold text-muted">Khoảng thời gian</span>
+            <select
+              value={filters.days}
+              onChange={(event) => updateFilter("days", Number(event.target.value))}
+              className="form-select h-10"
+            >
+              {RANGE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span className="mb-1.5 block text-xs font-bold text-muted">Trạng thái</span>
+            <select
+              value={filters.status}
+              onChange={(event) => updateFilter("status", event.target.value)}
+              className="form-select h-10"
+            >
+              <option value="">Tất cả trạng thái</option>
+              {statusOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span className="mb-1.5 block text-xs font-bold text-muted">Loại vận chuyển</span>
+            <select
+              value={filters.consignmentType}
+              onChange={(event) => updateFilter("consignmentType", event.target.value)}
+              className="form-select h-10"
+            >
+              {CONSIGNMENT_TYPE_FILTER_OPTIONS.map((option) => (
+                <option key={option.value || "all"} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="flex h-10 items-center gap-2 rounded-lg bg-surface-muted px-3 text-xs font-semibold text-muted">
+            <Icon icon="lucide:calendar-range" className="h-4 w-4" aria-hidden />
+            {formatDateRange(analytics.range)}
           </div>
         </section>
-        {modalOpen ? (
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg max-w-3xl w-full mx-4 overflow-auto max-h-[90vh]">
-              <div className="px-6 py-4 border-b flex items-center justify-between">
-                <h3 className="font-bold">Chi tiết yêu cầu ký gửi</h3>
-                <button onClick={closeModal} className="text-sm px-3 py-1">Đóng</button>
+
+        {loadError ? (
+          <div
+            role="alert"
+            className="flex flex-col gap-3 rounded-xl border border-danger-border bg-danger-bg px-4 py-3 text-sm text-danger sm:flex-row sm:items-center sm:justify-between"
+          >
+            <span className="flex items-center gap-2">
+              <Icon icon="lucide:triangle-alert" className="h-4 w-4 shrink-0" aria-hidden />
+              {loadError}
+            </span>
+            <button
+              type="button"
+              onClick={() => loadDashboard()}
+              className="self-start rounded-lg border border-danger-border px-3 py-1.5 text-xs font-bold hover:bg-danger-hover-bg sm:self-auto"
+            >
+              Thử lại
+            </button>
+          </div>
+        ) : null}
+
+        <section aria-label="Chỉ số vận hành" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {(isLoading
+            ? Object.keys(KPI_META).map((key) => ({ key }))
+            : analytics.kpis
+          ).map((item) => (
+            <KpiCard key={item.key} item={item} loading={isLoading} />
+          ))}
+        </section>
+
+        <div className="grid gap-4 lg:grid-cols-3">
+          <OperationsTrendChart data={analytics.trend} />
+          <OperationsStatusChart
+            data={analytics.statusBreakdown}
+            total={analytics.rows.length}
+          />
+          <div className="lg:col-span-3">
+            <OperationsRouteRanking data={analytics.topRoutes} />
+          </div>
+        </div>
+
+        {isConfirming ? (
+          <div className="flex flex-col gap-3 rounded-xl border border-primary bg-primary/10 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <Icon icon="lucide:combine" className="mt-0.5 h-5 w-5 text-secondary" aria-hidden />
+              <div>
+                <p className="text-sm font-bold text-ink">
+                  Tạo consolidation cho {selectedIds.length} lô đã chọn?
+                </p>
+                <p className="mt-0.5 text-xs text-muted">
+                  Hệ thống sẽ chuyển các lô này sang danh sách chờ gom.
+                </p>
               </div>
-              <div className="p-6">
-                {isDetailLoading ? (
-                  <p>Đang tải...</p>
-                ) : detailData ? (
-                  <div className="space-y-4 text-sm">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="font-semibold">Mã</p>
-                        <p>{detailData.consignmentCode}</p>
-                      </div>
-                      <div>
-                        <p className="font-semibold">Loại</p>
-                        <p>{detailData.consignmentType}</p>
-                      </div>
-                      <div>
-                        <p className="font-semibold">Trạng thái</p>
-                        <p>{detailData.status}</p>
-                      </div>
-                      <div>
-                        <p className="font-semibold">Tổng trọng lượng</p>
-                        <p>{detailData.totalWeight ?? '-'} kg</p>
-                      </div>
-                      {detailData.packageCount != null ? (
-                        <div>
-                          <p className="font-semibold">Số kiện</p>
-                          <p>{detailData.packageCount}</p>
-                        </div>
-                      ) : null}
-                      <div>
-                        <p className="font-semibold">Tuyến</p>
-                        <p>{detailData.route}</p>
-                      </div>
-                      <div>
-                        <p className="font-semibold">Ngày tạo</p>
-                        <p>{detailData.createdAt ? new Date(detailData.createdAt).toLocaleString() : '-'}</p>
-                      </div>
-                    </div>
-
-                    <div>
-                      <p className="font-semibold">Người nhận</p>
-                      <p>{detailData.receiverName || '-'} - {detailData.receiverPhone || '-'}</p>
-                      <p className="text-muted">{detailData.receiverAddress || '-'}</p>
-                    </div>
-
-                    <div>
-                      <p className="font-semibold">Khách hàng</p>
-                      <p>{detailData.customer?.fullName || '-'}</p>
-                      <p className="text-muted">{detailData.customer?.phone || ''} {detailData.customer?.email ? ` - ${detailData.customer.email}` : ''}</p>
-                    </div>
-
-                    <div>
-                      <p className="font-semibold">Mặt hàng</p>
-                      <div className="mt-2 space-y-2">
-                        {Array.isArray(detailData.items) && detailData.items.length > 0 ? (
-                          detailData.items.map((it) => (
-                            <div key={it.id} className="p-3 border rounded-md">
-                              <p className="font-medium">{it.productName}</p>
-                              <p className="text-muted">
-                                Loại: {formatProductTypeLabel(it.productType) || "—"}
-                              </p>
-                              <p>Số lượng: {it.quantity}</p>
-                              <p>Trọng lượng: {it.weight ?? '-'} kg</p>
-                              <p>Giá khai báo: {it.declaredValue ? it.declaredValue.toLocaleString() : '-'}</p>
-                            </div>
-                          ))
-                        ) : (
-                          <p>Không có mặt hàng</p>
-                        )}
-                      </div>
-                    </div>
-
-                    {detailData.quotation ? (
-                      <div>
-                        <p className="font-semibold">Báo giá</p>
-                        <p>ID: {detailData.quotation.quotationId}</p>
-                        <p>Loại: {detailData.quotation.quoteType}</p>
-                        <p>Phí vận chuyển ước tính: {detailData.quotation.estimatedFreightCharge?.toLocaleString() ?? '-'}</p>
-                        <p>Tổng ước tính: {detailData.quotation.totalEstimatedCost?.toLocaleString() ?? '-'}</p>
-                      </div>
-                    ) : null}
-                  </div>
-                ) : (
-                  <p>Không có dữ liệu.</p>
-                )}
-              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={() => setIsConfirming(false)}
+                className="h-9 rounded-lg border border-border-muted bg-surface-elevated px-3 text-xs font-bold text-ink hover:bg-surface-muted disabled:opacity-50"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={handleCreateConsolidation}
+                className="inline-flex h-9 items-center gap-2 rounded-lg bg-secondary px-3 text-xs font-bold text-white hover:bg-secondary-hover disabled:opacity-50"
+              >
+                {isSubmitting ? (
+                  <Icon icon="lucide:loader-circle" className="h-4 w-4 animate-spin" aria-hidden />
+                ) : null}
+                {isSubmitting ? "Đang tạo..." : "Xác nhận tạo"}
+              </button>
             </div>
           </div>
         ) : null}
+
+        {actionNotice ? (
+          <div
+            role="status"
+            className={`flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium ${
+              actionNotice.type === "success"
+                ? "border-primary bg-success-bg text-success-text"
+                : "border-danger-border bg-danger-bg text-danger"
+            }`}
+          >
+            <Icon
+              icon={actionNotice.type === "success" ? "lucide:circle-check" : "lucide:circle-alert"}
+              className="h-4 w-4 shrink-0"
+              aria-hidden
+            />
+            {actionNotice.message}
+          </div>
+        ) : null}
+
+        <DataTable
+          title="Lô hàng gần đây"
+          countLabel="lô"
+          columns={columns}
+          rows={analytics.rows}
+          loading={isLoading}
+          rowKey={(row) => row.id}
+          onRowClick={(row) => setDetailId(row.id)}
+          searchPlaceholder="Tìm mã lô, khách hàng hoặc tuyến..."
+          pageSize={10}
+          minWidth={1040}
+          emptyText="Chưa có lô hàng trong khoảng thời gian này."
+          headerRight={tableHeaderRight}
+        />
       </div>
+
+      {detailId ? (
+        <OperationalConsignmentDialog
+          key={detailId}
+          orderId={detailId}
+          open
+          onClose={closeDetail}
+        />
+      ) : null}
     </OperationsShell>
   );
 }

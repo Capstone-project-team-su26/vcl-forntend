@@ -1,15 +1,28 @@
 import { isMockMode } from "@/utils/mocks/dataSource";
-import { confirmTransferApi, estimatePriceApi } from "./api";
+import { listStaffConsignments } from "@/modules/consignments";
+import { confirmTransferApi, createConsolidationApi, estimatePriceApi } from "./api";
 import {
-  getOperationalDashboardMock,
   getTransferOptionsMock,
   confirmTransferMock,
   estimatePriceMock,
 } from "./mock";
 
-/** BE đã bỏ /api/Operations/* — demo UI dùng mock. */
+export { buildOperationalAnalytics } from "./mappers";
+
+/** Dashboard hiện tổng hợp từ consignments vì BE chưa có endpoint analytics riêng. */
 export async function getOperationalDashboard() {
-  return getOperationalDashboardMock();
+  return listStaffConsignments({
+    page: 1,
+    pageSize: 2000,
+    sortBy: "createdAt",
+    sortDir: "desc",
+  });
+}
+
+export async function createOperationalConsolidation(orderIds) {
+  const ids = [...new Set((orderIds ?? []).filter(Boolean))];
+  if (!ids.length) throw new TypeError("Cần chọn ít nhất một lô hàng.");
+  return createConsolidationApi(ids);
 }
 
 export async function getTransferOptions() {
