@@ -471,10 +471,11 @@ export function normalizeReceivingNoteCreateResponse(raw) {
 }
 
 export function toApiReceivingNotePayload({ consignmentOrderId, warehouseId, warehouseNote }) {
+  // Backend [Required] WarehouseNote — null bị reject; "" được phép khi sale không ghi chú.
   return {
     consignmentOrderId,
     warehouseId,
-    warehouseNote: warehouseNote?.trim() || null,
+    warehouseNote: warehouseNote?.trim() || "",
   };
 }
 

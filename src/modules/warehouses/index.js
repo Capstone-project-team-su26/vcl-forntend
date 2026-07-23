@@ -89,11 +89,13 @@ export async function listWarehouses(params = {}) {
   return listWarehousesApi(params);
 }
 
+export async function listActiveWarehouses() {
+  if (isMockMode()) return listWarehousesMock({ isActive: true });
+  return listActiveWarehousesApi();
+}
+
 export async function listActiveDestinationWarehouses() {
-  const items = isMockMode()
-    ? await listWarehousesMock({ isActive: true })
-    : await listActiveWarehousesApi();
-  // Ops layout chỉ làm trên kho đích; nếu API không gắn type thì trả active.
+  const items = await listActiveWarehouses();
   const destinations = filterWarehousesByType(items, "Destination");
   return destinations.length ? destinations : items;
 }
@@ -207,6 +209,9 @@ export function getParentLocationLabel(locations, parentId) {
 
 export function buildLayoutGrid(cells, { minRows = 4, minCols = 6 } = {}) {
   const list = cells || [];
+  if (list.length === 0 && minRows <= 0 && minCols <= 0) {
+    return { rows: 0, cols: 0, grid: [] };
+  }
   const maxRow = list.reduce((max, cell) => Math.max(max, cell.rowIndex ?? 0), -1);
   const maxCol = list.reduce((max, cell) => Math.max(max, cell.columnIndex ?? 0), -1);
   const rows = Math.max(minRows, maxRow + 2);

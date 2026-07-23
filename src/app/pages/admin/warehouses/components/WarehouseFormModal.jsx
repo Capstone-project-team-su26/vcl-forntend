@@ -161,7 +161,8 @@ export default function WarehouseFormModal({ open, mode, warehouse, onClose, onS
           </label>
 
           <p className="text-xs text-muted">
-            Sức chứa và sơ đồ Zone/Shelf/Bin do Operations quản lý trên trang phân bố vị trí.
+            Zone / Shelf / Bin do Operations bố trí trên trang Bố trí vị trí kho. Xếp kiện lên kệ
+            do Warehouse Staff (put-away).
           </p>
 
           <div className="flex justify-end gap-3 pt-2">
