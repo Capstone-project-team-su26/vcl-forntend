@@ -44,6 +44,7 @@ export const ROUTES = {
   operations: {
     dashboard: `${PAGES}/operations`,
     consolidate: `${PAGES}/operations/consolidate`,
+    exportProcedures: `${PAGES}/operations/export-procedures`,
     warehouseLayout: `${PAGES}/operations/warehouse-layout`,
   },
 };

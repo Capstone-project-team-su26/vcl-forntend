@@ -14,6 +14,12 @@ export const OPS_NAV = [
     icon: "lucide:combine",
   },
   {
+    id: "export-procedures",
+    label: "Thủ tục xuất khô",
+    href: ROUTES.operations.exportProcedures,
+    icon: "lucide:clipboard-check",
+  },
+  {
     id: "warehouse-layout",
     label: "Sơ đồ vị trí kho",
     href: ROUTES.operations.warehouseLayout,
