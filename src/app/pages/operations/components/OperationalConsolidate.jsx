@@ -1,367 +1,359 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Icon } from "@iconify/react";
 import { useAuth } from "@/hooks/useAuth";
+import {
+  buildConsolidationSummary,
+  countConsolidationParcels,
+  getConsolidationStatusMeta,
+  listConsolidations,
+} from "@/modules/operations";
+import { getErrorMessage } from "@/utils/apiError";
+import DataTable from "@/app/components/DataTable";
 import OperationsShell from "@/app/pages/operations/components/OperationsShell";
+import ConsolidationCreateDialog from "./ConsolidationCreateDialog";
+import ConsolidationDetailDialog from "./ConsolidationDetailDialog";
+import ConsolidationStatusBadge from "./ConsolidationStatusBadge";
 
-function formatPdfValue(value) {
-  if (value === null || value === undefined || value === "") return "-";
-  return String(value);
+const STAT_META = [
+  {
+    key: "batches",
+    label: "Lô gom hàng",
+    icon: "lucide:layers-3",
+    tone: "bg-primary/20 text-secondary",
+  },
+  {
+    key: "orders",
+    label: "Đơn trong lô",
+    icon: "lucide:package",
+    tone: "bg-info-bg text-info-text",
+  },
+  {
+    key: "totalWeight",
+    label: "Tổng trọng lượng",
+    icon: "lucide:weight",
+    tone: "bg-warning-bg text-warning-text",
+    suffix: " kg",
+  },
+  {
+    key: "totalVolume",
+    label: "Tổng thể tích",
+    icon: "lucide:box",
+    tone: "bg-success-bg text-success-text",
+    suffix: " m³",
+  },
+];
+
+function formatNumber(value, suffix = "") {
+  if (value == null || value === "") return "—";
+  const number = Number(value);
+  return Number.isFinite(number) ? `${number.toLocaleString("vi-VN")}${suffix}` : "—";
 }
 
-function buildConsolidatePdfRows(detailData) {
-  const rows = [
-    ["Field", "Value"],
-    ["Master code", formatPdfValue(detailData?.masterCode)],
-    ["Status", formatPdfValue(detailData?.status)],
-    ["Tổng trọng lượng", formatPdfValue(detailData?.totalWeight)],
-    ["Tổng thể tích", formatPdfValue(detailData?.totalVolume)],
-    ["Số đơn", formatPdfValue(detailData?.orders?.length ?? 0)],
-  ];
+function normalizeStatusKey(status) {
+  return String(status ?? "").trim().toUpperCase();
+}
 
-  (detailData?.orders || []).forEach((order, orderIndex) => {
-    rows.push([`Order ${orderIndex + 1} - Mã kiện`, formatPdfValue(order.consignmentCode)]);
-    rows.push([`Order ${orderIndex + 1} - Trạng thái`, formatPdfValue(order.status)]);
-    rows.push([`Order ${orderIndex + 1} - Tuyến`, formatPdfValue(order.route)]);
-    rows.push([`Order ${orderIndex + 1} - Số lượng parcel`, formatPdfValue(order.parcels?.length ?? 0)]);
-
-    (order.parcels || []).forEach((parcel, parcelIndex) => {
-      rows.push([
-        `Parcel ${parcelIndex + 1} - Mã kiện`,
-        formatPdfValue(parcel.packageCode),
-      ]);
-      rows.push([
-        `Parcel ${parcelIndex + 1} - Trạng thái`,
-        formatPdfValue(parcel.packageStatus),
-      ]);
-      rows.push([
-        `Parcel ${parcelIndex + 1} - Trọng lượng thực tế`,
-        formatPdfValue(parcel.actualWeight),
-      ]);
-      rows.push([
-        `Parcel ${parcelIndex + 1} - Chargeable`,
-        formatPdfValue(parcel.chargeableWeight),
-      ]);
-    });
-  });
-
-  return rows;
+function StatCard({ meta, value, hint, loading }) {
+  return (
+    <article className="rounded-2xl border border-border-muted bg-surface-elevated p-4 shadow-sm sm:p-5">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-xs font-bold uppercase tracking-[0.08em] text-muted">{meta.label}</p>
+          {loading ? (
+            <div className="mt-3 h-9 w-24 animate-pulse rounded-lg bg-surface-muted" />
+          ) : (
+            <p className="mt-2 text-3xl font-black tabular-nums tracking-tight text-ink">
+              {value}
+            </p>
+          )}
+        </div>
+        <span
+          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${meta.tone}`}
+        >
+          <Icon icon={meta.icon} className="h-5 w-5" aria-hidden />
+        </span>
+      </div>
+      {hint ? <p className="mt-4 text-xs leading-5 text-muted">{hint}</p> : null}
+    </article>
+  );
 }
 
 export default function OperationalConsolidate() {
   const { session, isReady } = useAuth();
   const token = session?.token;
-  const authHeaders = useMemo(
-    () => (token ? { Authorization: `Bearer ${token}` } : {}),
-    [token]
-  );
   const [consolidations, setConsolidations] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [detailOpen, setDetailOpen] = useState(false);
-  const [detailData, setDetailData] = useState(null);
-  const [isDetailLoading, setIsDetailLoading] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState("");
+  const [detailId, setDetailId] = useState(null);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [actionNotice, setActionNotice] = useState(null);
 
-  const displayName = session?.fullName?.split(" ")?.[0] || "Ops";
-  const authError = isReady && !token ? "Bạn cần đăng nhập để xem consolidation." : null;
-  const currentError = error || authError;
-
-  const summary = useMemo(() => {
-    const totalWeight = consolidations.reduce((sum, item) => sum + (item.totalWeight ?? 0), 0);
-    const totalVolume = consolidations.reduce((sum, item) => sum + (item.totalVolume ?? 0), 0);
-    const totalOrders = consolidations.reduce((sum, item) => sum + (item.orders?.length || 0), 0);
-    return { totalWeight, totalVolume, totalOrders };
-  }, [consolidations]);
+  const loadConsolidations = useCallback(
+    async ({ refresh = false } = {}) => {
+      if (!token) {
+        setIsLoading(false);
+        setLoadError("Bạn cần đăng nhập để xem danh sách gom hàng.");
+        return;
+      }
+      refresh ? setIsRefreshing(true) : setIsLoading(true);
+      setLoadError("");
+      try {
+        setConsolidations(await listConsolidations());
+      } catch (error) {
+        setLoadError(getErrorMessage(error, "Không thể tải danh sách lô gom hàng."));
+      } finally {
+        setIsLoading(false);
+        setIsRefreshing(false);
+      }
+    },
+    [token]
+  );
 
   useEffect(() => {
-    if (!isReady || !token) return;
+    if (!isReady) return undefined;
+    const timer = window.setTimeout(loadConsolidations, 0);
+    return () => window.clearTimeout(timer);
+  }, [isReady, loadConsolidations]);
 
-    let active = true;
-    const API_URL = "https://api-vcl.zushin.io.vn/api/consolidation";
+  const summary = useMemo(() => buildConsolidationSummary(consolidations), [consolidations]);
 
-    async function load() {
-      try {
-        const res = await fetch(API_URL, {
-          headers: authHeaders,
-        });
-        if (!res.ok) throw new Error("Network response was not ok");
-        const json = await res.json();
-        if (active) {
-          setConsolidations(Array.isArray(json) ? json : []);
-          setError(null);
-          setIsLoading(false);
-        }
-      } catch (err) {
-        if (active) {
-          setError("Không tải được data lo gom hang.");
-          setIsLoading(false);
-        }
-      }
+  const statusFilterOptions = useMemo(() => {
+    const seen = new Map();
+    for (const item of consolidations) {
+      const key = normalizeStatusKey(item.status);
+      if (key && !seen.has(key)) seen.set(key, getConsolidationStatusMeta(item.status).label);
     }
+    return [...seen].map(([value, label]) => ({ value, label }));
+  }, [consolidations]);
 
-    load();
-    return () => {
-      active = false;
-    };
-  }, [authHeaders, isReady, token]);
+  const columns = useMemo(
+    () => [
+      {
+        key: "masterCode",
+        title: "Mã master",
+        sortable: true,
+        searchable: true,
+        render: (row) => (
+          <span className="font-mono text-xs font-bold text-secondary">
+            {row.masterCode || "—"}
+          </span>
+        ),
+      },
+      {
+        key: "status",
+        title: "Trạng thái",
+        filter: { options: statusFilterOptions },
+        filterAccessor: (row) => normalizeStatusKey(row.status),
+        render: (row) => <ConsolidationStatusBadge status={row.status} />,
+      },
+      {
+        key: "orders",
+        title: "Số đơn",
+        align: "right",
+        sortable: true,
+        sortAccessor: (row) => row.orders?.length ?? 0,
+        render: (row) => (
+          <span className="tabular-nums">{formatNumber(row.orders?.length ?? 0)}</span>
+        ),
+      },
+      {
+        key: "parcels",
+        title: "Số kiện",
+        align: "right",
+        sortable: true,
+        sortAccessor: countConsolidationParcels,
+        render: (row) => (
+          <span className="tabular-nums">{formatNumber(countConsolidationParcels(row))}</span>
+        ),
+      },
+      {
+        key: "totalWeight",
+        title: "Trọng lượng",
+        align: "right",
+        sortable: true,
+        sortAccessor: (row) => Number(row.totalWeight) || 0,
+        render: (row) => (
+          <span className="whitespace-nowrap tabular-nums">
+            {formatNumber(row.totalWeight, " kg")}
+          </span>
+        ),
+      },
+      {
+        key: "totalVolume",
+        title: "Thể tích",
+        align: "right",
+        sortable: true,
+        sortAccessor: (row) => Number(row.totalVolume) || 0,
+        render: (row) => (
+          <span className="whitespace-nowrap tabular-nums">
+            {formatNumber(row.totalVolume, " m³")}
+          </span>
+        ),
+      },
+    ],
+    [statusFilterOptions]
+  );
 
-  async function openDetail(id) {
-    if (!id) return;
-    setDetailOpen(true);
-    setIsDetailLoading(true);
-    setDetailData(null);
-    setError(null);
+  const displayName = session?.fullName?.trim().split(/\s+/).at(-1) || "Ops";
+  const closeDetail = useCallback(() => setDetailId(null), []);
+  const closeCreate = useCallback(() => setIsCreateOpen(false), []);
 
-    try {
-      const res = await fetch(`https://api-vcl.zushin.io.vn/api/consolidation/${id}`, {
-        headers: authHeaders,
+  const handleCreated = useCallback(
+    (count) => {
+      setIsCreateOpen(false);
+      setActionNotice({
+        type: "success",
+        message: `Đã tạo lô gom hàng từ ${count} lô đã duyệt.`,
       });
-      if (!res.ok) throw new Error("Network response was not ok");
-      const json = await res.json();
-      setDetailData(json || null);
-    } catch (err) {
-      console.error(err);
-      setDetailData(null);
-      setError("Không tải được chi tiết lo gom.");
-    } finally {
-      setIsDetailLoading(false);
-    }
-  }
-
-  async function createConsolidatePdf() {
-    if (!detailData) return;
-
-    const [{ jsPDF }, autoTableModule] = await Promise.all([
-      import("jspdf"),
-      import("jspdf-autotable"),
-    ]);
-    const autoTable = autoTableModule.default;
-
-    const pdf = new jsPDF();
-    const fileName = `${formatPdfValue(detailData?.masterCode || "consolidation")}.pdf`;
-
-    pdf.setFontSize(16);
-    pdf.text("Consolidation Report", 14, 15);
-    pdf.setFontSize(10);
-    pdf.text(`Master code: ${formatPdfValue(detailData?.masterCode)}`, 14, 22);
-
-    autoTable(pdf, {
-      startY: 30,
-      head: [["Field", "Value"]],
-      body: buildConsolidatePdfRows(detailData),
-      styles: {
-        fontSize: 8,
-      },
-      headStyles: {
-        fillColor: [22, 163, 74],
-      },
-      margin: { left: 14, right: 14 },
-    });
-
-    pdf.save(fileName);
-  }
-
-  function closeDetail() {
-    setDetailOpen(false);
-    setDetailData(null);
-    setIsDetailLoading(false);
-  }
+      loadConsolidations({ refresh: true });
+    },
+    [loadConsolidations]
+  );
 
   return (
     <OperationsShell activeNav="consolidation">
-      <div className="space-y-8">
-        <section>
-          <h1 className="text-3xl lg:text-4xl font-black tracking-tight">
-            Xin chào, <span className="text-secondary">{displayName}</span>
-          </h1>
-          <p className="text-muted text-sm font-medium mt-2">
-            Danh sách gom kien hang — hiển thị dữ liệu từ API consolidation.
-          </p>
-        </section>
-
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white p-6 rounded-xl border border-surface-muted shadow-sm">
-            <p className="text-xs font-medium text-muted uppercase tracking-wide">Số lô gom hàng</p>
-            <p className="text-3xl font-bold font-['Oswald'] mt-2">{consolidations.length}</p>
-          </div>
-          <div className="bg-white p-6 rounded-xl border border-surface-muted shadow-sm">
-            <p className="text-xs font-medium text-muted uppercase tracking-wide">Tổng trọng lượng</p>
-            <p className="text-3xl font-bold font-['Oswald'] mt-2">{summary.totalWeight}</p>
-          </div>
-          <div className="bg-white p-6 rounded-xl border border-surface-muted shadow-sm">
-            <p className="text-xs font-medium text-muted uppercase tracking-wide">Tổng thể tích</p>
-            <p className="text-3xl font-bold font-['Oswald'] mt-2">{summary.totalVolume}</p>
-          </div>
-        </section>
-
-        <section className="bg-white rounded-xl border border-surface-muted overflow-hidden">
-          <div className="px-6 py-4 border-b border-surface-muted">
-            <h2 className="text-lg font-bold font-['Oswald']">lô gom hàng</h2>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left min-w-[640px]">
-              <thead>
-                <tr className="border-b border-gray-50 text-sm font-bold">
-                  <th className="px-6 py-3">Mã master</th>
-                  <th className="px-6 py-3">Tổng trọng lượng</th>
-                  <th className="px-6 py-3">Tổng thể tích</th>
-                  <th className="px-6 py-3">Trạng thái</th>
-                  <th className="px-6 py-3">Số đơn</th>
-                  <th className="px-6 py-3">Hành động</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50 text-sm">
-                {isLoading ? (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-8 text-center text-muted">
-                      Đang tải...
-                    </td>
-                  </tr>
-                ) : currentError ? (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-8 text-center text-danger">
-                      {currentError}
-                    </td>
-                  </tr>
-                ) : consolidations.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-8 text-center text-muted">
-                      Không có lô gom hàng.
-                    </td>
-                  </tr>
-                ) : (
-                  consolidations.map((item) => (
-                    <tr key={item.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-3 font-bold text-secondary">{item.masterCode}</td>
-                      <td className="px-6 py-3">{item.totalWeight}</td>
-                      <td className="px-6 py-3">{item.totalVolume}</td>
-                      <td className="px-6 py-3">{item.status}</td>
-                      <td className="px-6 py-3">{item.orders?.length ?? 0}</td>
-                      <td className="px-6 py-3">
-                        <button
-                          onClick={() => openDetail(item.id)}
-                          className="text-sm px-3 py-1 bg-surface-muted rounded-md"
-                        >
-                          Chi tiết
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        {detailOpen ? (
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg max-w-4xl w-full mx-4 overflow-auto max-h-[90vh]">
-              <div className="px-6 py-4 border-b flex items-center justify-between">
-                <h3 className="font-bold">Chi tiết lô gom hàng</h3>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={createConsolidatePdf}
-                    disabled={!detailData || isDetailLoading}
-                    className="text-sm px-3 py-1 bg-primary text-white rounded-md disabled:opacity-50"
-                  >
-                    Create Consolidate PDF
-                  </button>
-                  <button onClick={closeDetail} className="text-sm px-3 py-1">
-                    Đóng
-                  </button>
+      <div className="space-y-5 pb-8">
+        <section className="relative overflow-hidden rounded-2xl border border-border-muted bg-surface-elevated px-4 py-5 shadow-sm sm:px-6 sm:py-6">
+          <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-primary/20 blur-3xl" />
+          <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-secondary">
+                <span className="h-2 w-2 rounded-full bg-primary shadow-[0_0_0_4px_color-mix(in_srgb,var(--theme-primary)_20%,transparent)]" />
+                Gom hàng
+              </div>
+              <h1 className="text-2xl font-black tracking-tight text-ink sm:text-3xl">
+                Chào {displayName}, danh sách lô gom hàng
+              </h1>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
+                Theo dõi các lô master, kiểm tra đơn và kiện bên trong từng lô, xuất phiếu
+                manifest PDF khi cần bàn giao.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {summary.waiting > 0 && !isLoading ? (
+                <div className="rounded-xl border border-border-muted bg-surface/80 px-3.5 py-2">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-muted">
+                    Chờ xử lý
+                  </p>
+                  <p className="mt-0.5 text-sm font-black tabular-nums text-warning-text">
+                    {summary.waiting} lô
+                  </p>
                 </div>
-              </div>
-              <div className="p-6 space-y-6">
-                {isDetailLoading ? (
-                  <p>Đang tải chi tiết...</p>
-                ) : detailData ? (
-                  <>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="font-semibold">Master code</p>
-                        <p>{detailData.masterCode}</p>
-                      </div>
-                      <div>
-                        <p className="font-semibold">Trạng thái</p>
-                        <p>{detailData.status}</p>
-                      </div>
-                      <div>
-                        <p className="font-semibold">Tổng trọng lượng</p>
-                        <p>{detailData.totalWeight}</p>
-                      </div>
-                      <div>
-                        <p className="font-semibold">Tổng thể tích</p>
-                        <p>{detailData.totalVolume}</p>
-                      </div>
-                    </div>
-
-                    <div>
-                      <p className="font-semibold">Đơn hàng</p>
-                      <div className="mt-3 space-y-4">
-                        {detailData.orders?.map((order) => (
-                          <div key={order.id} className="border rounded-lg p-4">
-                            <div className="grid grid-cols-2 gap-4">
-                              <div>
-                                <p className="font-semibold">Mã kiện</p>
-                                <p>{order.consignmentCode}</p>
-                              </div>
-                              <div>
-                                <p className="font-semibold">Trạng thái</p>
-                                <p>{order.status}</p>
-                              </div>
-                              <div>
-                                <p className="font-semibold">Tuyến</p>
-                                <p>{order.route}</p>
-                              </div>
-                              <div>
-                                <p className="font-semibold">Số lượng kiện</p>
-                                <p>{order.parcels?.length ?? 0}</p>
-                              </div>
-                            </div>
-                            <div className="mt-4">
-                              <p className="font-semibold">Parcels</p>
-                              {order.parcels?.length ? (
-                                <div className="mt-2 grid gap-3">
-                                  {order.parcels.map((parcel) => (
-                                    <div key={parcel.id} className="rounded-md border p-3">
-                                      <div className="grid grid-cols-2 gap-4 text-sm">
-                                        <div>
-                                          <p className="font-semibold">Mã kiện</p>
-                                          <p>{parcel.packageCode}</p>
-                                        </div>
-                                        <div>
-                                          <p className="font-semibold">Trạng thái</p>
-                                          <p>{parcel.packageStatus}</p>
-                                        </div>
-                                        <div>
-                                          <p className="font-semibold">Trọng lượng thực tế</p>
-                                          <p>{parcel.actualWeight}</p>
-                                        </div>
-                                        <div>
-                                          <p className="font-semibold">Chargeable</p>
-                                          <p>{parcel.chargeableWeight}</p>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              ) : (
-                                <p className="text-muted">Không có parcel.</p>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <p className="p-6 text-center text-muted">Không có dữ liệu chi tiết.</p>
-                )}
-              </div>
+              ) : null}
+              <button
+                type="button"
+                disabled={isRefreshing || isLoading}
+                onClick={() => loadConsolidations({ refresh: true })}
+                className="inline-flex h-11 items-center gap-2 rounded-xl border border-border-muted bg-surface-elevated px-4 text-sm font-bold text-ink hover:bg-surface-muted disabled:opacity-50"
+              >
+                <Icon
+                  icon="lucide:refresh-cw"
+                  className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`}
+                  aria-hidden
+                />
+                Làm mới
+              </button>
+              <button
+                type="button"
+                disabled={!token}
+                onClick={() => {
+                  setActionNotice(null);
+                  setIsCreateOpen(true);
+                }}
+                className="inline-flex h-11 items-center gap-2 rounded-xl bg-secondary px-4 text-sm font-bold text-white shadow-sm hover:bg-secondary-hover disabled:opacity-50"
+              >
+                <Icon icon="lucide:combine" className="h-4 w-4" aria-hidden />
+                Tạo lô gom mới
+              </button>
             </div>
           </div>
+        </section>
+
+        {loadError ? (
+          <div
+            role="alert"
+            className="flex flex-col gap-3 rounded-xl border border-danger-border bg-danger-bg px-4 py-3 text-sm text-danger sm:flex-row sm:items-center sm:justify-between"
+          >
+            <span className="flex items-center gap-2">
+              <Icon icon="lucide:triangle-alert" className="h-4 w-4 shrink-0" aria-hidden />
+              {loadError}
+            </span>
+            <button
+              type="button"
+              onClick={() => loadConsolidations()}
+              className="self-start rounded-lg border border-danger-border px-3 py-1.5 text-xs font-bold hover:bg-danger-hover-bg sm:self-auto"
+            >
+              Thử lại
+            </button>
+          </div>
         ) : null}
+
+        {actionNotice ? (
+          <div
+            role="status"
+            className={`flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium ${
+              actionNotice.type === "success"
+                ? "border-primary bg-success-bg text-success-text"
+                : "border-danger-border bg-danger-bg text-danger"
+            }`}
+          >
+            <Icon
+              icon={actionNotice.type === "success" ? "lucide:circle-check" : "lucide:circle-alert"}
+              className="h-4 w-4 shrink-0"
+              aria-hidden
+            />
+            {actionNotice.message}
+          </div>
+        ) : null}
+
+        <section aria-label="Chỉ số gom hàng" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {STAT_META.map((meta) => (
+            <StatCard
+              key={meta.key}
+              meta={meta}
+              value={formatNumber(summary[meta.key], meta.suffix ?? "")}
+              hint={
+                meta.key === "batches"
+                  ? `${formatNumber(summary.waiting)} lô chờ xử lý`
+                  : meta.key === "orders"
+                    ? `${formatNumber(summary.parcels)} kiện hàng bên trong`
+                    : "Tính trên toàn bộ lô gom"
+              }
+              loading={isLoading}
+            />
+          ))}
+        </section>
+
+        <DataTable
+          title="Lô gom hàng"
+          countLabel="lô gom"
+          columns={columns}
+          rows={consolidations}
+          loading={isLoading}
+          rowKey={(row) => row.id}
+          onRowClick={(row) => setDetailId(row.id)}
+          searchPlaceholder="Tìm theo mã master..."
+          pageSize={10}
+          minWidth={880}
+          emptyText="Chưa có lô gom hàng nào. Nhấn “Tạo lô gom mới” để chọn các lô đã duyệt."
+        />
       </div>
+
+      {isCreateOpen ? (
+        <ConsolidationCreateDialog open onClose={closeCreate} onCreated={handleCreated} />
+      ) : null}
+
+      {detailId ? (
+        <ConsolidationDetailDialog
+          key={detailId}
+          consolidationId={detailId}
+          open
+          onClose={closeDetail}
+        />
+      ) : null}
     </OperationsShell>
   );
 }

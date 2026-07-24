@@ -3,19 +3,19 @@ import { ROUTES } from "@/utils/appRoutes";
 export const OPS_NAV = [
   {
     id: "dashboard",
-    label: "Dashboard vận hành",
+    label: "Tổng quan vận hành",
     href: ROUTES.operations.dashboard,
     icon: "lucide:layout-dashboard",
   },
   {
     id: "consolidation",
-    label: "Chức năng gom hàng",
+    label: "Gom hàng",
     href: ROUTES.operations.consolidate,
-    icon: "lucide:boxes",
+    icon: "lucide:combine",
   },
   {
     id: "warehouse-layout",
-    label: "Bố trí vị trí kho",
+    label: "Sơ đồ vị trí kho",
     href: ROUTES.operations.warehouseLayout,
     icon: "lucide:map-pin",
   },

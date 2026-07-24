@@ -5,17 +5,18 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Icon } from "@iconify/react";
 import { useAuth } from "@/hooks/useAuth";
 import {
-  CONSIGNMENT_STATUS_LABELS,
+  canonicalizeConsignmentStatus,
+  getConsignmentStatusLabel,
   CONSIGNMENT_TYPE_FILTER_OPTIONS,
 } from "@/modules/consignments";
 import {
   buildOperationalAnalytics,
-  createOperationalConsolidation,
   getOperationalDashboard,
 } from "@/modules/operations";
 import { getErrorMessage } from "@/utils/apiError";
 import { ROUTES } from "@/utils/appRoutes";
 import DataTable from "@/app/components/DataTable";
+import ThemeSelect from "@/app/components/ThemeSelect";
 import ConsignmentStatusBadge from "@/app/pages/sales/consignments/components/ConsignmentStatusBadge";
 import OperationsShell from "@/app/pages/operations/components/OperationsShell";
 import OperationalConsignmentDialog from "./OperationalConsignmentDialog";
@@ -137,10 +138,6 @@ export default function OperationalDashboardPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [loadError, setLoadError] = useState("");
   const [filters, setFilters] = useState({ days: 30, status: "", consignmentType: "" });
-  const [selectedIds, setSelectedIds] = useState([]);
-  const [isConfirming, setIsConfirming] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [actionNotice, setActionNotice] = useState(null);
   const [detailId, setDetailId] = useState(null);
 
   const loadDashboard = useCallback(
@@ -177,104 +174,26 @@ export default function OperationalDashboardPage() {
   );
 
   const statusOptions = useMemo(() => {
-    const statuses = [...new Set(sourceItems.map((item) => item.status).filter(Boolean))];
+    const statuses = [
+      ...new Set(
+        sourceItems
+          .map((item) => canonicalizeConsignmentStatus(item.status))
+          .filter(Boolean)
+      ),
+    ];
     return statuses
       .sort((a, b) =>
-        String(CONSIGNMENT_STATUS_LABELS[a] || a).localeCompare(
-          String(CONSIGNMENT_STATUS_LABELS[b] || b),
-          "vi"
-        )
+        getConsignmentStatusLabel(a).localeCompare(getConsignmentStatusLabel(b), "vi")
       )
-      .map((value) => ({ value, label: CONSIGNMENT_STATUS_LABELS[value] || value }));
+      .map((value) => ({ value, label: getConsignmentStatusLabel(value) }));
   }, [sourceItems]);
-
-  const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
-  const eligibleIds = useMemo(
-    () => analytics.rows.filter((item) => item.status === "APPROVED").map((item) => item.id),
-    [analytics.rows]
-  );
-  const allEligibleSelected =
-    eligibleIds.length > 0 && eligibleIds.every((id) => selectedSet.has(id));
 
   function updateFilter(key, value) {
     setFilters((current) => ({ ...current, [key]: value }));
-    setSelectedIds([]);
-    setIsConfirming(false);
-    setActionNotice(null);
-  }
-
-  const toggleOne = useCallback((id) => {
-    setSelectedIds((current) =>
-      current.includes(id) ? current.filter((value) => value !== id) : [...current, id]
-    );
-    setIsConfirming(false);
-    setActionNotice(null);
-  }, []);
-
-  const toggleAllEligible = useCallback(() => {
-    setSelectedIds((current) => {
-      if (allEligibleSelected) {
-        const eligible = new Set(eligibleIds);
-        return current.filter((id) => !eligible.has(id));
-      }
-      return [...new Set([...current, ...eligibleIds])];
-    });
-    setIsConfirming(false);
-    setActionNotice(null);
-  }, [allEligibleSelected, eligibleIds]);
-
-  async function handleCreateConsolidation() {
-    if (!selectedIds.length) return;
-    setIsSubmitting(true);
-    setActionNotice(null);
-    try {
-      await createOperationalConsolidation(selectedIds);
-      setActionNotice({
-        type: "success",
-        message: `Đã tạo consolidation cho ${selectedIds.length} lô hàng.`,
-      });
-      setSelectedIds([]);
-      setIsConfirming(false);
-      await loadDashboard({ refresh: true });
-    } catch (error) {
-      setActionNotice({
-        type: "error",
-        message: getErrorMessage(error, "Không thể tạo consolidation."),
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
   }
 
   const columns = useMemo(
     () => [
-      {
-        key: "select",
-        title: (
-          <input
-            type="checkbox"
-            checked={allEligibleSelected}
-            disabled={!eligibleIds.length}
-            onChange={toggleAllEligible}
-            onClick={(event) => event.stopPropagation()}
-            aria-label="Chọn tất cả lô đã duyệt"
-            className="h-4 w-4"
-          />
-        ),
-        className: "w-12",
-        render: (row) => (
-          <input
-            type="checkbox"
-            checked={selectedSet.has(row.id)}
-            disabled={row.status !== "APPROVED"}
-            onChange={() => toggleOne(row.id)}
-            onClick={(event) => event.stopPropagation()}
-            aria-label={`Chọn lô ${row.consignmentCode || row.id}`}
-            title={row.status === "APPROVED" ? "Chọn để tạo consolidation" : "Lô chưa đủ điều kiện gom"}
-            className="h-4 w-4 disabled:cursor-not-allowed disabled:opacity-35"
-          />
-        ),
-      },
       {
         key: "consignmentCode",
         title: "Mã lô",
@@ -329,22 +248,11 @@ export default function OperationalDashboardPage() {
         ),
       },
     ],
-    [allEligibleSelected, eligibleIds.length, selectedSet, toggleAllEligible, toggleOne]
+    []
   );
 
   const displayName = session?.fullName?.trim().split(/\s+/).at(-1) || "Ops";
   const closeDetail = useCallback(() => setDetailId(null), []);
-  const tableHeaderRight = (
-    <button
-      type="button"
-      disabled={!selectedIds.length || isSubmitting}
-      onClick={() => setIsConfirming(true)}
-      className="inline-flex h-10 items-center gap-2 whitespace-nowrap rounded-lg bg-secondary px-3.5 text-xs font-bold text-white shadow-sm hover:bg-secondary-hover disabled:cursor-not-allowed disabled:opacity-45"
-    >
-      <Icon icon="lucide:combine" className="h-4 w-4" aria-hidden />
-      Gom {selectedIds.length ? `${selectedIds.length} lô` : "lô hàng"}
-    </button>
-  );
 
   return (
     <OperationsShell activeNav="dashboard">
@@ -361,8 +269,8 @@ export default function OperationalDashboardPage() {
                 Chào {displayName}, tổng quan hôm nay
               </h1>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
-                Theo dõi luồng hàng, nhận biết điểm nghẽn và xử lý các lô sẵn sàng gom trên cùng
-                một màn hình.
+                Theo dõi luồng hàng và nhận biết điểm nghẽn. Thao tác gom hàng thực hiện ở trang
+                Gom hàng.
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -376,8 +284,8 @@ export default function OperationalDashboardPage() {
                 href={ROUTES.operations.consolidate}
                 className="inline-flex h-11 items-center gap-2 rounded-xl border border-border-muted bg-surface-elevated px-4 text-sm font-bold text-ink hover:bg-surface-muted focus-visible:ring-2 focus-visible:ring-secondary"
               >
-                <Icon icon="lucide:layers-3" className="h-4 w-4 text-secondary" aria-hidden />
-                Danh sách gom
+                <Icon icon="lucide:combine" className="h-4 w-4 text-secondary" aria-hidden />
+                Trang gom hàng
               </Link>
               <button
                 type="button"
@@ -400,49 +308,33 @@ export default function OperationalDashboardPage() {
           aria-label="Bộ lọc dashboard"
           className="grid gap-3 rounded-2xl border border-border-muted bg-surface-elevated p-4 shadow-sm sm:grid-cols-3 lg:grid-cols-[1fr_1.5fr_1.5fr_auto] lg:items-end"
         >
-          <label>
+          <div>
             <span className="mb-1.5 block text-xs font-bold text-muted">Khoảng thời gian</span>
-            <select
+            <ThemeSelect
+              aria-label="Khoảng thời gian"
               value={filters.days}
-              onChange={(event) => updateFilter("days", Number(event.target.value))}
-              className="form-select h-10"
-            >
-              {RANGE_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
+              onChange={(next) => updateFilter("days", Number(next))}
+              options={RANGE_OPTIONS}
+            />
+          </div>
+          <div>
             <span className="mb-1.5 block text-xs font-bold text-muted">Trạng thái</span>
-            <select
+            <ThemeSelect
+              aria-label="Trạng thái"
               value={filters.status}
-              onChange={(event) => updateFilter("status", event.target.value)}
-              className="form-select h-10"
-            >
-              <option value="">Tất cả trạng thái</option>
-              {statusOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
+              onChange={(next) => updateFilter("status", next)}
+              options={[{ value: "", label: "Tất cả trạng thái" }, ...statusOptions]}
+            />
+          </div>
+          <div>
             <span className="mb-1.5 block text-xs font-bold text-muted">Loại vận chuyển</span>
-            <select
+            <ThemeSelect
+              aria-label="Loại vận chuyển"
               value={filters.consignmentType}
-              onChange={(event) => updateFilter("consignmentType", event.target.value)}
-              className="form-select h-10"
-            >
-              {CONSIGNMENT_TYPE_FILTER_OPTIONS.map((option) => (
-                <option key={option.value || "all"} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
+              onChange={(next) => updateFilter("consignmentType", next)}
+              options={CONSIGNMENT_TYPE_FILTER_OPTIONS}
+            />
+          </div>
           <div className="flex h-10 items-center gap-2 rounded-lg bg-surface-muted px-3 text-xs font-semibold text-muted">
             <Icon icon="lucide:calendar-range" className="h-4 w-4" aria-hidden />
             {formatDateRange(analytics.range)}
@@ -488,61 +380,6 @@ export default function OperationalDashboardPage() {
           </div>
         </div>
 
-        {isConfirming ? (
-          <div className="flex flex-col gap-3 rounded-xl border border-primary bg-primary/10 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-start gap-3">
-              <Icon icon="lucide:combine" className="mt-0.5 h-5 w-5 text-secondary" aria-hidden />
-              <div>
-                <p className="text-sm font-bold text-ink">
-                  Tạo consolidation cho {selectedIds.length} lô đã chọn?
-                </p>
-                <p className="mt-0.5 text-xs text-muted">
-                  Hệ thống sẽ chuyển các lô này sang danh sách chờ gom.
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                disabled={isSubmitting}
-                onClick={() => setIsConfirming(false)}
-                className="h-9 rounded-lg border border-border-muted bg-surface-elevated px-3 text-xs font-bold text-ink hover:bg-surface-muted disabled:opacity-50"
-              >
-                Hủy
-              </button>
-              <button
-                type="button"
-                disabled={isSubmitting}
-                onClick={handleCreateConsolidation}
-                className="inline-flex h-9 items-center gap-2 rounded-lg bg-secondary px-3 text-xs font-bold text-white hover:bg-secondary-hover disabled:opacity-50"
-              >
-                {isSubmitting ? (
-                  <Icon icon="lucide:loader-circle" className="h-4 w-4 animate-spin" aria-hidden />
-                ) : null}
-                {isSubmitting ? "Đang tạo..." : "Xác nhận tạo"}
-              </button>
-            </div>
-          </div>
-        ) : null}
-
-        {actionNotice ? (
-          <div
-            role="status"
-            className={`flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium ${
-              actionNotice.type === "success"
-                ? "border-primary bg-success-bg text-success-text"
-                : "border-danger-border bg-danger-bg text-danger"
-            }`}
-          >
-            <Icon
-              icon={actionNotice.type === "success" ? "lucide:circle-check" : "lucide:circle-alert"}
-              className="h-4 w-4 shrink-0"
-              aria-hidden
-            />
-            {actionNotice.message}
-          </div>
-        ) : null}
-
         <DataTable
           title="Lô hàng gần đây"
           countLabel="lô"
@@ -553,9 +390,8 @@ export default function OperationalDashboardPage() {
           onRowClick={(row) => setDetailId(row.id)}
           searchPlaceholder="Tìm mã lô, khách hàng hoặc tuyến..."
           pageSize={10}
-          minWidth={1040}
+          minWidth={1000}
           emptyText="Chưa có lô hàng trong khoảng thời gian này."
-          headerRight={tableHeaderRight}
         />
       </div>
 

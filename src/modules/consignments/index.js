@@ -84,14 +84,32 @@ export const CONSIGNMENT_TYPE_FILTER_OPTIONS = [
   { value: "FREIGHT", label: "Freight" },
 ];
 
+/** Alias mã BE cũ / biến thể → mã chuẩn (cùng nghĩa; tránh trùng label trên filter). */
+export const CONSIGNMENT_STATUS_ALIASES = {
+  WAITING_PAYMENT: "WAITING_DEPOSIT",
+  CHECKED_IN: "IN_WAREHOUSE",
+};
+
+export function canonicalizeConsignmentStatus(status) {
+  const key = String(status ?? "").trim().toUpperCase();
+  if (!key) return "";
+  return CONSIGNMENT_STATUS_ALIASES[key] || key;
+}
+
+export function getConsignmentStatusLabel(status) {
+  const key = canonicalizeConsignmentStatus(status);
+  return CONSIGNMENT_STATUS_LABELS[key] || status || "—";
+}
+
 export const CONSIGNMENT_STATUS_LABELS = {
+  DRAFT: "Nháp",
   PENDING_REVIEW: "Chờ báo giá",
   QUOTATION_SENT: "Đã gửi báo giá",
   QUOTATION_CONFIRMED: "Khách đã xác nhận báo giá",
   QUOTATION_REJECTED: "Khách từ chối báo giá",
   // BE origin/dev (ConsignmentPaymentService): confirm+pay → WAITING_DEPOSIT; webhook cọc → DEPOSIT_PAID.
   WAITING_DEPOSIT: "Chờ thanh toán đặt cọc",
-  WAITING_PAYMENT: "Chờ thanh toán đặt cọc", // alias cũ
+  WAITING_PAYMENT: "Chờ thanh toán đặt cọc", // alias cũ — giữ cho lookup trực tiếp
   DEPOSIT_PAID: "Đã thanh toán đặt cọc",
   WAITING_FINAL_PAYMENT: "Chờ thanh toán cuối",
   PAYMENT_CONFIRMED: "Đã xác nhận thanh toán",
@@ -107,7 +125,16 @@ export const CONSIGNMENT_STATUS_LABELS = {
   COMPLETED: "Hoàn tất",
 };
 
+/** Options filter — bỏ alias trùng label với mã chuẩn. */
+export const CONSIGNMENT_STATUS_FILTER_OPTIONS = [
+  { value: "", label: "Tất cả trạng thái" },
+  ...Object.entries(CONSIGNMENT_STATUS_LABELS)
+    .filter(([value]) => !CONSIGNMENT_STATUS_ALIASES[value])
+    .map(([value, label]) => ({ value, label })),
+];
+
 export const CONSIGNMENT_STATUS_STYLES = {
+  DRAFT: "bg-surface-muted text-ink border-2 border-border",
   PENDING_REVIEW: "bg-warning-bg text-warning-text border-2 border-primary",
   QUOTATION_SENT: "bg-info-bg text-info-text border-2 border-primary",
   QUOTATION_CONFIRMED: "bg-success-bg text-success-text border-2 border-primary",
@@ -129,6 +156,7 @@ export const CONSIGNMENT_STATUS_STYLES = {
 };
 
 export const CONSIGNMENT_STATUS_ICONS = {
+  DRAFT: "lucide:circle-dashed",
   PENDING_REVIEW: "lucide:clock",
   QUOTATION_SENT: "lucide:send",
   QUOTATION_CONFIRMED: "lucide:check-circle",

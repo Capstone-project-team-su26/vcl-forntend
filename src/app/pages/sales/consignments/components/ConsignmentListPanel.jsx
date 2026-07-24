@@ -24,17 +24,14 @@ import { toast } from "@/app/components/ToastProvider";
 
 const {
   CONSIGNMENT_TYPE_LABELS,
-  CONSIGNMENT_STATUS_LABELS,
+  CONSIGNMENT_STATUS_FILTER_OPTIONS,
   formatConsignmentDate,
   formatConsignmentDisplayCode,
 } = orderConsignmentService;
 
 const PAGE_SIZE = 5;
 
-const STATUS_FILTER_OPTIONS = [
-  { value: "", label: "Tất cả trạng thái" },
-  ...Object.entries(CONSIGNMENT_STATUS_LABELS).map(([value, label]) => ({ value, label })),
-];
+const STATUS_FILTER_OPTIONS = CONSIGNMENT_STATUS_FILTER_OPTIONS;
 
 const EMPTY_FILTERS = {
   search: "",

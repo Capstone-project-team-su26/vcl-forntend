@@ -2,7 +2,9 @@
 
 import { Icon } from "@iconify/react";
 import { useEffect, useMemo, useState } from "react";
+import ThemeSelect from "@/app/components/ThemeSelect";
 import OperationsShell from "@/app/pages/operations/components/OperationsShell";
+import { useAuth } from "@/hooks/useAuth";
 import * as warehouseService from "@/modules/warehouses";
 import { getErrorMessage } from "@/utils/apiError";
 
@@ -50,11 +52,13 @@ const EMPTY_FORM = {
 };
 
 export default function WarehouseLayoutPage() {
+  const { session } = useAuth();
   const [warehouses, setWarehouses] = useState([]);
   const [warehouseId, setWarehouseId] = useState("");
   const [locations, setLocations] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isListLoading, setIsListLoading] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -145,6 +149,44 @@ export default function WarehouseLayoutPage() {
     if (!warehouseId) return;
     const locs = await warehouseService.listActiveWarehouseLocations(warehouseId);
     setLocations(locs);
+  }
+
+  async function handleRefresh() {
+    if (!warehouseId || isRefreshing || isListLoading) return;
+    setIsRefreshing(true);
+    setError("");
+    try {
+      await refreshLocations();
+      setMessage("Đã làm mới sơ đồ vị trí.");
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setIsRefreshing(false);
+    }
+  }
+
+  const displayName = session?.fullName?.trim().split(/\s+/).at(-1) || "Ops";
+  const warehouseOptions = useMemo(
+    () => [
+      { value: "", label: "— Chọn kho —" },
+      ...warehouses.map((warehouse) => {
+        const typeLabel = warehouseService.formatWarehouseType(warehouse.warehouseType);
+        let label = warehouse.name || "Kho";
+        if (warehouse.code) label += ` (${warehouse.code})`;
+        if (typeLabel && typeLabel !== "—") label += ` · ${typeLabel}`;
+        return { value: warehouse.id, label };
+      }),
+    ],
+    [warehouses]
+  );
+
+  function selectWarehouse(nextId) {
+    setWarehouseId(nextId);
+    setMessage("");
+    setError("");
+    setShowCreate(false);
+    closeEdit();
+    closeEditGroup();
   }
 
   async function handleCreate(event) {
@@ -430,31 +472,79 @@ export default function WarehouseLayoutPage() {
 
   return (
     <OperationsShell activeNav="warehouse-layout">
-      <div className="space-y-5">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <h1 className="text-xl lg:text-2xl font-bold text-ink tracking-tight">
-              Bố trí vị trí kho
-            </h1>
-            <p className="text-sm text-muted mt-1 leading-relaxed max-w-2xl">
-              Ops tạo Zone → Shelf → Bin (địa chỉ lưu trữ). Xếp kiện lên kệ do Warehouse Staff
-              put-away — không làm trên trang này.
-            </p>
+      <div className="space-y-5 pb-8">
+        <section className="relative rounded-2xl border border-border-muted bg-surface-elevated px-4 py-5 shadow-sm sm:px-6 sm:py-6">
+          <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl" aria-hidden>
+            <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-primary/20 blur-3xl" />
           </div>
-          <button
-            type="button"
-            disabled={!warehouseId || pending}
-            onClick={() => {
-              setShowCreate(true);
-              setError("");
-              setMessage("");
-            }}
-            className="inline-flex h-10 shrink-0 items-center gap-2 rounded-lg bg-insight px-4 text-sm font-bold text-on-solid hover:bg-secondary disabled:opacity-50"
-          >
-            <Icon icon="lucide:plus" className="h-4 w-4" />
-            Thêm vị trí
-          </button>
-        </div>
+          <div className="relative z-10 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+            <div className="min-w-0 flex-1">
+              <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-secondary">
+                <span className="h-2 w-2 rounded-full bg-primary shadow-[0_0_0_4px_color-mix(in_srgb,var(--theme-primary)_20%,transparent)]" />
+                Sơ đồ vị trí kho
+              </div>
+              <h1 className="text-2xl font-black tracking-tight text-ink sm:text-3xl">
+                Chào {displayName}, bố trí vị trí kho
+              </h1>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
+                Ops tạo Zone → Shelf → Bin (địa chỉ lưu trữ). Xếp kiện lên kệ do Warehouse Staff
+                put-away — không làm trên trang này.
+              </p>
+              <div className="mt-4 max-w-md">
+                <ThemeSelect
+                  aria-label="Chọn kho"
+                  value={warehouseId}
+                  onChange={selectWarehouse}
+                  options={warehouseOptions}
+                  disabled={isLoading}
+                />
+                {!isLoading && warehouses.length === 0 ? (
+                  <p className="mt-1.5 text-xs text-muted">
+                    Chưa có kho active. Nhờ Admin tạo kho trước.
+                  </p>
+                ) : null}
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {warehouseId ? (
+                <div className="rounded-xl border border-border-muted bg-surface/80 px-3.5 py-2">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-muted">
+                    Vị trí
+                  </p>
+                  <p className="mt-0.5 text-sm font-black tabular-nums text-ink">
+                    {zoneCount} khu · {shelfCount} kệ · {binCount} ô
+                  </p>
+                </div>
+              ) : null}
+              <button
+                type="button"
+                disabled={!warehouseId || isRefreshing || isListLoading}
+                onClick={handleRefresh}
+                className="inline-flex h-11 items-center gap-2 rounded-xl border border-border-muted bg-surface-elevated px-4 text-sm font-bold text-ink hover:bg-surface-muted disabled:opacity-50"
+              >
+                <Icon
+                  icon="lucide:refresh-cw"
+                  className={`h-4 w-4 text-secondary ${isRefreshing ? "animate-spin" : ""}`}
+                  aria-hidden
+                />
+                Làm mới
+              </button>
+              <button
+                type="button"
+                disabled={!warehouseId || pending}
+                onClick={() => {
+                  setShowCreate(true);
+                  setError("");
+                  setMessage("");
+                }}
+                className="inline-flex h-11 items-center gap-2 rounded-xl bg-secondary px-4 text-sm font-bold text-white shadow-sm hover:bg-secondary-hover disabled:opacity-50"
+              >
+                <Icon icon="lucide:plus" className="h-4 w-4" aria-hidden />
+                Thêm vị trí
+              </button>
+            </div>
+          </div>
+        </section>
 
         {error ? (
           <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
@@ -466,43 +556,6 @@ export default function WarehouseLayoutPage() {
             {message}
           </div>
         ) : null}
-
-        <div className="rounded-xl border border-border-muted bg-surface-elevated p-4">
-          <label htmlFor="warehouseId" className="text-sm font-semibold text-ink">
-            Kho
-          </label>
-          <select
-            id="warehouseId"
-            value={warehouseId}
-            onChange={(event) => {
-              setWarehouseId(event.target.value);
-              setMessage("");
-              setError("");
-              setShowCreate(false);
-              closeEdit();
-              closeEditGroup();
-            }}
-            disabled={isLoading}
-            className="mt-2 h-11 w-full max-w-md rounded-lg border border-border-muted px-4 text-sm input-focus-ring"
-          >
-            <option value="">— Chọn kho —</option>
-            {warehouses.map((warehouse) => {
-              const typeLabel = warehouseService.formatWarehouseType(warehouse.warehouseType);
-              return (
-                <option key={warehouse.id} value={warehouse.id}>
-                  {warehouse.name}
-                  {warehouse.code ? ` (${warehouse.code})` : ""}
-                  {typeLabel && typeLabel !== "—" ? ` · ${typeLabel}` : ""}
-                </option>
-              );
-            })}
-          </select>
-          {!isLoading && warehouses.length === 0 ? (
-            <p className="mt-2 text-sm text-muted">
-              Chưa có kho active. Nhờ Admin tạo kho trước.
-            </p>
-          ) : null}
-        </div>
 
         {warehouseId ? (
           <section className="space-y-4 rounded-xl border border-border-muted bg-surface-elevated p-5">

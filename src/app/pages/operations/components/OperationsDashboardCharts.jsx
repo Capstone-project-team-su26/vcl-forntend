@@ -1,6 +1,6 @@
 import { useId } from "react";
 import { Icon } from "@iconify/react";
-import { CONSIGNMENT_STATUS_LABELS } from "@/modules/consignments";
+import { getConsignmentStatusLabel } from "@/modules/consignments";
 
 const CHART_COLORS = [
   "var(--theme-secondary)",
@@ -194,7 +194,7 @@ export function OperationsStatusChart({ data, total }) {
                 <span className="min-w-0 flex-1 truncate text-muted">
                   {item.status === "OTHER"
                     ? "Trạng thái khác"
-                    : CONSIGNMENT_STATUS_LABELS[item.status] || item.status}
+                    : getConsignmentStatusLabel(item.status)}
                 </span>
                 <strong className="tabular-nums text-ink">{item.count}</strong>
                 <span className="w-8 text-right tabular-nums text-muted">{item.percent}%</span>

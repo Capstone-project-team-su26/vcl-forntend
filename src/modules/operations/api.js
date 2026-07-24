@@ -20,3 +20,15 @@ export async function createConsolidationApi(orderIds) {
     body: JSON.stringify({ orderIds, status: "waiting" }),
   });
 }
+
+export async function listConsolidationsApi({ status, search } = {}) {
+  const params = new URLSearchParams();
+  if (status) params.set("status", status);
+  if (search) params.set("search", search);
+  const query = params.toString();
+  return apiRequest(`/api/consolidation${query ? `?${query}` : ""}`);
+}
+
+export async function getConsolidationApi(id) {
+  return apiRequest(`/api/consolidation/${id}`);
+}

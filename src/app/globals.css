@@ -417,7 +417,7 @@ button:focus {
 
   input[type="checkbox"] {
     cursor: pointer;
-    accent-color: var(--theme-muted);
+    accent-color: var(--theme-secondary);
   }
 
   button {

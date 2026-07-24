@@ -1,5 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import { buildOperationalAnalytics } from "./mappers";
+import {
+  buildConsolidationSummary,
+  buildOperationalAnalytics,
+  countConsolidationParcels,
+  getConsolidationStatusMeta,
+} from "./mappers";
 
 const NOW = new Date("2026-07-24T12:00:00+07:00");
 
@@ -86,5 +91,66 @@ describe("buildOperationalAnalytics", () => {
       count: 2,
       percent: 67,
     });
+  });
+  test("gom alias trạng thái khi lọc và phân bổ", () => {
+    const result = buildOperationalAnalytics(
+      [
+        consignment("deposit", "2026-07-23T08:00:00+07:00", "WAITING_DEPOSIT"),
+        consignment("payment", "2026-07-22T08:00:00+07:00", "WAITING_PAYMENT"),
+        consignment("checkin", "2026-07-21T08:00:00+07:00", "CHECKED_IN"),
+      ],
+      { days: 7, status: "WAITING_DEPOSIT", now: NOW }
+    );
+
+    expect(result.rows.map((item) => item.id).sort()).toEqual(["deposit", "payment"]);
+
+    const all = buildOperationalAnalytics(
+      [
+        consignment("deposit", "2026-07-23T08:00:00+07:00", "WAITING_DEPOSIT"),
+        consignment("payment", "2026-07-22T08:00:00+07:00", "WAITING_PAYMENT"),
+        consignment("checkin", "2026-07-21T08:00:00+07:00", "CHECKED_IN"),
+      ],
+      { days: 7, now: NOW }
+    );
+
+    expect(all.statusBreakdown).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ status: "WAITING_DEPOSIT", count: 2 }),
+        expect.objectContaining({ status: "IN_WAREHOUSE", count: 1 }),
+      ])
+    );
+  });
+});
+
+describe("consolidation helpers", () => {
+  const batch = (status, orders) => ({ status, totalWeight: 10, totalVolume: 0.5, orders });
+  const order = (parcelCount) => ({ parcels: Array.from({ length: parcelCount }, (_, i) => ({ id: i })) });
+
+  test("map trạng thái không phân biệt hoa thường, fallback neutral", () => {
+    expect(getConsolidationStatusMeta("waiting")).toMatchObject({ tone: "warning" });
+    expect(getConsolidationStatusMeta("CONSOLIDATED")).toMatchObject({ label: "Đã gom" });
+    expect(getConsolidationStatusMeta("SOMETHING_NEW")).toMatchObject({
+      label: "SOMETHING_NEW",
+      tone: "neutral",
+    });
+  });
+
+  test("đếm kiện và tổng hợp summary", () => {
+    const items = [
+      batch("waiting", [order(2), order(1)]),
+      batch("COMPLETED", [order(3)]),
+      batch("waiting", null),
+    ];
+
+    expect(countConsolidationParcels(items[0])).toBe(3);
+    expect(buildConsolidationSummary(items)).toEqual({
+      batches: 3,
+      waiting: 2,
+      orders: 3,
+      parcels: 6,
+      totalWeight: 30,
+      totalVolume: 1.5,
+    });
+    expect(buildConsolidationSummary(null).batches).toBe(0);
   });
 });

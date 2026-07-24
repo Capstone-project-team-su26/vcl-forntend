@@ -1,3 +1,62 @@
+import { canonicalizeConsignmentStatus } from "@/modules/consignments";
+
+/**
+ * Trạng thái lô gom hàng — BE trả chuỗi tự do (DRAFT, CONSOLIDATED...),
+ * FE tạo mới với "waiting" nên map không phân biệt hoa thường.
+ */
+const CONSOLIDATION_STATUS_META = {
+  DRAFT: { label: "Nháp", tone: "neutral", icon: "lucide:circle-dashed" },
+  WAITING: { label: "Chờ xử lý", tone: "warning", icon: "lucide:clock-4" },
+  PENDING: { label: "Chờ xử lý", tone: "warning", icon: "lucide:clock-4" },
+  PROCESSING: { label: "Đang xử lý", tone: "info", icon: "lucide:loader-circle" },
+  IN_PROGRESS: { label: "Đang xử lý", tone: "info", icon: "lucide:loader-circle" },
+  CONSOLIDATED: { label: "Đã gom", tone: "info", icon: "lucide:package-check" },
+  IN_TRANSIT: { label: "Đang vận chuyển", tone: "info", icon: "lucide:truck" },
+  SHIPPED: { label: "Đang vận chuyển", tone: "info", icon: "lucide:truck" },
+  COMPLETED: { label: "Hoàn tất", tone: "success", icon: "lucide:circle-check-big" },
+  DONE: { label: "Hoàn tất", tone: "success", icon: "lucide:circle-check-big" },
+  CANCELLED: { label: "Đã hủy", tone: "danger", icon: "lucide:circle-x" },
+};
+
+export function getConsolidationStatusMeta(status) {
+  const key = String(status ?? "").trim().toUpperCase();
+  return (
+    CONSOLIDATION_STATUS_META[key] ?? {
+      label: key || "Không rõ",
+      tone: "neutral",
+      icon: "lucide:circle-dashed",
+    }
+  );
+}
+
+export function countConsolidationParcels(consolidation) {
+  return (consolidation?.orders ?? []).reduce(
+    (count, order) => count + (order?.parcels?.length ?? 0),
+    0
+  );
+}
+
+/** Tổng hợp KPI cho trang gom hàng từ danh sách ConsolidationResponseDto. */
+export function buildConsolidationSummary(items) {
+  const source = Array.isArray(items) ? items : [];
+  const summary = {
+    batches: source.length,
+    waiting: 0,
+    orders: 0,
+    parcels: 0,
+    totalWeight: 0,
+    totalVolume: 0,
+  };
+  for (const item of source) {
+    summary.orders += item?.orders?.length ?? 0;
+    summary.parcels += countConsolidationParcels(item);
+    summary.totalWeight += Number(item?.totalWeight) || 0;
+    summary.totalVolume += Number(item?.totalVolume) || 0;
+    if (getConsolidationStatusMeta(item?.status).tone === "warning") summary.waiting += 1;
+  }
+  return summary;
+}
+
 const READY_STATUSES = new Set(["APPROVED"]);
 const MOVING_STATUSES = new Set(["IN_PROGRESS", "WAITING_FOR_PARCEL"]);
 const COMPLETED_STATUSES = new Set(["COMPLETED"]);
@@ -24,10 +83,10 @@ function isWithin(dateValue, from, to) {
 }
 
 function matchesDimensions(item, { status, consignmentType }) {
-  const wantedStatus = normalizeStatus(status);
+  const wantedStatus = canonicalizeConsignmentStatus(status);
   const wantedType = String(consignmentType ?? "").trim().toUpperCase();
   return (
-    (!wantedStatus || normalizeStatus(item.status) === wantedStatus) &&
+    (!wantedStatus || canonicalizeConsignmentStatus(item.status) === wantedStatus) &&
     (!wantedType || String(item.consignmentType ?? "").trim().toUpperCase() === wantedType)
   );
 }
@@ -90,7 +149,7 @@ function buildTrend(items, from, days) {
 function buildStatusBreakdown(items) {
   const counts = new Map();
   for (const item of items) {
-    const status = normalizeStatus(item.status) || "UNKNOWN";
+    const status = canonicalizeConsignmentStatus(item.status) || "UNKNOWN";
     counts.set(status, (counts.get(status) ?? 0) + 1);
   }
 
