@@ -430,18 +430,21 @@ export function calculateQuotationVat(
   const rate = Number(vatRate);
   const resolved =
     Number.isFinite(rate) && rate >= 0 ? rate : DEFAULT_QUOTATION_VAT_RATE;
+  // QuotationService.Helpers: VAT = (FreightCharge + ServiceFee) × rate — không gồm domestic.
   return roundMoney((freight + service) * resolved);
 }
 
 /**
- * Tổng báo giá ký gửi — khớp QuotationService:
- * TotalEstimatedCost = FreightCharge + ServiceFee + ImportTax + VAT
- * VAT = (FreightCharge + ServiceFee) × vatRate (PricingRule VAT, mặc định 8%)
- * ImportTax lấy từ BE estimate (PricingRule / ProductType trên BE).
+ * Tổng báo giá ký gửi — khớp QuotationService.Helpers:
+ * VAT = (FreightCharge + ServiceFee) × vatRate (mặc định 8%)
+ * Total = Freight + ServiceFee + DomesticShippingFee + ImportTax + VAT
+ * ServiceFee = phụ phí dịch vụ (không gồm phí VC nội địa).
+ * ImportTax lấy từ BE / ProductType (DeclaredValue × import tax rate).
  */
 export function calculateQuotationGrandTotal({
   freightCharge = 0,
   serviceFee = 0,
+  domesticShippingFee = 0,
   importTax = 0,
   vat,
   vatRate = DEFAULT_QUOTATION_VAT_RATE,
@@ -449,7 +452,8 @@ export function calculateQuotationGrandTotal({
 }) {
   const freight = roundMoney(freightCharge);
   const service = roundMoney(serviceFee);
-  const subtotal = roundMoney(freight + service);
+  const domestic = roundMoney(domesticShippingFee);
+  const subtotal = roundMoney(freight + service + domestic);
   const discount = roundMoney(subtotal * (Math.max(0, Number(discountPercent) || 0) / 100));
   const importTaxAmount = roundMoney(importTax);
   const resolvedVatRate =
@@ -458,18 +462,21 @@ export function calculateQuotationGrandTotal({
       : DEFAULT_QUOTATION_VAT_RATE;
   const vatAmount =
     vat != null ? roundMoney(vat) : calculateQuotationVat(freight, service, resolvedVatRate);
+  const taxAndDuty = roundMoney(importTaxAmount + vatAmount);
   const total = roundMoney(subtotal - discount + importTaxAmount + vatAmount);
 
   return {
     freightCharge: freight,
     serviceFee: service,
+    domesticShippingFee: domestic,
     mainServiceAmount: freight,
-    additionalTotal: service,
+    additionalTotal: roundMoney(service + domestic),
     subtotal,
     discount,
     importTax: importTaxAmount,
     vat: vatAmount,
     vatRate: resolvedVatRate,
+    taxAndDuty,
     total,
     totalEstimatedCost: total,
   };
@@ -485,16 +492,20 @@ export function calculateQuotationTotal({
   pricingRules,
 }) {
   const activeFees = additionalFees.filter((line) => line.enabled !== false);
-  const additionalTotal = activeFees.reduce(
-    (sum, line) => sum + (Number(line.amount) || 0),
-    0
-  );
+  let serviceTotal = 0;
+  let domesticTotal = 0;
+  for (const line of activeFees) {
+    const amount = Number(line.amount) || 0;
+    if (isDomesticFee(line)) domesticTotal += amount;
+    else serviceTotal += amount;
+  }
   const resolvedVatRate =
     vatRate != null ? Number(vatRate) : resolveVatRate(pricingRules);
 
   return calculateQuotationGrandTotal({
     freightCharge: mainServiceAmount,
-    serviceFee: additionalTotal,
+    serviceFee: serviceTotal,
+    domesticShippingFee: domesticTotal,
     importTax,
     vat,
     vatRate: resolvedVatRate,
@@ -597,9 +608,6 @@ export function buildConsignmentQuotationDraft({
   });
 
   const enabledFeeLines = feeLines.filter((line) => line.enabled !== false);
-  const domesticShippingFee = enabledFeeLines
-    .filter((line) => isDomesticFee(line))
-    .reduce((sum, line) => sum + (Number(line.amount) || 0), 0);
 
   return {
     servicePricingId: servicePricing?.id ?? null,
@@ -619,10 +627,7 @@ export function buildConsignmentQuotationDraft({
     salesNote: salesNote?.trim() || "",
     ...totals,
     estimatedFreightCharge: mainServiceAmount,
-    domesticShippingFee,
-    serviceFee: totals.serviceFee,
-    importTax: totals.importTax,
-    vat: totals.vat,
+    // serviceFee / domesticShippingFee / vat / taxAndDuty đã đúng từ totals (VAT không gồm domestic).
     totalEstimatedCost: totals.totalEstimatedCost,
   };
 }
@@ -1365,8 +1370,12 @@ export function mergeSentQuotationSnapshot(apiQuotation, localQuotation) {
       ? localQuotation.vat ?? apiQuotation.vat
       : apiQuotation.vat ?? localQuotation.vat,
     importTax: apiQuotation.importTax ?? localQuotation.importTax,
+    // taxAndDuty = ImportTax + VAT (không phải chỉ VAT).
     taxAndDuty: preferLocalFees
-      ? localQuotation.vat ?? apiQuotation.taxAndDuty
+      ? localQuotation.taxAndDuty ??
+        roundMoney(
+          (Number(localQuotation.importTax) || 0) + (Number(localQuotation.vat) || 0)
+        )
       : apiQuotation.taxAndDuty ?? localQuotation.taxAndDuty,
     total: preferLocalFees
       ? localQuotation.total ?? apiQuotation.total
@@ -1400,8 +1409,27 @@ if (typeof process !== "undefined" && process.env?.NODE_ENV !== "production") {
     vatRate: 0.08,
   });
   console.assert(
-    _tax.vat === 12000 && _tax.total === 182000,
+    _tax.vat === 12000 && _tax.total === 182000 && _tax.taxAndDuty === 32000,
     "calculateQuotationGrandTotal mismatch"
+  );
+
+  // Khớp ví dụ QuotationService.Helpers: VAT không gồm phí VC nội địa.
+  const _helpers = calculateQuotationTotal({
+    mainServiceAmount: 100000,
+    additionalFees: [
+      { code: "PACKING", amount: 220000, enabled: true },
+      { code: "DOMESTIC_FEE", ruleType: "DOMESTIC_FEE", amount: 5000, enabled: true },
+    ],
+    importTax: 500000,
+    vatRate: 0.08,
+  });
+  console.assert(
+    _helpers.serviceFee === 220000 &&
+      _helpers.domesticShippingFee === 5000 &&
+      _helpers.vat === 25600 &&
+      _helpers.taxAndDuty === 525600 &&
+      _helpers.total === 850600,
+    "VAT must be (Freight+ServiceFee)×8%, excluding domestic"
   );
 
   const _requiredLines = buildDefaultAdditionalFeeLines({

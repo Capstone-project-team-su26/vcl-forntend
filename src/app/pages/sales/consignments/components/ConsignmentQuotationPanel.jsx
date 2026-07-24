@@ -1327,7 +1327,7 @@ export default function ConsignmentQuotationPanel({ id, backHref, readOnly = fal
                   {totals.vat > 0 ? (
                     <tr className="bg-surface/50">
                       <td colSpan={3} className="px-4 py-3 text-sm font-semibold text-muted">
-                        VAT ({formatVatRatePercent(totals.vatRate ?? vatRate)})
+                        VAT ({formatVatRatePercent(totals.vatRate ?? vatRate)}) — trên cước + phí dịch vụ
                       </td>
                       <td className="px-4 py-3 text-right font-bold text-ink">{formatMoney(totals.vat)}</td>
                     </tr>

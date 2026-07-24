@@ -1000,12 +1000,13 @@ const seed = {
     {
       id: "ASF-VAT",
       code: "VAT",
-      name: "VAT báo giá ký gửi",
+      name: "VAT dịch vụ logistics",
       feeCalculationType: "PERCENTAGE",
       fixedAmount: null,
       percentageRate: 8,
       unit: "% (cước + phí dịch vụ)",
-      description: "VAT = (FreightCharge + ServiceFee) × tỷ lệ này.",
+      description:
+        "VAT = (FreightCharge + ServiceFee) × tỷ lệ này. Không gồm DOMESTIC_FEE.",
       isActive: true,
       ruleCode: "VAT",
       ruleType: "VAT",
@@ -1013,12 +1014,13 @@ const seed = {
     {
       id: "ASF-IMPORT-TAX",
       code: "IMPORT_TAX",
-      name: "Thuế nhập khẩu (cấu hình)",
+      name: "Thuế nhập khẩu mặc định",
       feeCalculationType: "PERCENTAGE",
       fixedAmount: null,
-      percentageRate: 0,
-      unit: "% giá trị khai báo / theo loại hàng",
-      description: "BE CalculateTaxesAsync đọc PricingRule IMPORT_TAX; số tiền cụ thể trả qua estimate.",
+      percentageRate: 10,
+      unit: "% giá trị khai báo",
+      description:
+        "ImportTax = DeclaredValue × 10%. Fallback khi ProductType chưa có thuế suất; BE CalculateTaxesAsync đọc PricingRule IMPORT_TAX.",
       isActive: true,
       ruleCode: "IMPORT_TAX",
       ruleType: "IMPORT_TAX",

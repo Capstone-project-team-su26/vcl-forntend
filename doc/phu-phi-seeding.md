@@ -2,8 +2,8 @@
 
 Tài liệu seed dữ liệu **phí dịch vụ bổ sung** cho môi trường VCL. FE Admin map form → `POST /api/pricing-rules` (xem `additionalServiceFeeService.js`, `toApiPricingRuleFromAdditionalFeePayload`).
 
-**API:** `https://api-vcl.purintech.id.vn/api/pricing-rules`  
-**Cập nhật:** 01/07/2026
+**API:** `https://api-vcl.zushin.io.vn/api/pricing-rules`  
+**Cập nhật:** 24/07/2026
 
 ---
 
@@ -22,9 +22,99 @@ Tài liệu seed dữ liệu **phí dịch vụ bổ sung** cho môi trường V
 
 ---
 
-## Đã có trên BE (không seed lại)
+## Quy tắc cấu hình thuế (seed — không hiện như phụ phí Sales)
 
-Lấy từ `GET /api/pricing-rules` ngày 01/07/2026.
+FE/BE đọc các rule này qua `ruleType` / `ruleCode`. **Không** bật/tắt trên màn báo giá.
+
+| Rule | Vai trò | Công thức BE (`QuotationService.Helpers`) |
+|------|---------|-------------------------------------------|
+| `VAT` | VAT dịch vụ logistics | `(FreightCharge + ServiceFee) × value%` — **không** gồm `DOMESTIC_FEE` |
+| `IMPORT_TAX` | Thuế NK mặc định (fallback khi ProductType không có rate) | `DeclaredValue × value%` |
+| `VOLUMETRIC_DIVISOR` | Hệ số DIM | `volumeCm³ ÷ value` |
+
+> **Lưu ý nghiệp vụ:** VAT hàng nhập khẩu hải quan `(CIF + thuế NK) × 8%` **chưa** có rule riêng — nếu nhóm muốn estimate đủ thuế thật, cần BE thêm `IMPORT_VAT` (hoặc product-type) rồi FE chỉ đọc, không hard-code.
+
+### Snapshot API (24/07/2026 — `api-vcl.zushin.io.vn`)
+
+| ruleCode | value | Trạng thái |
+|----------|------:|------------|
+| `VAT` | **8** | Đã có (`id` `b0d03a0b-…`) — tên đang lẫn “Thuế và phí nhập khẩu”, nên **PUT đổi tên** |
+| `IMPORT_TAX` | — | **Chưa có → seed bên dưới** |
+| `VOLUMETRIC_DIVISOR` | 5000 | Đã có |
+| `DOMESTIC_FEE` | 5000 | Đã có (phụ phí, không phải config thuế) |
+
+### Seed / sửa — VAT (đổi tên cho đúng nghĩa)
+
+```json
+{
+  "servicePricingId": null,
+  "ruleName": "VAT dịch vụ logistics",
+  "ruleCode": "VAT",
+  "ruleType": "VAT",
+  "conditionType": "FREIGHT_PLUS_SERVICE",
+  "conditionValue": null,
+  "calculationType": "PERCENTAGE",
+  "value": 8,
+  "isRequired": true,
+  "status": "ACTIVE",
+  "description": "VAT = (FreightCharge + ServiceFee) × 8%. Không gồm phí VC nội địa (DOMESTIC_FEE)."
+}
+```
+
+```powershell
+$base = "https://api-vcl.zushin.io.vn/api/pricing-rules"
+# Cần Bearer token Admin
+curl.exe -s -X PUT "$base/b0d03a0b-7c5f-4c0f-a44a-4187469b453f" `
+  -H "Content-Type: application/json" -H "Authorization: Bearer <token>" `
+  -d "{\"servicePricingId\":null,\"ruleName\":\"VAT dịch vụ logistics\",\"ruleCode\":\"VAT\",\"ruleType\":\"VAT\",\"conditionType\":\"FREIGHT_PLUS_SERVICE\",\"calculationType\":\"PERCENTAGE\",\"value\":8,\"isRequired\":true,\"status\":\"ACTIVE\",\"description\":\"VAT = (FreightCharge + ServiceFee) x 8%. Khong gom DOMESTIC_FEE.\"}"
+```
+
+### Seed — IMPORT_TAX (mặc định 10%, khớp ví dụ Mỹ phẩm)
+
+```json
+{
+  "servicePricingId": null,
+  "ruleName": "Thuế nhập khẩu mặc định",
+  "ruleCode": "IMPORT_TAX",
+  "ruleType": "IMPORT_TAX",
+  "conditionType": "DECLARED_VALUE",
+  "conditionValue": null,
+  "calculationType": "PERCENTAGE",
+  "value": 10,
+  "isRequired": true,
+  "status": "ACTIVE",
+  "description": "ImportTax = DeclaredValue × 10%. Fallback khi ProductType chưa cấu hình thuế suất riêng."
+}
+```
+
+```powershell
+curl.exe -s -X POST $base `
+  -H "Content-Type: application/json" -H "Authorization: Bearer <token>" `
+  -d "{\"servicePricingId\":null,\"ruleName\":\"Thuế nhập khẩu mặc định\",\"ruleCode\":\"IMPORT_TAX\",\"ruleType\":\"IMPORT_TAX\",\"conditionType\":\"DECLARED_VALUE\",\"calculationType\":\"PERCENTAGE\",\"value\":10,\"isRequired\":true,\"status\":\"ACTIVE\",\"description\":\"ImportTax = DeclaredValue x 10%. Fallback khi ProductType chua co thue suat.\"}"
+```
+
+**Admin FE:** `/pages/admin/additional-service-fees` → khối **VAT báo giá ký gửi** (chỉ sửa VAT). Rule `IMPORT_TAX` seed bằng API / SQL BE (form Admin hiện chưa có nút tạo riêng — tránh nhầm phụ phí).
+
+**Kiểm tra sau seed**
+
+```powershell
+curl.exe -s "$base" | bun -e "const d=JSON.parse(await Bun.stdin.text()); console.table(d.filter(r=>['VAT','IMPORT_TAX','VOLUMETRIC_DIVISOR','DOMESTIC_FEE'].includes(r.ruleCode)).map(r=>({code:r.ruleCode,type:r.ruleType,value:r.value,name:r.ruleName})))"
+```
+
+Ví dụ đối chiếu (Declared 5.000.000, Freight 100.000, ServiceFee 220.000, Domestic 5.000):
+
+| Khoản | Công thức | Số |
+|-------|-----------|---:|
+| Thuế NK | `5.000.000 × 10%` | 500.000 |
+| VAT DV | `(100.000 + 220.000) × 8%` | 25.600 |
+| Thuế & phí (gộp) | `500.000 + 25.600` | 525.600 |
+| Tổng | `100k + 220k + 5k + 525,6k` | 850.600 |
+
+---
+
+## Đã có trên BE — phụ phí (không seed lại)
+
+Lấy từ `GET /api/pricing-rules` (cập nhật 24/07/2026).
 
 ### 1. Phụ phí kiểm hàng
 
@@ -263,7 +353,7 @@ Các loại dưới **chưa có** trên BE (tính đến 01/07/2026). Giá tham 
 Thay `Authorization` nếu endpoint yêu cầu đăng nhập.
 
 ```powershell
-$base = "https://api-vcl.purintech.id.vn/api/pricing-rules"
+$base = "https://api-vcl.zushin.io.vn/api/pricing-rules"
 # $headers = @{ Authorization = "Bearer <token>" }
 
 # Đóng thùng gỗ
