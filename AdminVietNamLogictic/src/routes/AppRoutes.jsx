@@ -16,6 +16,7 @@ import ConsignmentDetail from "../pages/SalePage/ConsignmentsPage/ConsigmentsDet
 
 import CreateConsignmentQuotation from "../pages/SalePage/ConsignmentsPage/CreateConsigmentsQotation/CreateConsignmentQuotation";
 
+import CustomerList from "../pages/SalePage/CusTomerPagesale/CustomerList"
 /* ================= ROLE CONFIG ================= */
 
 const ROLE_HOME = {
@@ -229,6 +230,11 @@ export default function AppRoutes() {
             <CreateConsignmentQuotation />
           }
         />
+
+<Route
+  path="customers"
+  element={<CustomerList />}
+/>
       </Route>
 
       {/* ========== OPERATIONS MANAGER ========== */}
