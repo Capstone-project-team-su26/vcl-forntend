@@ -1,4 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
 import {
   Avatar,
   Button,
@@ -11,7 +17,6 @@ import {
 } from "antd";
 
 import {
-  EnvironmentOutlined,
   GlobalOutlined,
   PhoneOutlined,
   SaveOutlined,
@@ -27,11 +32,23 @@ import AuthNotify from "../../utils/Common/AuthNotify";
 
 import "./UserProfileModal.css";
 
+/* ================= RESPONSE HELPER ================= */
+
 const normalizeProfileData = (response) => {
-  return response?.data?.data ?? response?.data ?? response ?? {};
+  return (
+    response?.data?.data ??
+    response?.data ??
+    response ??
+    {}
+  );
 };
 
-const getErrorMessage = (error, fallbackMessage) => {
+/* ================= ERROR HELPER ================= */
+
+const getErrorMessage = (
+  error,
+  fallbackMessage
+) => {
   return (
     error?.response?.data?.message ||
     error?.response?.data?.error ||
@@ -41,8 +58,12 @@ const getErrorMessage = (error, fallbackMessage) => {
   );
 };
 
+/* ================= AVATAR HELPER ================= */
+
 const getAvatarText = (fullName) => {
-  const normalizedName = String(fullName || "").trim();
+  const normalizedName = String(
+    fullName || ""
+  ).trim();
 
   if (!normalizedName) {
     return "U";
@@ -53,15 +74,78 @@ const getAvatarText = (fullName) => {
     .filter(Boolean);
 
   if (words.length === 1) {
-    return words[0].slice(0, 2).toUpperCase();
+    return words[0]
+      .slice(0, 2)
+      .toUpperCase();
   }
 
-  const firstLetter = words[0]?.charAt(0) || "";
+  const firstLetter =
+    words[0]?.charAt(0) || "";
+
   const lastLetter =
-    words[words.length - 1]?.charAt(0) || "";
+    words[words.length - 1]?.charAt(0) ||
+    "";
 
   return `${firstLetter}${lastLetter}`.toUpperCase();
 };
+
+/* ================= SESSION HELPER ================= */
+
+const updateSessionUser = (
+  updatedProfile,
+  payload
+) => {
+  try {
+    const storedUser = JSON.parse(
+      sessionStorage.getItem("user") || "{}"
+    );
+
+    const nextUser = {
+      ...storedUser,
+      ...updatedProfile,
+
+      fullName:
+        updatedProfile?.fullName ||
+        payload?.fullName ||
+        storedUser?.fullName ||
+        "",
+
+      phone:
+        updatedProfile?.phone ??
+        payload?.phone ??
+        storedUser?.phone ??
+        "",
+
+      country:
+        updatedProfile?.country ??
+        payload?.country ??
+        storedUser?.country ??
+        "",
+
+      address:
+        updatedProfile?.address ??
+        payload?.address ??
+        storedUser?.address ??
+        "",
+    };
+
+    sessionStorage.setItem(
+      "user",
+      JSON.stringify(nextUser)
+    );
+
+    return nextUser;
+  } catch (error) {
+    console.error(
+      "UPDATE SESSION USER ERROR:",
+      error
+    );
+
+    return null;
+  }
+};
+
+/* ================= COMPONENT ================= */
 
 export default function UserProfileModal({
   open,
@@ -70,9 +154,16 @@ export default function UserProfileModal({
 }) {
   const [form] = Form.useForm();
 
-  const [profile, setProfile] = useState(null);
-  const [fetching, setFetching] = useState(false);
-  const [updating, setUpdating] = useState(false);
+  const [profile, setProfile] =
+    useState(null);
+
+  const [fetching, setFetching] =
+    useState(false);
+
+  const [updating, setUpdating] =
+    useState(false);
+
+  /* ================= DISPLAY DATA ================= */
 
   const fullName =
     profile?.fullName ||
@@ -86,40 +177,60 @@ export default function UserProfileModal({
     sessionStorage.getItem("role") ||
     "Người dùng";
 
-  const avatarText = useMemo(
-    () => getAvatarText(fullName),
-    [fullName]
-  );
+  const avatarText = useMemo(() => {
+    return getAvatarText(fullName);
+  }, [fullName]);
 
-  const fetchProfile = async () => {
-    try {
-      setFetching(true);
+  /* ================= SET FORM DATA ================= */
 
-      const response = await getUserProfileApi();
-      const data = normalizeProfileData(response);
-
-      setProfile(data);
-
+  const setProfileFormValues = useCallback(
+    (data = {}) => {
       form.setFieldsValue({
         fullName: data?.fullName || "",
         phone: data?.phone || "",
         country: data?.country || "",
         address: data?.address || "",
       });
-    } catch (error) {
-      console.error("GET PROFILE ERROR:", error);
+    },
+    [form]
+  );
 
-      AuthNotify.error(
-        "Không tải được thông tin",
-        getErrorMessage(
-          error,
-          "Không thể tải thông tin cá nhân."
-        )
-      );
-    } finally {
-      setFetching(false);
-    }
-  };
+  /* ================= GET PROFILE ================= */
+
+  const fetchProfile = useCallback(
+    async () => {
+      try {
+        setFetching(true);
+
+        const response =
+          await getUserProfileApi();
+
+        const data =
+          normalizeProfileData(response);
+
+        setProfile(data);
+        setProfileFormValues(data);
+      } catch (error) {
+        console.error(
+          "GET PROFILE ERROR:",
+          error
+        );
+
+        AuthNotify.error(
+          "Không tải được thông tin",
+          getErrorMessage(
+            error,
+            "Không thể tải thông tin cá nhân."
+          )
+        );
+      } finally {
+        setFetching(false);
+      }
+    },
+    [setProfileFormValues]
+  );
+
+  /* ================= LOAD WHEN OPEN ================= */
 
   useEffect(() => {
     if (!open) {
@@ -127,7 +238,24 @@ export default function UserProfileModal({
     }
 
     fetchProfile();
-  }, [open]);
+  }, [open, fetchProfile]);
+
+  /* ================= CLOSE MODAL ================= */
+
+  const handleCancel = () => {
+    if (updating) {
+      return;
+    }
+
+    form.resetFields();
+    setProfile(null);
+
+    if (typeof onClose === "function") {
+      onClose();
+    }
+  };
+
+  /* ================= UPDATE PROFILE ================= */
 
   const handleUpdate = async () => {
     if (updating) {
@@ -135,26 +263,40 @@ export default function UserProfileModal({
     }
 
     try {
-      const values = await form.validateFields();
+      const values =
+        await form.validateFields();
 
       setUpdating(true);
 
       const payload = {
-        fullName: String(values?.fullName || "").trim(),
-        phone: String(values?.phone || "").trim(),
-        country: String(values?.country || "").trim(),
-        address: String(values?.address || "").trim(),
+        fullName: String(
+          values?.fullName || ""
+        ).trim(),
+
+        phone: String(
+          values?.phone || ""
+        ).trim(),
+
+        country: String(
+          values?.country || ""
+        ).trim(),
+
+        address: String(
+          values?.address || ""
+        ).trim(),
       };
 
       const response =
-        await updateUserProfileApi(payload);
+        await updateUserProfileApi(
+          payload
+        );
 
       let updatedProfile =
         normalizeProfileData(response);
 
       /*
-       * Một số API PUT chỉ trả message mà không trả profile.
-       * Khi đó gọi lại GET để lấy dữ liệu mới nhất.
+       * Một số API cập nhật chỉ trả về message.
+       * Khi đó gọi lại API lấy profile.
        */
       if (
         !updatedProfile?.fullName &&
@@ -164,85 +306,73 @@ export default function UserProfileModal({
           await getUserProfileApi();
 
         updatedProfile =
-          normalizeProfileData(latestResponse);
+          normalizeProfileData(
+            latestResponse
+          );
       }
 
-      setProfile(updatedProfile);
+      /*
+       * Đảm bảo các giá trị vừa nhập không bị mất
+       * nếu API trả về thiếu một vài thuộc tính.
+       */
+      const mergedProfile = {
+        ...profile,
+        ...updatedProfile,
 
-      form.setFieldsValue({
         fullName:
           updatedProfile?.fullName ||
           payload.fullName,
+
         phone:
-          updatedProfile?.phone ||
+          updatedProfile?.phone ??
           payload.phone,
+
         country:
-          updatedProfile?.country ||
+          updatedProfile?.country ??
           payload.country,
+
         address:
-          updatedProfile?.address ||
+          updatedProfile?.address ??
           payload.address,
-      });
+      };
 
-      /*
-       * Đồng bộ lại user trong sessionStorage
-       * để Sidebar/Header cập nhật được tên mới.
-       */
-      try {
-        const storedUser = JSON.parse(
-          sessionStorage.getItem("user") || "{}"
-        );
+      setProfile(mergedProfile);
+      setProfileFormValues(mergedProfile);
 
-        const nextUser = {
-          ...storedUser,
-          ...updatedProfile,
-          fullName:
-            updatedProfile?.fullName ||
-            payload.fullName,
-          phone:
-            updatedProfile?.phone ||
-            payload.phone,
-          country:
-            updatedProfile?.country ||
-            payload.country,
-          address:
-            updatedProfile?.address ||
-            payload.address,
-        };
-
-        sessionStorage.setItem(
-          "user",
-          JSON.stringify(nextUser)
-        );
-      } catch (storageError) {
-        console.error(
-          "UPDATE SESSION USER ERROR:",
-          storageError
-        );
-      }
+      updateSessionUser(
+        mergedProfile,
+        payload
+      );
 
       AuthNotify.success(
         "Cập nhật thành công",
         "Thông tin cá nhân đã được cập nhật."
       );
 
-      if (typeof onUpdated === "function") {
-        onUpdated(updatedProfile);
+      if (
+        typeof onUpdated === "function"
+      ) {
+        onUpdated(mergedProfile);
       }
+
+      form.resetFields();
 
       if (typeof onClose === "function") {
         onClose();
       }
     } catch (error) {
       /*
-       * Khi validateFields thất bại, Ant Design trả errorFields.
-       * Không hiển thị toast lỗi API trong trường hợp này.
+       * validateFields trả về errorFields
+       * khi dữ liệu form chưa hợp lệ.
        */
       if (error?.errorFields) {
         return;
       }
 
-      console.error("UPDATE PROFILE ERROR:", error);
+      console.error(
+        "UPDATE PROFILE ERROR:",
+        error
+      );
 
       AuthNotify.error(
         "Cập nhật thất bại",
@@ -256,39 +386,35 @@ export default function UserProfileModal({
     }
   };
 
-  const handleCancel = () => {
-    if (updating) {
-      return;
-    }
-
-    form.resetFields();
-
-    if (typeof onClose === "function") {
-      onClose();
-    }
-  };
+  /* ================= RENDER ================= */
 
   return (
     <Modal
       open={open}
       onCancel={handleCancel}
       footer={null}
-      width={560}
       centered
-      destroyOnClose
-      maskClosable={!updating}
+      width={720}
+      destroyOnHidden
       closable={!updating}
-      className="profile-modal"
-      title={null}
+      keyboard={!updating}
+      mask={{
+        closable: false,
+      }}
+      className="user-profile-modal"
     >
       {fetching ? (
         <div className="profile-loading">
           <Spin size="large" />
 
-          <span>Đang tải thông tin cá nhân...</span>
+          <span>
+            Đang tải thông tin cá nhân...
+          </span>
         </div>
       ) : (
         <div className="profile-modal__content">
+          {/* ================= HEADER ================= */}
+
           <div className="profile-header">
             <Avatar
               size={68}
@@ -308,15 +434,20 @@ export default function UserProfileModal({
             </div>
           </div>
 
+          {/* ================= FORM ================= */}
+
           <Form
             form={form}
             layout="vertical"
             className="profile-form"
             requiredMark={false}
             autoComplete="off"
+            preserve={false}
           >
             <Row gutter={[16, 0]}>
-              <Col xs={24} md={24}>
+              {/* HỌ VÀ TÊN */}
+
+              <Col xs={24}>
                 <Form.Item
                   name="fullName"
                   label="Họ và tên"
@@ -340,7 +471,9 @@ export default function UserProfileModal({
                   ]}
                 >
                   <Input
-                    prefix={<UserOutlined />}
+                    prefix={
+                      <UserOutlined />
+                    }
                     size="large"
                     maxLength={100}
                     placeholder="Nhập họ và tên"
@@ -349,29 +482,38 @@ export default function UserProfileModal({
                 </Form.Item>
               </Col>
 
+              {/* SỐ ĐIỆN THOẠI */}
+
               <Col xs={24} md={12}>
                 <Form.Item
                   name="phone"
                   label="Số điện thoại"
                   rules={[
                     {
-                      pattern: /^[0-9]{10}$/,
+                      pattern:
+                        /^[0-9]{10}$/,
                       message:
                         "Số điện thoại phải gồm đúng 10 chữ số.",
                     },
                   ]}
                 >
                   <Input
-                    prefix={<PhoneOutlined />}
+                    prefix={
+                      <PhoneOutlined />
+                    }
                     size="large"
                     maxLength={10}
                     inputMode="numeric"
                     placeholder="Nhập số điện thoại"
                     disabled={updating}
                     onChange={(event) => {
-                      const value = event.target.value
-                        .replace(/\D/g, "")
-                        .slice(0, 10);
+                      const value =
+                        event.target.value
+                          .replace(
+                            /\D/g,
+                            ""
+                          )
+                          .slice(0, 10);
 
                       form.setFieldValue(
                         "phone",
@@ -381,6 +523,8 @@ export default function UserProfileModal({
                   />
                 </Form.Item>
               </Col>
+
+              {/* QUỐC GIA */}
 
               <Col xs={24} md={12}>
                 <Form.Item
@@ -395,7 +539,9 @@ export default function UserProfileModal({
                   ]}
                 >
                   <Input
-                    prefix={<GlobalOutlined />}
+                    prefix={
+                      <GlobalOutlined />
+                    }
                     size="large"
                     maxLength={100}
                     placeholder="Ví dụ: Việt Nam"
@@ -404,7 +550,9 @@ export default function UserProfileModal({
                 </Form.Item>
               </Col>
 
-              <Col span={24}>
+              {/* ĐỊA CHỈ */}
+
+              <Col xs={24}>
                 <Form.Item
                   name="address"
                   label="Địa chỉ"
@@ -428,6 +576,8 @@ export default function UserProfileModal({
               </Col>
             </Row>
 
+            {/* ================= ACTIONS ================= */}
+
             <div className="profile-form__actions">
               <Button
                 size="large"
@@ -443,6 +593,7 @@ export default function UserProfileModal({
                 size="large"
                 icon={<SaveOutlined />}
                 loading={updating}
+                disabled={fetching}
                 onClick={handleUpdate}
                 className="profile-save-btn"
               >

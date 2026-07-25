@@ -11,8 +11,15 @@ import RequireAuth from "./PrivateRoute";
 /* ================= SALE ================= */
 
 import PendingConsignmentList from "../pages/SalePage/ConsignmentsPage/PendingConsignmentList";
+import ConsignmentDetail from "../pages/SalePage/ConsignmentsPage/ConsigmentsDetail/ConsignmentDetail";
 
-/* ================= HELPERS ================= */
+/* ================= ROLE CONFIG ================= */
+
+const ROLE_HOME = {
+  admin: "/admin",
+  sale: "/sale/consignments",
+  operationsmanager: "/operations-manager",
+};
 
 const normalizeRole = (role) => {
   return String(role || "")
@@ -21,8 +28,11 @@ const normalizeRole = (role) => {
     .replace(/[^a-z0-9]/g, "");
 };
 
-export default function AppRoutes() {
-  const token = sessionStorage.getItem("accessToken");
+/* ================= REDIRECT COMPONENT ================= */
+
+function RoleRedirect() {
+  const accessToken =
+    sessionStorage.getItem("accessToken");
 
   const isAuth =
     sessionStorage.getItem("isAuth") === "true";
@@ -31,30 +41,108 @@ export default function AppRoutes() {
     sessionStorage.getItem("role")
   );
 
-  const redirectByRole = {
-    admin: "/admin",
-    sale: "/sale/consignments",
-    operationsmanager: "/operations-manager",
-  };
+  const isLoggedIn = Boolean(
+    accessToken &&
+    isAuth
+  );
 
-  const isLoggedIn = Boolean(token && isAuth);
+  if (!isLoggedIn) {
+    return (
+      <Navigate
+        to="/login"
+        replace
+      />
+    );
+  }
 
+  const homePath = ROLE_HOME[role];
+
+  // Có token nhưng role không hợp lệ
+  if (!homePath) {
+    sessionStorage.removeItem("accessToken");
+    sessionStorage.removeItem("refreshToken");
+    sessionStorage.removeItem("tokenExpiresAt");
+    sessionStorage.removeItem("user");
+    sessionStorage.removeItem("role");
+    sessionStorage.removeItem("isAuth");
+
+    return (
+      <Navigate
+        to="/login"
+        replace
+      />
+    );
+  }
+
+  return (
+    <Navigate
+      to={homePath}
+      replace
+    />
+  );
+}
+
+/* ================= LOGIN ROUTE ================= */
+
+function LoginRoute() {
+  const accessToken =
+    sessionStorage.getItem("accessToken");
+
+  const isAuth =
+    sessionStorage.getItem("isAuth") === "true";
+
+  const role = normalizeRole(
+    sessionStorage.getItem("role")
+  );
+
+  const homePath = ROLE_HOME[role];
+
+  if (
+    accessToken &&
+    isAuth &&
+    homePath
+  ) {
+    return (
+      <Navigate
+        to={homePath}
+        replace
+      />
+    );
+  }
+
+  return <Login />;
+}
+
+/* ================= NOT FOUND ================= */
+
+function NotFound() {
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "grid",
+        placeItems: "center",
+        padding: "24px",
+      }}
+    >
+      <div style={{ textAlign: "center" }}>
+        <h1>404</h1>
+        <p>Không tìm thấy trang bạn yêu cầu.</p>
+      </div>
+    </div>
+  );
+}
+
+/* ================= ROUTES ================= */
+
+export default function AppRoutes() {
   return (
     <Routes>
       {/* ================= LOGIN ================= */}
 
       <Route
         path="/login"
-        element={
-          isLoggedIn && redirectByRole[role] ? (
-            <Navigate
-              to={redirectByRole[role]}
-              replace
-            />
-          ) : (
-            <Login />
-          )
-        }
+        element={<LoginRoute />}
       />
 
       {/* ================= ADMIN ================= */}
@@ -62,7 +150,7 @@ export default function AppRoutes() {
       <Route
         path="/admin"
         element={
-          <RequireAuth role="Admin">
+          <RequireAuth role="admin">
             <MainLayout />
           </RequireAuth>
         }
@@ -73,17 +161,32 @@ export default function AppRoutes() {
       <Route
         path="/sale"
         element={
-          <RequireAuth role="Sale">
+          <RequireAuth role="sale">
             <MainLayout />
           </RequireAuth>
         }
       >
-    
-
-        {/* Danh sách yêu cầu ký gửi chờ duyệt */}
         <Route
-          path="/sale/consignments"
-          element={<PendingConsignmentList />}
+  path="consignments/:orderId"
+  element={<ConsignmentDetail />}
+/>
+        {/* Truy cập /sale sẽ chuyển vào trang mặc định */}
+        <Route
+          index
+          element={
+            <Navigate
+              to="consignments"
+              replace
+            />
+          }
+        />
+
+        {/* URL thực tế: /sale/consignments */}
+        <Route
+          path="consignments"
+          element={
+            <PendingConsignmentList />
+          }
         />
       </Route>
 
@@ -92,7 +195,7 @@ export default function AppRoutes() {
       <Route
         path="/operations-manager"
         element={
-          <RequireAuth role="OperationsManager">
+          <RequireAuth role="operationsmanager">
             <MainLayout />
           </RequireAuth>
         }
@@ -102,31 +205,14 @@ export default function AppRoutes() {
 
       <Route
         path="/"
-        element={
-          isLoggedIn && redirectByRole[role] ? (
-            <Navigate
-              to={redirectByRole[role]}
-              replace
-            />
-          ) : (
-            <Navigate
-              to="/login"
-              replace
-            />
-          )
-        }
+        element={<RoleRedirect />}
       />
 
       {/* ================= FALLBACK ================= */}
 
       <Route
         path="*"
-        element={
-          <Navigate
-            to="/"
-            replace
-          />
-        }
+        element={<NotFound />}
       />
     </Routes>
   );

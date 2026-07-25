@@ -1,4 +1,7 @@
-import { Navigate } from "react-router-dom";
+import {
+  Navigate,
+  useLocation,
+} from "react-router-dom";
 
 const ROLE_HOME = {
   sale: "/sale",
@@ -13,11 +16,22 @@ const normalizeRole = (role) => {
     .replace(/[^a-z0-9]/g, "");
 };
 
+const clearAuthSession = () => {
+  sessionStorage.removeItem("accessToken");
+  sessionStorage.removeItem("refreshToken");
+  sessionStorage.removeItem("tokenExpiresAt");
+  sessionStorage.removeItem("user");
+  sessionStorage.removeItem("role");
+  sessionStorage.removeItem("isAuth");
+};
+
 export default function RequireAuth({
   children,
   role,
   roles,
 }) {
+  const location = useLocation();
+
   const accessToken =
     sessionStorage.getItem("accessToken");
 
@@ -29,18 +43,23 @@ export default function RequireAuth({
 
   const userRole = normalizeRole(storedRole);
 
-  // Chưa đăng nhập hoặc không có token
+  // Chưa đăng nhập
   if (!isAuth || !accessToken) {
     return (
       <Navigate
         to="/login"
         replace
+        state={{
+          from: location.pathname,
+        }}
       />
     );
   }
 
-  // Role trong session không hợp lệ
+  // Token có nhưng role không hợp lệ
   if (!ROLE_HOME[userRole]) {
+    clearAuthSession();
+
     return (
       <Navigate
         to="/login"
@@ -49,9 +68,15 @@ export default function RequireAuth({
     );
   }
 
-  // Hỗ trợ role="Admin" hoặc roles={["Admin", "Sale"]}
+  // Hỗ trợ:
+  // role="Admin"
+  // roles={["Admin", "Sale"]}
   const requiredRoles = (
-    roles || (role ? [role] : [])
+    Array.isArray(roles)
+      ? roles
+      : role
+        ? [role]
+        : []
   )
     .map(normalizeRole)
     .filter(Boolean);
@@ -60,11 +85,22 @@ export default function RequireAuth({
     requiredRoles.length === 0 ||
     requiredRoles.includes(userRole);
 
-  // Đã đăng nhập nhưng truy cập sai khu vực
   if (!hasPermission) {
+    const homePath = ROLE_HOME[userRole];
+
+    // Ngăn Navigate về đúng URL hiện tại gây vòng lặp
+    if (location.pathname === homePath) {
+      return (
+        <Navigate
+          to="/unauthorized"
+          replace
+        />
+      );
+    }
+
     return (
       <Navigate
-        to={ROLE_HOME[userRole]}
+        to={homePath}
         replace
       />
     );

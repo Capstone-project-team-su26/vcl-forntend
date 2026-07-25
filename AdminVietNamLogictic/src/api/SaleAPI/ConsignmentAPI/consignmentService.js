@@ -206,6 +206,7 @@ const normalizeAdditionalFees = (
   }));
 };
 
+
 export const normalizeQuotationPayload = (
   payload = {}
 ) => {

@@ -408,7 +408,7 @@ export default function Sidebar() {
           </button>
 
           <p className="vcl-sidebar__version">
-            VCL Management System · 2026
+            Việt Nam Logictic Management System · 2026
           </p>
         </footer>
       </aside>

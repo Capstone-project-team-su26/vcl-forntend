@@ -372,37 +372,36 @@ export default function Login() {
               >
                 EMAIL NỘI BỘ
               </label>
-
               <TextField
-                id="login-email"
-                name="email"
-                type="email"
-                fullWidth
-                variant="filled"
-                placeholder="Nhập email nội bộ"
-                value={form.email}
-                autoComplete="email"
-                autoFocus
-                disabled={loading}
-                error={Boolean(errors.email)}
-                onChange={handleChange}
-                inputProps={{
-                  maxLength: 150,
-                  "aria-describedby": errors.email
-                    ? "login-email-error"
-                    : undefined,
-                }}
-                slotProps={{
-                  input: {
-                    disableUnderline: true,
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <EmailOutlined />
-                      </InputAdornment>
-                    ),
-                  },
-                }}
-              />
+  id="login-email"
+  name="email"
+  type="email"
+  fullWidth
+  variant="filled"
+  placeholder="Nhập email nội bộ"
+  value={form.email}
+  autoComplete="email"
+  autoFocus
+  disabled={loading}
+  error={Boolean(errors.email)}
+  onChange={handleChange}
+  slotProps={{
+    input: {
+      disableUnderline: true,
+      startAdornment: (
+        <InputAdornment position="start">
+          <EmailOutlined />
+        </InputAdornment>
+      ),
+    },
+    htmlInput: {
+      maxLength: 150,
+      "aria-describedby": errors.email
+        ? "login-email-error"
+        : undefined,
+    },
+  }}
+/>
 
               {errors.email && (
                 <span
@@ -424,67 +423,61 @@ export default function Login() {
               </label>
 
               <TextField
-                id="login-password"
-                name="password"
-                fullWidth
-                variant="filled"
-                type={
-                  showPassword
-                    ? "text"
-                    : "password"
-                }
-                placeholder="Nhập mật khẩu"
-                value={form.password}
-                autoComplete="current-password"
-                disabled={loading}
-                error={Boolean(errors.password)}
-                onChange={handleChange}
-                inputProps={{
-                  maxLength: 100,
-                  "aria-describedby":
-                    errors.password
-                      ? "login-password-error"
-                      : undefined,
-                }}
-                slotProps={{
-                  input: {
-                    disableUnderline: true,
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <LockOutlined />
-                      </InputAdornment>
-                    ),
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton
-                          type="button"
-                          edge="end"
-                          className="login-eye"
-                          disabled={loading}
-                          aria-label={
-                            showPassword
-                              ? "Ẩn mật khẩu"
-                              : "Hiện mật khẩu"
-                          }
-                          aria-pressed={showPassword}
-                          onClick={() =>
-                            setShowPassword(
-                              (previous) =>
-                                !previous
-                            )
-                          }
-                        >
-                          {showPassword ? (
-                            <VisibilityOff />
-                          ) : (
-                            <Visibility />
-                          )}
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  },
-                }}
-              />
+  id="login-password"
+  name="password"
+  fullWidth
+  variant="filled"
+  type={showPassword ? "text" : "password"}
+  placeholder="Nhập mật khẩu"
+  value={form.password}
+  autoComplete="current-password"
+  disabled={loading}
+  error={Boolean(errors.password)}
+  onChange={handleChange}
+  slotProps={{
+    input: {
+      disableUnderline: true,
+      startAdornment: (
+        <InputAdornment position="start">
+          <LockOutlined />
+        </InputAdornment>
+      ),
+      endAdornment: (
+        <InputAdornment position="end">
+          <IconButton
+            type="button"
+            edge="end"
+            className="login-eye"
+            disabled={loading}
+            aria-label={
+              showPassword
+                ? "Ẩn mật khẩu"
+                : "Hiện mật khẩu"
+            }
+            aria-pressed={showPassword}
+            onClick={() =>
+              setShowPassword(
+                (previous) => !previous
+              )
+            }
+          >
+            {showPassword ? (
+              <VisibilityOff />
+            ) : (
+              <Visibility />
+            )}
+          </IconButton>
+        </InputAdornment>
+      ),
+    },
+    htmlInput: {
+      maxLength: 100,
+      "aria-describedby": errors.password
+        ? "login-password-error"
+        : undefined,
+    },
+  }}
+/>
 
               {errors.password && (
                 <span
