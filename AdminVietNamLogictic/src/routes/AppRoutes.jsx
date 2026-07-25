@@ -11,7 +11,10 @@ import RequireAuth from "./PrivateRoute";
 /* ================= SALE ================= */
 
 import PendingConsignmentList from "../pages/SalePage/ConsignmentsPage/PendingConsignmentList";
+
 import ConsignmentDetail from "../pages/SalePage/ConsignmentsPage/ConsigmentsDetail/ConsignmentDetail";
+
+import CreateConsignmentQuotation from "../pages/SalePage/ConsignmentsPage/CreateConsigmentsQotation/CreateConsignmentQuotation";
 
 /* ================= ROLE CONFIG ================= */
 
@@ -28,6 +31,17 @@ const normalizeRole = (role) => {
     .replace(/[^a-z0-9]/g, "");
 };
 
+/* ================= CLEAR AUTH ================= */
+
+const clearAuthStorage = () => {
+  sessionStorage.removeItem("accessToken");
+  sessionStorage.removeItem("refreshToken");
+  sessionStorage.removeItem("tokenExpiresAt");
+  sessionStorage.removeItem("user");
+  sessionStorage.removeItem("role");
+  sessionStorage.removeItem("isAuth");
+};
+
 /* ================= REDIRECT COMPONENT ================= */
 
 function RoleRedirect() {
@@ -42,8 +56,7 @@ function RoleRedirect() {
   );
 
   const isLoggedIn = Boolean(
-    accessToken &&
-    isAuth
+    accessToken && isAuth
   );
 
   if (!isLoggedIn) {
@@ -59,12 +72,7 @@ function RoleRedirect() {
 
   // Có token nhưng role không hợp lệ
   if (!homePath) {
-    sessionStorage.removeItem("accessToken");
-    sessionStorage.removeItem("refreshToken");
-    sessionStorage.removeItem("tokenExpiresAt");
-    sessionStorage.removeItem("user");
-    sessionStorage.removeItem("role");
-    sessionStorage.removeItem("isAuth");
+    clearAuthStorage();
 
     return (
       <Navigate
@@ -123,11 +131,32 @@ function NotFound() {
         display: "grid",
         placeItems: "center",
         padding: "24px",
+        background: "#f8fafc",
       }}
     >
-      <div style={{ textAlign: "center" }}>
-        <h1>404</h1>
-        <p>Không tìm thấy trang bạn yêu cầu.</p>
+      <div
+        style={{
+          textAlign: "center",
+        }}
+      >
+        <h1
+          style={{
+            margin: 0,
+            fontSize: "64px",
+            color: "#1d4ed8",
+          }}
+        >
+          404
+        </h1>
+
+        <p
+          style={{
+            marginTop: "8px",
+            color: "#64748b",
+          }}
+        >
+          Không tìm thấy trang bạn yêu cầu.
+        </p>
       </div>
     </div>
   );
@@ -166,11 +195,7 @@ export default function AppRoutes() {
           </RequireAuth>
         }
       >
-        <Route
-  path="consignments/:orderId"
-  element={<ConsignmentDetail />}
-/>
-        {/* Truy cập /sale sẽ chuyển vào trang mặc định */}
+        {/* Truy cập /sale */}
         <Route
           index
           element={
@@ -181,11 +206,27 @@ export default function AppRoutes() {
           }
         />
 
-        {/* URL thực tế: /sale/consignments */}
+        {/* Danh sách đơn ký gửi */}
         <Route
           path="consignments"
           element={
             <PendingConsignmentList />
+          }
+        />
+
+        {/* Chi tiết đơn ký gửi */}
+        <Route
+          path="consignments/:orderId"
+          element={
+            <ConsignmentDetail />
+          }
+        />
+
+        {/* Màn hình tạo báo giá riêng */}
+        <Route
+          path="consignments/:orderId/create-quotation"
+          element={
+            <CreateConsignmentQuotation />
           }
         />
       </Route>
@@ -217,3 +258,4 @@ export default function AppRoutes() {
     </Routes>
   );
 }
+

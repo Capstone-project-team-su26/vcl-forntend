@@ -1,74 +1,53 @@
 import {
-    useCallback,
-    useEffect,
-    useMemo,
-    useRef,
-    useState,
-  } from "react";
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import {
+  useLocation,
+  useNavigate,
+  useParams,
+} from "react-router-dom";
+import {
+  Button,
+  Empty,
+  Skeleton,
+  Tag,
+  Tooltip,
+} from "antd";
+import {
+  ArrowLeftOutlined,
+  CalendarOutlined,
+  CheckCircleOutlined,
+  ClockCircleOutlined,
+  CopyOutlined,
+  DollarOutlined,
+  EnvironmentOutlined,
+  FileTextOutlined,
+  InboxOutlined,
+  MailOutlined,
+  PhoneOutlined,
+  ReloadOutlined,
+  SafetyCertificateOutlined,
+  SendOutlined,
+  ShoppingOutlined,
+  TagsOutlined,
+  TeamOutlined,
+  UserOutlined,
+} from "@ant-design/icons";
 
-  import {
-    useLocation,
-    useNavigate,
-    useParams,
-  } from "react-router-dom";
-
-  import {
-    Alert,
-    Button,
-    Empty,
-    Form,
-    Input,
-    InputNumber,
-    Popconfirm,
-    Select,
-    Skeleton,
-    Switch,
-    Tag,
-    Tooltip,
-  } from "antd";
-
-  import {
-    ArrowLeftOutlined,
-    CalendarOutlined,
-    CheckCircleOutlined,
-    ClockCircleOutlined,
-    CopyOutlined,
-    DollarOutlined,
-    EnvironmentOutlined,
-    FileTextOutlined,
-    InboxOutlined,
-    MailOutlined,
-    PhoneOutlined,
-    ReloadOutlined,
-    SafetyCertificateOutlined,
-    SendOutlined,
-    ShoppingOutlined,
-    TagsOutlined,
-    TeamOutlined,
-    UserOutlined,
-  } from "@ant-design/icons";
-
-  import {
-    estimateQuotationApi,
-    getConsignmentDetailApi,
-    sendQuotationApi,
-  } from "../../../../api/SaleAPI/ConsignmentAPI/consignmentService";
-
-  import {
-    findMatchingServicePricing,
-    findPricingRuleByCode,
-    findServicePricingById,
-    getActivePricingRulesApi,
-    getOriginWarehousesApi,
-    getProductTypesApi,
-    getServicePricingsApi,
-    mapServicePricingsToOptions,
-    mapWarehousesToOptions,
-  } from "../../../../api/SaleAPI/ConsignmentAPI/consignmentMasterService";
-
-  import AuthNotify from "../../../../utils/Common/AuthNotify";
-
-  import "./ConsignmentDetail.css";
+import { getConsignmentDetailApi } from "../../../../api/SaleAPI/ConsignmentAPI/consignmentService";
+import {
+  getProductTypesApi,
+} from "../../../../api/SaleAPI/ConsignmentAPI/consignmentMasterService";
+import {
+  PRICING_RULE_CODE,
+  findPricingRuleByCode,
+  getActivePricingRulesApi,
+} from "../../../../api/SaleAPI/ConsignmentAPI/pricingRuleService";
+import AuthNotify from "../../../../utils/Common/AuthNotify";
+import "./ConsignmentDetail.css";
 
   /* =========================
      STATUS CONFIG
@@ -132,7 +111,6 @@ import {
     },
   };
 
-  const DEFAULT_DIM_DIVISOR = 5000;
   const DIM_DECIMAL_PLACES = 4;
 
   /* =========================
@@ -183,11 +161,13 @@ import {
       return "0 ₫";
     }
 
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
+    const roundedAmount = Math.round(number);
+
+    return `${new Intl.NumberFormat("vi-VN", {
+      minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(number);
+      useGrouping: true,
+    }).format(roundedAmount)} ₫`;
   };
 
   /**
@@ -314,6 +294,96 @@ import {
     );
   };
 
+  const isUuid = (value) => {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      normalizeText(value)
+    );
+  };
+
+  const translateCalculationType = (value) => {
+    const typeMap = {
+      FIXED: "Mức phí cố định",
+      PERCENTAGE: "Tính theo tỷ lệ phần trăm",
+    };
+
+    const normalizedValue =
+      normalizeText(value).toUpperCase();
+
+    return (
+      typeMap[normalizedValue] ||
+      "Cách tính theo cấu hình hệ thống"
+    );
+  };
+
+  const translateConditionType = (value) => {
+    const conditionMap = {
+      "": "Áp dụng theo cấu hình của đơn hàng",
+      "VND/KIỆN": "Tính theo từng kiện hàng",
+      FREIGHT_PLUS_SERVICE:
+        "Tính trên phí vận chuyển quốc tế và phí dịch vụ",
+      DECLARED_VALUE:
+        "Tính trên tổng giá trị hàng hóa khai báo",
+      MIN_DECLARED_VALUE:
+        "Áp dụng khi giá trị hàng hóa đạt mức tối thiểu",
+      REQUIRES_INSPECTION:
+        "Áp dụng khi khách hàng yêu cầu kiểm hàng",
+    };
+
+    const normalizedValue =
+      normalizeText(value).toUpperCase();
+
+    return (
+      conditionMap[normalizedValue] ||
+      "Áp dụng theo điều kiện của hệ thống"
+    );
+  };
+
+  const translatePackageConfiguration = (
+    packageConfig
+  ) => {
+    const code = normalizeText(
+      packageConfig?.configCode
+    ).toUpperCase();
+
+    const nameMap = {
+      SMALL: "Thùng nhỏ",
+      MEDIUM: "Thùng vừa",
+      LARGE: "Thùng lớn",
+      CUSTOM: "Đóng gói theo kích thước thực tế",
+    };
+
+    return (
+      nameMap[code] ||
+      normalizeText(packageConfig?.configName) ||
+      "Cấu hình đóng gói"
+    );
+  };
+
+  const formatSystemDescription = (value) => {
+    return normalizeText(value)
+      .replace(/FreightCharge/gi, "phí vận chuyển quốc tế")
+      .replace(/ServiceFee/gi, "phí dịch vụ")
+      .replace(/DOMESTIC_FEE/gi, "phí vận chuyển nội địa")
+      .replace(/DeclaredValue/gi, "giá trị hàng hóa khai báo")
+      .replace(/declared value/gi, "giá trị hàng hóa khai báo")
+      .replace(/ImportTax/gi, "thuế nhập khẩu")
+      .replace(/fallback/gi, "mức áp dụng mặc định")
+      .replace(/WOOD_CRATE/gi, "đóng thùng gỗ")
+      .replace(/SUR_INSPECTION/gi, "phí kiểm hàng")
+      .replace(
+        /SUR_INSURANCE_3PERCENT/gi,
+        "phí bảo hiểm hàng hóa"
+      )
+      .replace(/VOLUMETRIC_DIVISOR/gi, "hệ số quy đổi thể tích")
+      .replace(/VAT/gi, "thuế giá trị gia tăng");
+  };
+
+  const formatOrderNote = (value) => {
+    const text = formatSystemDescription(value);
+
+    return text || "Không có ghi chú";
+  };
+
   const getOrderStatus = (status) => {
     return (
       ORDER_STATUS_CONFIG[status] || {
@@ -395,6 +465,59 @@ import {
     );
   };
 
+  const getItemQuantity = (item) => {
+    return Math.max(
+      0,
+      Math.trunc(
+        normalizePositiveNumber(
+          item?.quantity
+        )
+      )
+    );
+  };
+
+  const getItemDeclaredValue = (item) => {
+    return normalizePositiveNumber(
+      item?.declaredValue
+    );
+  };
+
+  const getItemDomesticTrackingCode = (
+    item
+  ) => {
+    return normalizeText(
+      item?.domesticTrackingCode ??
+        item?.trackingNumber
+    );
+  };
+
+  const getItemPackageConfiguration = (
+    item
+  ) => {
+    return (
+      item?.packageConfiguration ||
+      null
+    );
+  };
+
+  const getItemPackageFee = (item) => {
+    return normalizePositiveNumber(
+      getItemPackageConfiguration(item)
+        ?.packageFee
+    );
+  };
+
+  const getItemApiDimWeight = (item) => {
+    const value = Number(
+      item?.volumetricWeight
+    );
+
+    return Number.isFinite(value) &&
+      value >= 0
+      ? value
+      : null;
+  };
+
   const calculateItemVolumeCm3 = (
     item
   ) => {
@@ -425,14 +548,23 @@ import {
     item,
     divisor
   ) => {
+    /*
+     * Ưu tiên khối lượng quy đổi đã có trong dữ liệu kiện hàng.
+     * Chỉ tự tính khi kiện hàng chưa có khối lượng quy đổi
+     * và hệ thống có hệ số quy đổi hợp lệ.
+     */
+    const apiDimWeight =
+      getItemApiDimWeight(item);
+
+    if (apiDimWeight !== null) {
+      return apiDimWeight;
+    }
+
     const volumeCm3 =
       calculateItemVolumeCm3(item);
 
     const divisorValue =
-      normalizePositiveNumber(
-        divisor,
-        DEFAULT_DIM_DIVISOR
-      );
+      normalizePositiveNumber(divisor);
 
     if (
       volumeCm3 <= 0 ||
@@ -441,13 +573,6 @@ import {
       return 0;
     }
 
-    /*
-     * DIM (kg) =
-     * Dài (cm) × Rộng (cm) × Cao (cm)
-     * chia hệ số DIM lấy từ API.
-     *
-     * Không nhân theo quantity.
-     */
     return volumeCm3 / divisorValue;
   };
 
@@ -465,7 +590,7 @@ import {
     productTypeMap
   ) => {
     /*
-     * Ưu tiên tên loại hàng nếu API chi tiết
+     * Ưu tiên tên loại hàng nếu dữ liệu chi tiết
      * đã trả trực tiếp productTypeName.
      */
     const directName =
@@ -494,15 +619,21 @@ import {
         : "";
 
     if (productTypeValue) {
-      return (
+      const mappedName =
         productTypeMap.get(
           productTypeValue
         ) ||
         productTypeMap.get(
           productTypeValue.toLowerCase()
-        ) ||
-        productTypeValue
-      );
+        );
+
+      if (mappedName) {
+        return mappedName;
+      }
+
+      return isUuid(productTypeValue)
+        ? "Chưa phân loại"
+        : productTypeValue;
     }
 
     const productTypeId =
@@ -520,339 +651,6 @@ import {
         productTypeId.toLowerCase()
       ) ||
       "Chưa phân loại"
-    );
-  };
-
-  /* =========================
-     QUOTATION HELPERS
-  ========================= */
-
-  const parseRouteCountries = (route) => {
-    const parts = normalizeText(route)
-      .split(/-->|->|→|⇒| đến /i)
-      .map((item) => item.trim())
-      .filter(Boolean);
-
-    return {
-      originCountry: parts[0] || "",
-      destinationCountry:
-        parts[parts.length - 1] || "",
-    };
-  };
-
-  const normalizeServiceTypeCode = (
-    value
-  ) => {
-    const normalizedValue =
-      normalizeText(value)
-        .toUpperCase()
-        .normalize("NFD")
-        .replace(
-          /[\u0300-\u036f]/g,
-          ""
-        )
-        .replace(/Đ/g, "D")
-        .replace(/[^A-Z0-9]/g, "");
-
-    const typeMap = {
-      EXPRESS: "EXPRESS",
-      EXPEDITED: "EXPRESS",
-      HOATOC: "EXPRESS",
-      STANDARD: "STANDARD",
-      TIEUCHUAN: "STANDARD",
-      ECONOMY: "ECONOMY",
-      TIETKIEM: "ECONOMY",
-    };
-
-    return (
-      typeMap[normalizedValue] ||
-      normalizedValue
-    );
-  };
-
-  const normalizeCountryCode = (
-    value
-  ) => {
-    const normalizedValue =
-      normalizeText(value)
-        .toUpperCase()
-        .normalize("NFD")
-        .replace(
-          /[\u0300-\u036f]/g,
-          ""
-        )
-        .replace(/Đ/g, "D")
-        .replace(/[^A-Z0-9]/g, "");
-
-    const countryMap = {
-      CN: "CN",
-      CHINA: "CN",
-      TRUNGQUOC: "CN",
-      VN: "VN",
-      VIETNAM: "VN",
-      JP: "JP",
-      JAPAN: "JP",
-      NHATBAN: "JP",
-      KR: "KR",
-      KOREA: "KR",
-      SOUTHKOREA: "KR",
-      HANQUOC: "KR",
-    };
-
-    return (
-      countryMap[normalizedValue] ||
-      normalizedValue
-    );
-  };
-
-  const SERVICE_TYPE_OPTIONS = [
-    {
-      value: "EXPRESS",
-      label: "Hỏa tốc",
-    },
-    {
-      value: "STANDARD",
-      label: "Tiêu chuẩn",
-    },
-    {
-      value: "ECONOMY",
-      label: "Tiết kiệm",
-    },
-  ];
-
-  const COUNTRY_OPTIONS = [
-    {
-      value: "CN",
-      label: "Trung Quốc",
-    },
-    {
-      value: "VN",
-      label: "Việt Nam",
-    },
-    {
-      value: "JP",
-      label: "Nhật Bản",
-    },
-    {
-      value: "KR",
-      label: "Hàn Quốc",
-    },
-  ];
-
-  const clampNumber = (
-    value,
-    min = 0,
-    max = Number.POSITIVE_INFINITY
-  ) => {
-    return Math.min(
-      max,
-      Math.max(
-        min,
-        normalizeNumber(value, min)
-      )
-    );
-  };
-
-  const currencyInputFormatter = (value) => {
-    if (
-      value === undefined ||
-      value === null ||
-      value === ""
-    ) {
-      return "";
-    }
-
-    const number = Number(value);
-
-    if (!Number.isFinite(number)) {
-      return "";
-    }
-
-    return new Intl.NumberFormat("vi-VN", {
-      maximumFractionDigits: 2,
-    }).format(number);
-  };
-
-  const currencyInputParser = (value) => {
-    const normalizedValue = String(
-      value ?? ""
-    )
-      .replace(/\./g, "")
-      .replace(",", ".")
-      .replace(/[^0-9.-]/g, "");
-
-    const number = Number(normalizedValue);
-
-    return Number.isFinite(number)
-      ? number
-      : 0;
-  };
-
-  const isRuleEligible = (
-    rule,
-    {
-      declaredValue = 0,
-      requiresInspection = false,
-    } = {}
-  ) => {
-    const conditionType = normalizeText(
-      rule?.conditionType
-    ).toUpperCase();
-
-    if (
-      conditionType ===
-      "REQUIRES_INSPECTION"
-    ) {
-      return Boolean(requiresInspection);
-    }
-
-    if (
-      conditionType ===
-      "MIN_DECLARED_VALUE"
-    ) {
-      return (
-        normalizePositiveNumber(
-          declaredValue
-        ) >=
-        normalizePositiveNumber(
-          rule?.conditionValue
-        )
-      );
-    }
-
-    return true;
-  };
-
-  const calculateRuleAmount = (
-    rule,
-    {
-      declaredValue = 0,
-      packageCount = 0,
-    } = {}
-  ) => {
-    const calculationType = normalizeText(
-      rule?.calculationType
-    ).toUpperCase();
-
-    const conditionType = normalizeText(
-      rule?.conditionType
-    ).toLowerCase();
-
-    const ruleValue =
-      normalizePositiveNumber(
-        rule?.value
-      );
-
-    let amount = 0;
-
-    if (
-      calculationType === "PERCENTAGE"
-    ) {
-      amount =
-        normalizePositiveNumber(
-          declaredValue
-        ) *
-        (ruleValue / 100);
-    } else if (
-      conditionType.includes("kiện") ||
-      conditionType.includes("package")
-    ) {
-      amount =
-        ruleValue *
-        Math.max(
-          0,
-          Math.trunc(
-            normalizePositiveNumber(
-              packageCount
-            )
-          )
-        );
-    } else {
-      amount = ruleValue;
-    }
-
-    const minAmount =
-      rule?.minAmount == null
-        ? 0
-        : normalizePositiveNumber(
-            rule.minAmount
-          );
-
-    const maxAmount =
-      rule?.maxAmount == null
-        ? Number.POSITIVE_INFINITY
-        : normalizePositiveNumber(
-            rule.maxAmount
-          );
-
-    return roundToDecimals(
-      clampNumber(
-        amount,
-        minAmount,
-        maxAmount
-      ),
-      2
-    );
-  };
-
-  const buildFeeRows = ({
-    pricingRules = [],
-    enabledFeeCodes = {},
-    declaredValue = 0,
-    packageCount = 0,
-    requiresInspection = false,
-  }) => {
-    return pricingRules
-      .filter(
-        (rule) =>
-          normalizeText(
-            rule?.ruleCode
-          ).toUpperCase() !==
-          "VOLUMETRIC_DIVISOR"
-      )
-      .map((rule) => {
-        const code = normalizeText(
-          rule?.ruleCode
-        ).toUpperCase();
-
-        const eligible = isRuleEligible(
-          rule,
-          {
-            declaredValue,
-            requiresInspection,
-          }
-        );
-
-        return {
-          ...rule,
-          code,
-          eligible,
-          enabled:
-            eligible &&
-            (rule?.isRequired === true ||
-              enabledFeeCodes[code] ===
-                true),
-          amount: calculateRuleAmount(
-            rule,
-            {
-              declaredValue,
-              packageCount,
-            }
-          ),
-        };
-      });
-  };
-
-  const getQuotationErrorMessage = (
-    error,
-    fallback
-  ) => {
-    return (
-      error?.response?.data?.message ||
-      error?.response?.data?.error ||
-      error?.response?.data?.title ||
-      error?.message ||
-      fallback
     );
   };
 
@@ -1061,1322 +859,380 @@ import {
     );
   }
 
-  /* =========================
-     COMPONENT
-  ========================= */
 
-  export default function ConsignmentDetail() {
-    const navigate = useNavigate();
-    const location = useLocation();
-    const params = useParams();
+export default function ConsignmentDetail() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const params = useParams();
 
-    const orderId =
-      params?.orderId ||
-      location?.state?.consignment
-        ?.orderId ||
-      location?.state?.orderId ||
-      "";
+  const orderId =
+    params?.orderId ||
+    location?.state?.consignment?.orderId ||
+    location?.state?.orderId ||
+    "";
 
-    const [detail, setDetail] =
-      useState(null);
+  const [detail, setDetail] = useState(null);
+  const [productTypes, setProductTypes] = useState([]);
+  const [pricingRules, setPricingRules] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [masterDataWarning, setMasterDataWarning] = useState("");
 
-    const [
-      productTypes,
-      setProductTypes,
-    ] = useState([]);
+  const loadPageData = useCallback(async () => {
+    if (!orderId) {
+      setError("Không tìm thấy mã đơn ký gửi.");
+      setLoading(false);
+      return;
+    }
 
-    const [
+    try {
+      setLoading(true);
+      setError("");
+      setMasterDataWarning("");
+
+      const [detailResult, productTypeResult, pricingRuleResult] =
+        await Promise.allSettled([
+          getConsignmentDetailApi(orderId),
+          getProductTypesApi(),
+          getActivePricingRulesApi(),
+        ]);
+
+      if (detailResult.status === "rejected") {
+        throw detailResult.reason;
+      }
+
+      setDetail(detailResult.value || null);
+
+      if (productTypeResult.status === "fulfilled") {
+        setProductTypes(
+          Array.isArray(productTypeResult.value)
+            ? productTypeResult.value
+            : []
+        );
+      } else {
+        console.error(
+          "GET PRODUCT TYPES ERROR:",
+          productTypeResult.reason
+        );
+        setProductTypes([]);
+      }
+
+      if (pricingRuleResult.status === "fulfilled") {
+        setPricingRules(
+          Array.isArray(pricingRuleResult.value)
+            ? pricingRuleResult.value
+            : []
+        );
+      } else {
+        console.error(
+          "GET PRICING RULES ERROR:",
+          pricingRuleResult.reason
+        );
+        setPricingRules([]);
+      }
+
+      const warningMessages = [];
+
+      if (productTypeResult.status === "rejected") {
+        warningMessages.push(
+          "Không tải được danh sách loại hàng."
+        );
+      }
+
+      if (pricingRuleResult.status === "rejected") {
+        warningMessages.push(
+          "Không tải được cấu hình tính phí và hệ số quy đổi. Vui lòng tải lại trang."
+        );
+      }
+
+      setMasterDataWarning(warningMessages.join(" "));
+    } catch (requestError) {
+      console.error(
+        "GET CONSIGNMENT DETAIL ERROR:",
+        requestError
+      );
+
+      const message =
+        requestError?.response?.data?.message ||
+        requestError?.response?.data?.error ||
+        requestError?.message ||
+        "Không thể tải chi tiết yêu cầu ký gửi.";
+
+      setError(message);
+
+      AuthNotify.error(
+        "Tải dữ liệu thất bại",
+        message
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [orderId]);
+
+  useEffect(() => {
+    loadPageData();
+  }, [loadPageData]);
+
+  const orderStatus = useMemo(
+    () => getOrderStatus(detail?.status),
+    [detail?.status]
+  );
+
+  const quotationStatus = useMemo(
+    () => getQuotationStatus(detail?.quotation?.status),
+    [detail?.quotation?.status]
+  );
+
+  const quotation = detail?.quotation || null;
+
+  const items = useMemo(() => {
+    return Array.isArray(detail?.items)
+      ? detail.items
+      : [];
+  }, [detail?.items]);
+
+  const productTypeMap = useMemo(() => {
+    return new Map(
+      productTypes.flatMap((item) => {
+        const id = normalizeText(item?.id);
+        const name = normalizeText(item?.name);
+
+        if (!id || !name) {
+          return [];
+        }
+
+        return [
+          [id, name],
+          [id.toLowerCase(), name],
+          [name, name],
+          [name.toLowerCase(), name],
+        ];
+      })
+    );
+  }, [productTypes]);
+
+  const dimRule = useMemo(() => {
+    return findPricingRuleByCode(
       pricingRules,
-      setPricingRules,
-    ] = useState([]);
+      PRICING_RULE_CODE
+        .VOLUMETRIC_DIVISOR
+    );
+  }, [pricingRules]);
 
-    const [
-      warehouses,
-      setWarehouses,
-    ] = useState([]);
-
-    const [
-      servicePricings,
-      setServicePricings,
-    ] = useState([]);
-
-    const [loading, setLoading] =
-      useState(true);
-
-    const [error, setError] =
-      useState("");
-
-    const [
-      masterDataWarning,
-      setMasterDataWarning,
-    ] = useState("");
-
-    const [quotationForm] =
-      Form.useForm();
-
-    const [estimating, setEstimating] =
-      useState(false);
-
-    const [sending, setSending] =
-      useState(false);
-
-    const [
-      enabledFeeCodes,
-      setEnabledFeeCodes,
-    ] = useState({});
-
-    const quotationFormOrderRef =
-      useRef("");
-
-    const pricingRuleInitRef =
-      useRef("");
-
-    const loadPageData =
-      useCallback(async () => {
-        if (!orderId) {
-          setError(
-            "Không tìm thấy mã đơn ký gửi."
-          );
-          setLoading(false);
-          return;
-        }
-
-        try {
-          setLoading(true);
-          setError("");
-          setMasterDataWarning("");
-
-          const [
-            detailResult,
-            productTypeResult,
-            pricingRuleResult,
-            warehouseResult,
-            servicePricingResult,
-          ] = await Promise.allSettled([
-            getConsignmentDetailApi(
-              orderId
-            ),
-            getProductTypesApi(),
-            getActivePricingRulesApi(),
-            getOriginWarehousesApi(),
-            getServicePricingsApi(),
-          ]);
-
-          if (
-            detailResult.status ===
-            "rejected"
-          ) {
-            throw detailResult.reason;
-          }
-
-          setDetail(
-            detailResult.value || null
-          );
-
-          if (
-            productTypeResult.status ===
-            "fulfilled"
-          ) {
-            setProductTypes(
-              Array.isArray(
-                productTypeResult.value
-              )
-                ? productTypeResult.value
-                : []
-            );
-          } else {
-            console.error(
-              "GET PRODUCT TYPES ERROR:",
-              productTypeResult.reason
-            );
-            setProductTypes([]);
-          }
-
-          if (
-            pricingRuleResult.status ===
-            "fulfilled"
-          ) {
-            setPricingRules(
-              Array.isArray(
-                pricingRuleResult.value
-              )
-                ? pricingRuleResult.value
-                : []
-            );
-          } else {
-            console.error(
-              "GET PRICING RULES ERROR:",
-              pricingRuleResult.reason
-            );
-            setPricingRules([]);
-          }
-
-          if (
-            warehouseResult.status ===
-            "fulfilled"
-          ) {
-            setWarehouses(
-              Array.isArray(
-                warehouseResult.value
-              )
-                ? warehouseResult.value
-                : []
-            );
-          } else {
-            console.error(
-              "GET ORIGIN WAREHOUSES ERROR:",
-              warehouseResult.reason
-            );
-            setWarehouses([]);
-          }
-
-          if (
-            servicePricingResult.status ===
-            "fulfilled"
-          ) {
-            setServicePricings(
-              Array.isArray(
-                servicePricingResult.value
-              )
-                ? servicePricingResult.value
-                : []
-            );
-          } else {
-            console.error(
-              "GET SERVICE PRICINGS ERROR:",
-              servicePricingResult.reason
-            );
-            setServicePricings([]);
-          }
-
-          const warningMessages = [];
-
-          if (
-            productTypeResult.status ===
-            "rejected"
-          ) {
-            warningMessages.push(
-              "Không tải được danh sách loại hàng."
-            );
-          }
-
-          if (
-            pricingRuleResult.status ===
-            "rejected"
-          ) {
-            warningMessages.push(
-              "Không tải được hệ số DIM; hệ thống đang dùng hệ số mặc định 5.000."
-            );
-          }
-
-          if (
-            warehouseResult.status ===
-            "rejected"
-          ) {
-            warningMessages.push(
-              "Không tải được danh sách kho Origin đang hoạt động."
-            );
-          }
-
-          if (
-            servicePricingResult.status ===
-            "rejected"
-          ) {
-            warningMessages.push(
-              "Không tải được bảng giá dịch vụ."
-            );
-          }
-
-          setMasterDataWarning(
-            warningMessages.join(" ")
-          );
-        } catch (requestError) {
-          console.error(
-            "GET CONSIGNMENT DETAIL ERROR:",
-            requestError
-          );
-
-          const message =
-            requestError?.response?.data
-              ?.message ||
-            requestError?.response?.data
-              ?.error ||
-            requestError?.message ||
-            "Không thể tải chi tiết yêu cầu ký gửi.";
-
-          setError(message);
-
-          AuthNotify.error(
-            "Tải dữ liệu thất bại",
-            message
-          );
-        } finally {
-          setLoading(false);
-        }
-      }, [orderId]);
-
-    const refreshDetailOnly =
-      useCallback(async () => {
-        const nextDetail =
-          await getConsignmentDetailApi(
-            orderId
-          );
-
-        setDetail(nextDetail || null);
-
-        return nextDetail;
-      }, [orderId]);
-
-    useEffect(() => {
-      loadPageData();
-    }, [loadPageData]);
-
-    const orderStatus = useMemo(
-      () =>
-        getOrderStatus(detail?.status),
-      [detail?.status]
+  /*
+   * Không sử dụng hệ số cố định trong mã nguồn.
+   * Hệ số quy đổi phải được lấy từ cấu hình hệ thống.
+   */
+  const dimDivisor =
+    normalizePositiveNumber(
+      dimRule?.value
     );
 
-    const quotationStatus = useMemo(
-      () =>
-        getQuotationStatus(
-          detail?.quotation?.status
-        ),
-      [detail?.quotation?.status]
+  const hasApiDimDivisor =
+    dimDivisor > 0;
+
+  const packageCount = items.length;
+
+  const totalQuantity = useMemo(() => {
+    return items.reduce(
+      (total, item) =>
+        total + getItemQuantity(item),
+      0
+    );
+  }, [items]);
+
+  const totalItemWeightKg = useMemo(() => {
+    return roundToDecimals(
+      items.reduce(
+        (total, item) =>
+          total + getItemWeightKg(item),
+        0
+      ),
+      DIM_DECIMAL_PLACES
+    );
+  }, [items]);
+
+  const apiTotalWeightKg =
+    normalizePositiveNumber(
+      detail?.totalWeight
     );
 
-    const quotation =
-      detail?.quotation || null;
+  const displayTotalWeightKg =
+    apiTotalWeightKg > 0
+      ? apiTotalWeightKg
+      : totalItemWeightKg;
 
-    const items = useMemo(() => {
-      return Array.isArray(detail?.items)
-        ? detail.items
-        : [];
-    }, [detail?.items]);
-
-    const productTypeMap =
-      useMemo(() => {
-        return new Map(
-          productTypes.flatMap(
-            (item) => {
-              const id = normalizeText(
-                item?.id
-              );
-              const name =
-                normalizeText(
-                  item?.name
-                );
-
-              if (!id || !name) {
-                return [];
-              }
-
-              return [
-                [id, name],
-                [id.toLowerCase(), name],
-                [name, name],
-                [name.toLowerCase(), name],
-              ];
-            }
-          )
-        );
-      }, [productTypes]);
-
-    const dimRule = useMemo(() => {
-      return findPricingRuleByCode(
-        pricingRules,
-        "VOLUMETRIC_DIVISOR"
-      );
-    }, [pricingRules]);
-
-    const dimDivisor = useMemo(() => {
-      const apiValue =
-        normalizePositiveNumber(
-          dimRule?.value
-        );
-
-      return apiValue > 0
-        ? apiValue
-        : DEFAULT_DIM_DIVISOR;
-    }, [dimRule]);
-
-    const isDimDivisorFromApi =
-      Boolean(
-        dimRule &&
-        normalizePositiveNumber(
-          dimRule?.value
-        ) > 0
-      );
-
-    /*
-     * Mỗi phần tử trong items là 1 kiện.
-     * Không cộng quantity để tính số kiện.
-     */
-    const packageCount = items.length;
-
-    const totalItemWeightKg =
-      useMemo(() => {
-        return roundToDecimals(
-          items.reduce(
-            (total, item) =>
-              total +
-              getItemWeightKg(item),
-            0
-          ),
-          DIM_DECIMAL_PLACES
-        );
-      }, [items]);
-
-    const apiTotalWeightKg =
-      normalizePositiveNumber(
-        detail?.totalWeight
-      );
-
-    const displayTotalWeightKg =
-      apiTotalWeightKg > 0
-        ? apiTotalWeightKg
-        : totalItemWeightKg;
-
-    const calculatedTotalVolumeCm3 =
-      useMemo(() => {
-        if (items.length === 0) {
-          return normalizePositiveNumber(
-            detail?.totalVolume
-          );
-        }
-
-        return roundToDecimals(
-          items.reduce(
-            (total, item) =>
-              total +
-              calculateItemVolumeCm3(
-                item
-              ),
-            0
-          ),
-          DIM_DECIMAL_PLACES
-        );
-      }, [
-        items,
-        detail?.totalVolume,
-      ]);
-
-    const totalVolumeM3 =
-      convertCm3ToM3(
-        calculatedTotalVolumeCm3
-      );
-
-    const totalDimKg = useMemo(() => {
+  const calculatedItemsVolumeCm3 =
+    useMemo(() => {
       return roundToDecimals(
         items.reduce(
           (total, item) =>
             total +
-            calculateItemDimKg(
-              item,
-              dimDivisor
-            ),
+            calculateItemVolumeCm3(item),
           0
         ),
         DIM_DECIMAL_PLACES
       );
-    }, [items, dimDivisor]);
+    }, [items]);
 
-    const chargeableWeightKg =
-      useMemo(() => {
-        return roundToDecimals(
-          Math.max(
-            displayTotalWeightKg,
-            totalDimKg
+  const apiTotalVolumeCm3 =
+    normalizePositiveNumber(
+      detail?.totalVolume
+    );
+
+  const displayTotalVolumeCm3 =
+    apiTotalVolumeCm3 > 0
+      ? apiTotalVolumeCm3
+      : calculatedItemsVolumeCm3;
+
+  const totalVolumeM3 =
+    convertCm3ToM3(
+      displayTotalVolumeCm3
+    );
+
+  const totalDimKg = useMemo(() => {
+    return roundToDecimals(
+      items.reduce(
+        (total, item) =>
+          total +
+          calculateItemDimKg(
+            item,
+            dimDivisor
           ),
-          DIM_DECIMAL_PLACES
-        );
-      }, [
+        0
+      ),
+      DIM_DECIMAL_PLACES
+    );
+  }, [items, dimDivisor]);
+
+  const chargeableWeightKg =
+    roundToDecimals(
+      Math.max(
         displayTotalWeightKg,
-        totalDimKg,
-      ]);
-
-    const watchedUnitPrice =
-      Form.useWatch(
-        "unitPrice",
-        quotationForm
-      ) ?? 0;
-
-    const watchedUnitType =
-      Form.useWatch(
-        "unitType",
-        quotationForm
-      ) || "KG";
-
-    const watchedDeclaredValue =
-      Form.useWatch(
-        "declaredValue",
-        quotationForm
-      ) ?? 0;
-
-    const watchedDiscountPercent =
-      Form.useWatch(
-        "discountPercent",
-        quotationForm
-      ) ?? 0;
-
-    const watchedVat =
-      Form.useWatch(
-        "vat",
-        quotationForm
-      ) ?? 0;
-
-    const watchedImportTax =
-      Form.useWatch(
-        "importTax",
-        quotationForm
-      ) ?? 0;
-
-    const selectedServicePricingId =
-      Form.useWatch(
-        "servicePricingId",
-        quotationForm
-      );
-
-    const routeCountries = useMemo(
-      () =>
-        parseRouteCountries(
-          detail?.route
-        ),
-      [detail?.route]
+        totalDimKg
+      ),
+      DIM_DECIMAL_PLACES
     );
 
-    const routeCountryCodes =
-      useMemo(() => {
-        return {
-          originCountry:
-            normalizeCountryCode(
-              routeCountries.originCountry
-            ),
-          destinationCountry:
-            normalizeCountryCode(
-              routeCountries
-                .destinationCountry
-            ),
-        };
-      }, [routeCountries]);
-
-    const warehouseOptions =
-      useMemo(
-        () =>
-          mapWarehousesToOptions(
-            warehouses
-          ),
-        [warehouses]
+  const totalDeclaredValue =
+    useMemo(() => {
+      return items.reduce(
+        (total, item) =>
+          total +
+          getItemDeclaredValue(item),
+        0
       );
+    }, [items]);
 
-    const hasSingleOriginWarehouse =
-      warehouses.length === 1;
-
-    const singleOriginWarehouse =
-      hasSingleOriginWarehouse
-        ? warehouses[0]
-        : null;
-
-    const hasMultipleOriginWarehouses =
-      warehouses.length > 1;
-
-    const hasOriginWarehouse =
-      warehouses.length > 0;
-
-    const servicePricingOptions =
-      useMemo(
-        () =>
-          mapServicePricingsToOptions(
-            servicePricings
-          ),
-        [servicePricings]
+  const totalPackageFee =
+    useMemo(() => {
+      return items.reduce(
+        (total, item) =>
+          total +
+          getItemPackageFee(item),
+        0
       );
+    }, [items]);
 
-    const selectedServicePricing =
-      useMemo(
-        () =>
-          findServicePricingById(
-            servicePricings,
-            selectedServicePricingId
-          ),
-        [
-          servicePricings,
-          selectedServicePricingId,
-        ]
-      );
-
-    const handleServicePricingChange =
-      useCallback(
-        (servicePricingId) => {
-          const pricing =
-            findServicePricingById(
-              servicePricings,
-              servicePricingId
-            );
-
-          if (!pricing) {
-            quotationForm.setFieldsValue({
-              servicePricingId:
-                undefined,
-              serviceType:
-                normalizeServiceTypeCode(
-                  detail?.consignmentType
-                ),
-              originCountry:
-                routeCountryCodes
-                  .originCountry,
-              destinationCountry:
-                routeCountryCodes
-                  .destinationCountry,
-              unitType: "KG",
-              unitPrice: 0,
-            });
-            return;
-          }
-
-          quotationForm.setFieldsValue({
-            servicePricingId:
-              pricing.id,
-            serviceType:
-              pricing.serviceType,
-            originCountry:
-              pricing.originCountry,
-            destinationCountry:
-              pricing.destinationCountry,
-            unitType:
-              pricing.unitType,
-            unitPrice:
-              normalizePositiveNumber(
-                pricing.price
-              ),
-          });
-        },
-        [
-          detail?.consignmentType,
-          quotationForm,
-          routeCountryCodes,
-          servicePricings,
-        ]
-      );
-
-    useEffect(() => {
-      if (
-        !hasSingleOriginWarehouse ||
-        !singleOriginWarehouse?.id
-      ) {
-        return;
-      }
-
-      const currentWarehouseId =
-        quotationForm.getFieldValue(
-          "warehouseId"
-        );
-
-      if (
-        currentWarehouseId !==
-        singleOriginWarehouse.id
-      ) {
-        quotationForm.setFieldValue(
-          "warehouseId",
-          singleOriginWarehouse.id
-        );
-      }
-    }, [
-      hasSingleOriginWarehouse,
-      quotationForm,
-      singleOriginWarehouse,
-    ]);
-
-    useEffect(() => {
-      if (!detail?.orderId) {
-        return;
-      }
-
-      const formInitKey = [
-        detail.orderId,
-        warehouses.length,
-        servicePricings.length,
-        normalizeText(
-          quotation?.servicePricingId
-        ),
-      ].join(":");
-
-      if (
-        quotationFormOrderRef.current ===
-        formInitKey
-      ) {
-        return;
-      }
-
-      const quotationPricing =
-        findServicePricingById(
-          servicePricings,
-          quotation?.servicePricingId
-        );
-
-      const matchedPricing =
-        findMatchingServicePricing(
-          servicePricings,
-          {
-            serviceType:
-              normalizeServiceTypeCode(
-                quotation?.serviceType ||
-                  detail?.consignmentType
-              ),
-            originCountry:
-              normalizeCountryCode(
-                quotation?.originCountry ||
-                  routeCountries
-                    .originCountry
-              ),
-            destinationCountry:
-              normalizeCountryCode(
-                quotation
-                  ?.destinationCountry ||
-                  routeCountries
-                    .destinationCountry
-              ),
-            unitType:
-              normalizeText(
-                quotation?.unitType
-              ).toUpperCase() ||
-              "KG",
-          }
-        );
-
-      const defaultPricing =
-        quotationPricing ||
-        matchedPricing ||
-        null;
-
-      const quotationWarehouseId =
-        normalizeText(
-          quotation?.warehouseId
-        );
-
-      const quotationWarehouseExists =
-        warehouses.some(
-          (warehouse) =>
-            normalizeText(
-              warehouse?.id
-            ) ===
-            quotationWarehouseId
-        );
-
-      const defaultWarehouse =
-        quotationWarehouseExists
-          ? quotationWarehouseId
-          : warehouses.length === 1
-            ? warehouses[0].id
-            : "";
-
-      quotationForm.setFieldsValue({
-        warehouseId:
-          defaultWarehouse,
-        servicePricingId:
-          defaultPricing?.id ||
-          normalizeText(
-            quotation?.servicePricingId
-          ) ||
-          undefined,
-        serviceType:
-          defaultPricing
-            ?.serviceType ||
-          normalizeServiceTypeCode(
-            quotation?.serviceType ||
-              detail?.consignmentType
-          ),
-        originCountry:
-          defaultPricing
-            ?.originCountry ||
-          normalizeCountryCode(
-            quotation?.originCountry ||
-              routeCountries.originCountry
-          ),
-        destinationCountry:
-          defaultPricing
-            ?.destinationCountry ||
-          normalizeCountryCode(
-            quotation
-              ?.destinationCountry ||
-              routeCountries
-                .destinationCountry
-          ),
-        unitType:
-          defaultPricing?.unitType ||
-          normalizeText(
-            quotation?.unitType
-          ).toUpperCase() ||
-          "KG",
-        unitPrice:
-          defaultPricing
-            ? normalizePositiveNumber(
-                defaultPricing.price
-              )
-            : normalizePositiveNumber(
-                quotation?.unitPrice
-              ),
-        declaredValue:
-          normalizePositiveNumber(
-            detail?.declaredValue ??
-              quotation?.declaredValue
-          ),
-        discountPercent:
-          clampNumber(
-            quotation?.discountPercent,
-            0,
-            100
-          ),
-        vat:
-          normalizePositiveNumber(
-            quotation?.vat
-          ),
-        importTax:
-          normalizePositiveNumber(
-            quotation?.importTax ??
-              quotation?.taxAndDuty
-          ),
-        salesNote:
-          normalizeText(
-            quotation?.salesNote
-          ),
-      });
-
-      quotationFormOrderRef.current =
-        formInitKey;
-    }, [
-      detail,
-      quotation,
-      quotationForm,
-      routeCountries,
-      servicePricings,
-      warehouses,
-    ]);
-
-    useEffect(() => {
-      const initKey = `${orderId}:${pricingRules
-        .map((rule) =>
-          normalizeText(
-            rule?.ruleCode
-          ).toUpperCase()
+  const appliedPricingRuleIds =
+    useMemo(() => {
+      return new Set(
+        Array.isArray(
+          detail?.pricingRuleIds
         )
-        .join("|")}`;
-
-      if (
-        !pricingRules.length ||
-        pricingRuleInitRef.current ===
-          initKey
-      ) {
-        return;
-      }
-
-      const nextEnabledFeeCodes = {};
-
-      pricingRules.forEach((rule) => {
-        const code = normalizeText(
-          rule?.ruleCode
-        ).toUpperCase();
-
-        if (
-          !code ||
-          code ===
-            "VOLUMETRIC_DIVISOR"
-        ) {
-          return;
-        }
-
-        const conditionType =
-          normalizeText(
-            rule?.conditionType
-          ).toUpperCase();
-
-        nextEnabledFeeCodes[code] =
-          rule?.isRequired === true ||
-          code === "DOMESTIC_FEE" ||
-          (conditionType ===
-            "REQUIRES_INSPECTION" &&
-            detail?.requiresInspection ===
-              true);
-      });
-
-      setEnabledFeeCodes(
-        nextEnabledFeeCodes
+          ? detail.pricingRuleIds
+              .map(normalizeText)
+              .filter(Boolean)
+          : []
       );
+    }, [detail?.pricingRuleIds]);
 
-      pricingRuleInitRef.current =
-        initKey;
-    }, [
-      detail?.requiresInspection,
-      orderId,
-      pricingRules,
-    ]);
-
-    const quotationFeeRows = useMemo(
-      () =>
-        buildFeeRows({
-          pricingRules,
-          enabledFeeCodes,
-          declaredValue:
-            watchedDeclaredValue,
-          packageCount,
-          requiresInspection:
-            detail?.requiresInspection,
-        }),
-      [
-        pricingRules,
-        enabledFeeCodes,
-        watchedDeclaredValue,
-        packageCount,
-        detail?.requiresInspection,
-      ]
-    );
-
-    const billingQuantity = useMemo(() => {
-      const unitType = normalizeText(
-        watchedUnitType
-      ).toUpperCase();
-
-      if (unitType === "M3") {
-        return totalVolumeM3;
+  const quotationBreakdown =
+    useMemo(() => {
+      if (!quotation) {
+        return null;
       }
 
-      if (unitType === "PACKAGE") {
-        return packageCount;
-      }
-
-      return chargeableWeightKg;
-    }, [
-      watchedUnitType,
-      totalVolumeM3,
-      packageCount,
-      chargeableWeightKg,
-    ]);
-
-    const mainServiceAmount =
-      useMemo(() => {
-        return roundToDecimals(
-          normalizePositiveNumber(
-            watchedUnitPrice
-          ) *
-            normalizePositiveNumber(
-              billingQuantity
-            ),
-          2
-        );
-      }, [
-        watchedUnitPrice,
-        billingQuantity,
-      ]);
-
-    const additionalFeeTotal =
-      useMemo(() => {
-        return roundToDecimals(
-          quotationFeeRows
-            .filter(
-              (fee) => fee.enabled
-            )
-            .reduce(
-              (total, fee) =>
-                total +
-                normalizePositiveNumber(
-                  fee.amount
-                ),
-              0
-            ),
-          2
-        );
-      }, [quotationFeeRows]);
-
-    const quotationSubtotal =
-      roundToDecimals(
-        mainServiceAmount +
-          additionalFeeTotal,
-        2
-      );
-
-    const quotationDiscount =
-      roundToDecimals(
-        quotationSubtotal *
-          (clampNumber(
-            watchedDiscountPercent,
-            0,
-            100
-          ) /
-            100),
-        2
-      );
-
-    const quotationTotal =
-      roundToDecimals(
-        quotationSubtotal -
-          quotationDiscount +
-          normalizePositiveNumber(
-            watchedVat
-          ) +
-          normalizePositiveNumber(
-            watchedImportTax
-          ),
-        2
-      );
-
-    const quotationBusy =
-      estimating || sending;
-
-    const canCreateQuotation =
-      packageCount > 0 &&
-      displayTotalWeightKg > 0 &&
-      totalVolumeM3 > 0 &&
-      hasOriginWarehouse &&
-      servicePricings.length > 0 &&
-      ![
-        "COMPLETED",
-        "CANCELLED",
-      ].includes(
-        normalizeText(
-          detail?.status
-        ).toUpperCase()
-      );
-
-    const buildQuotationPayload = (
-      values
-    ) => {
-      if (packageCount <= 0) {
-        throw new Error(
-          "Đơn hàng chưa có kiện sản phẩm để tạo báo giá."
-        );
-      }
-
-      if (displayTotalWeightKg <= 0) {
-        throw new Error(
-          "Tổng trọng lượng phải lớn hơn 0 kg."
-        );
-      }
-
-      if (totalVolumeM3 <= 0) {
-        throw new Error(
-          "Tổng thể tích phải lớn hơn 0 m³."
-        );
-      }
-
-      const warehouseId =
-        normalizeText(
-          values?.warehouseId
-        );
-
-      if (!warehouseId) {
-        throw new Error(
-          "Không tìm thấy kho Origin để xử lý báo giá."
-        );
-      }
-
-      const unitType = normalizeText(
-        values?.unitType
-      ).toUpperCase();
-
-      const unitPrice =
+      const freight =
         normalizePositiveNumber(
-          values?.unitPrice
+          quotation
+            ?.estimatedFreightCharge
         );
 
-      const declaredValue =
+      const domestic =
         normalizePositiveNumber(
-          values?.declaredValue
+          quotation
+            ?.domesticShippingFee
         );
 
-      const discountPercent =
-        clampNumber(
-          values?.discountPercent,
-          0,
-          100
+      const service =
+        normalizePositiveNumber(
+          quotation?.serviceFee
         );
 
-      const feeRows = buildFeeRows({
-        pricingRules,
-        enabledFeeCodes,
-        declaredValue,
-        packageCount,
-        requiresInspection:
-          detail?.requiresInspection,
-      });
+      const tax =
+        normalizePositiveNumber(
+          quotation?.taxAndDuty
+        );
 
-      const activeFees = feeRows.filter(
-        (fee) => fee.enabled
-      );
+      const total =
+        normalizePositiveNumber(
+          quotation
+            ?.totalEstimatedCost
+        );
 
-      const calculatedBillingQuantity =
-        unitType === "M3"
-          ? totalVolumeM3
-          : unitType === "PACKAGE"
-            ? packageCount
-            : chargeableWeightKg;
-
-      const calculatedMainAmount =
+      const componentTotal =
         roundToDecimals(
-          unitPrice *
-            calculatedBillingQuantity,
+          freight +
+            domestic +
+            service +
+            tax,
           2
         );
-
-      const calculatedFeeTotal =
-        roundToDecimals(
-          activeFees.reduce(
-            (total, fee) =>
-              total + fee.amount,
-            0
-          ),
-          2
-        );
-
-      const subtotal = roundToDecimals(
-        calculatedMainAmount +
-          calculatedFeeTotal,
-        2
-      );
-
-      const discount = roundToDecimals(
-        subtotal *
-          (discountPercent / 100),
-        2
-      );
-
-      const vat =
-        normalizePositiveNumber(
-          values?.vat
-        );
-
-      const importTax =
-        normalizePositiveNumber(
-          values?.importTax
-        );
-
-      const total = roundToDecimals(
-        subtotal -
-          discount +
-          vat +
-          importTax,
-        2
-      );
-
-      const salesNote = normalizeText(
-        values?.salesNote
-      );
 
       return {
-        warehouseId,
-        servicePricingId:
-          normalizeText(
-            values?.servicePricingId
+        freight,
+        domestic,
+        service,
+        tax,
+        total,
+        componentTotal,
+        difference:
+          roundToDecimals(
+            total - componentTotal,
+            2
           ),
-        serviceType:
-          normalizeServiceTypeCode(
-            values?.serviceType
-          ),
-        weightKg: displayTotalWeightKg,
-        volumeM3: roundToDecimals(
-          totalVolumeM3,
-          6
-        ),
-        packageCount,
-        declaredValue,
-        salesNote,
-        quotation: {
-          servicePricingId:
-            normalizeText(
-              values?.servicePricingId
-            ),
-          serviceType:
-            normalizeServiceTypeCode(
-              values?.serviceType
-            ),
-          originCountry:
-            normalizeCountryCode(
-              values?.originCountry
-            ),
-          destinationCountry:
-            normalizeCountryCode(
-              values?.destinationCountry
-            ),
-          unitType,
-          unitPrice,
-          currency: "VND",
-          totalWeight:
-            displayTotalWeightKg,
-          totalVolume:
-            calculatedTotalVolumeCm3,
-          volumetricWeight:
-            totalDimKg,
-          chargeableWeight:
-            chargeableWeightKg,
-          mainServiceAmount:
-            calculatedMainAmount,
-          additionalFees:
-            activeFees.map((fee) => ({
-              feeId: fee.id,
-              code: fee.code,
-              label:
-                fee.ruleName ||
-                fee.code,
-              amount: fee.amount,
-              enabled: true,
-            })),
-          discountPercent,
-          subtotal,
-          discount,
-          total,
-          estimatedFreightCharge:
-            calculatedMainAmount,
-          serviceFee:
-            calculatedFeeTotal,
-          totalEstimatedCost: total,
-          vat,
-          importTax,
-          salesNote,
+      };
+    }, [quotation]);
+
+  const terminalStatus = ["COMPLETED", "CANCELLED"].includes(
+    normalizeText(detail?.status).toUpperCase()
+  );
+
+  const canOpenQuotationPage =
+    Boolean(orderId) && !terminalStatus;
+
+  const handleOpenQuotationPage = () => {
+    if (!orderId) {
+      AuthNotify.error(
+        "Không thể mở báo giá",
+        "Không tìm thấy mã đơn ký gửi."
+      );
+      return;
+    }
+
+    navigate(
+      `/sale/consignments/${orderId}/create-quotation`,
+      {
+        state: {
+          orderId,
+          consignment: detail,
         },
-      };
-    };
-
-    const mergeQuotationResponse = (
-      response
-    ) => {
-      const nextQuotation =
-        response?.quotation ||
-        response?.data?.quotation ||
-        response;
-
-      if (
-        !nextQuotation ||
-        typeof nextQuotation !== "object"
-      ) {
-        return;
       }
+    );
+  };
 
-      setDetail((previous) => ({
-        ...previous,
-        quotation: {
-          ...(previous?.quotation || {}),
-          ...nextQuotation,
-        },
-      }));
-    };
-
-    const syncQuotationDetail = async (
-      response
-    ) => {
-      mergeQuotationResponse(response);
-
-      try {
-        await refreshDetailOnly();
-      } catch (syncError) {
-        console.error(
-          "REFRESH DETAIL AFTER QUOTATION ERROR:",
-          syncError
-        );
-      }
-    };
-
-    const handleEstimateQuotation =
-      async () => {
-        if (quotationBusy) {
-          return;
-        }
-
-        try {
-          const values =
-            await quotationForm.validateFields();
-
-          const payload =
-            buildQuotationPayload(values);
-
-          setEstimating(true);
-
-          const response =
-            await estimateQuotationApi(
-              orderId,
-              payload
-            );
-
-          await syncQuotationDetail(
-            response
-          );
-
-          AuthNotify.success(
-            "Ước tính thành công",
-            "Báo giá tạm tính đã được tạo và đồng bộ vào đơn hàng."
-          );
-        } catch (estimateError) {
-          if (estimateError?.errorFields) {
-            return;
-          }
-
-          console.error(
-            "ESTIMATE QUOTATION ERROR:",
-            estimateError
-          );
-
-          AuthNotify.error(
-            "Không thể tạo báo giá tạm tính",
-            getQuotationErrorMessage(
-              estimateError,
-              "Vui lòng kiểm tra lại thông tin báo giá."
-            )
-          );
-        } finally {
-          setEstimating(false);
-        }
-      };
-
-    const handleSendQuotation =
-      async () => {
-        if (quotationBusy) {
-          return;
-        }
-
-        try {
-          const values =
-            await quotationForm.validateFields();
-
-          const payload =
-            buildQuotationPayload(values);
-
-          setSending(true);
-
-          const response =
-            await sendQuotationApi(
-              orderId,
-              payload
-            );
-
-          await syncQuotationDetail(
-            response
-          );
-
-          AuthNotify.success(
-            "Tạo báo giá thành công",
-            "Báo giá chính thức đã được tạo và gửi đến khách hàng."
-          );
-        } catch (sendError) {
-          if (sendError?.errorFields) {
-            return;
-          }
-
-          console.error(
-            "SEND QUOTATION ERROR:",
-            sendError
-          );
-
-          AuthNotify.error(
-            "Không thể gửi báo giá",
-            getQuotationErrorMessage(
-              sendError,
-              "Vui lòng kiểm tra lại thông tin báo giá."
-            )
-          );
-        } finally {
-          setSending(false);
-        }
-      };
-
-    if (loading) {
+  if (loading) {
       return <DetailLoading />;
     }
 
@@ -2548,10 +1404,7 @@ import {
             </div>
 
             <div>
-              <span>
-                Tổng trọng lượng
-              </span>
-
+              <span>Tổng trọng lượng</span>
               <strong>
                 {formatMeasurement(
                   displayTotalWeightKg,
@@ -2568,18 +1421,12 @@ import {
             </div>
 
             <div>
-              <span>Tổng số kiện</span>
-
+              <span>Số kiện / số lượng</span>
               <strong>
-                {formatMeasurement(
-                  packageCount,
-                  0
-                )}{" "}
-                kiện
+                {packageCount} kiện
               </strong>
-
               <small>
-                1 dòng sản phẩm = 1 kiện
+                {totalQuantity} sản phẩm
               </small>
             </div>
           </article>
@@ -2591,15 +1438,13 @@ import {
 
             <div>
               <span>Tổng thể tích</span>
-
               <strong>
                 {formatMeasurement(
-                  calculatedTotalVolumeCm3,
+                  displayTotalVolumeCm3,
                   4
                 )}{" "}
                 cm³
               </strong>
-
               <small>
                 {formatMeasurement(
                   totalVolumeM3,
@@ -2616,38 +1461,41 @@ import {
             </div>
 
             <div>
-              <span>Tổng DIM</span>
-
+              <span>Tổng khối lượng quy đổi</span>
               <strong>
                 {formatDimWeight(
                   totalDimKg
                 )}{" "}
                 kg
               </strong>
-
               <small>
-                Hệ số{" "}
-                {formatMeasurement(
-                  dimDivisor,
-                  0
-                )}
+                {hasApiDimDivisor
+                  ? `Hệ số quy đổi: ${formatMeasurement(
+                      dimDivisor,
+                      0
+                    )}`
+                  : "Chưa có hệ số quy đổi"}
               </small>
             </div>
           </article>
 
-          <article className="consignment-summary-card">
+          <article className="consignment-summary-card is-chargeable">
             <div className="consignment-summary-card__icon">
               <SafetyCertificateOutlined />
             </div>
 
             <div>
-              <span>Kiểm hàng</span>
-
+              <span>Khối lượng tính cước</span>
               <strong>
-                {detail?.requiresInspection
-                  ? "Có yêu cầu"
-                  : "Không yêu cầu"}
+                {formatMeasurement(
+                  chargeableWeightKg,
+                  4
+                )}{" "}
+                kg
               </strong>
+              <small>
+                Lấy mức lớn hơn giữa trọng lượng thực và khối lượng quy đổi
+              </small>
             </div>
           </article>
 
@@ -2658,19 +1506,79 @@ import {
 
             <div>
               <span>Tổng báo giá</span>
-
               <strong>
                 {formatCurrency(
                   quotation
                     ?.totalEstimatedCost
                 )}
               </strong>
+              <small>
+                {quotation
+                  ? translateQuoteType(
+                      quotation?.quoteType
+                    )
+                  : "Chưa có báo giá"}
+              </small>
             </div>
           </article>
         </section>
 
         <div className="consignment-detail-layout">
           <div className="consignment-detail-main">
+            {/* ================= QUOTATION ACTION ================= */}
+
+            <section className="consignment-detail-card quotation-entry-card">
+              <SectionTitle
+                icon={<DollarOutlined />}
+                title="Báo giá đơn hàng"
+                description="Tạo và gửi báo giá cho đơn ký gửi trên màn hình riêng."
+                extra={
+                  <Tag className="quotation-builder-status-tag">
+                    {quotation
+                      ? translateQuoteType(quotation?.quoteType)
+                      : "Chưa có báo giá"}
+                  </Tag>
+                }
+              />
+
+              <div className="quotation-entry-card__content">
+                <div className="quotation-entry-card__icon">
+                  <DollarOutlined />
+                </div>
+
+                <div className="quotation-entry-card__text">
+                  <strong>
+                    {quotation
+                      ? "Xem và cập nhật báo giá"
+                      : "Tạo báo giá cho đơn ký gửi"}
+                  </strong>
+
+                  <span>
+                    Chuyển sang màn hình lập báo giá riêng để kiểm tra và gửi báo giá.
+                  </span>
+
+                  {terminalStatus && (
+                    <small>
+                      Không thể tạo báo giá cho đơn đã hoàn thành hoặc đã hủy.
+                    </small>
+                  )}
+                </div>
+
+                <Button
+                  type="primary"
+                  size="large"
+                  icon={<DollarOutlined />}
+                  disabled={!canOpenQuotationPage}
+                  onClick={handleOpenQuotationPage}
+                  className="quotation-entry-card__button"
+                >
+                  {quotation
+                    ? "Mở màn hình báo giá"
+                    : "Tạo báo giá"}
+                </Button>
+              </div>
+            </section>
+
             {/* ================= ORDER ================= */}
 
             <section className="consignment-detail-card">
@@ -2736,23 +1644,24 @@ import {
 
                 <DetailItem
                   icon={<FileTextOutlined />}
-                  label="Hệ số DIM"
-                  value={`${formatMeasurement(
-                    dimDivisor,
-                    0
-                  )}${
-                    isDimDivisorFromApi
-                      ? " (từ API)"
-                      : " (mặc định)"
-                  }`}
+                  label="Hệ số quy đổi"
+                  value={
+                    hasApiDimDivisor
+                      ? formatMeasurement(
+                          dimDivisor,
+                          0
+                        )
+                      : "Chưa có dữ liệu"
+                  }
                 />
 
                 <DetailItem
                   icon={<FileTextOutlined />}
                   label="Ghi chú"
                   value={
-                    detail?.note ||
-                    "Không có ghi chú"
+                    formatOrderNote(
+                      detail?.note
+                    )
                   }
                   fullWidth
                 />
@@ -2801,53 +1710,174 @@ import {
               </div>
             </section>
 
+            {/* ================= PRICING RULES ================= */}
+
+            <section className="consignment-detail-card pricing-rules-card">
+              <SectionTitle
+                icon={<SafetyCertificateOutlined />}
+                title="Các khoản phí và điều kiện áp dụng"
+                description={`${pricingRules.length} khoản phí và điều kiện đang được hệ thống áp dụng.`}
+                extra={
+                  <Tag className="pricing-rules-count-tag">
+                    {appliedPricingRuleIds.size} khoản phí áp dụng cho đơn
+                  </Tag>
+                }
+              />
+
+              {pricingRules.length === 0 ? (
+                <Empty
+                  image={
+                    Empty.PRESENTED_IMAGE_SIMPLE
+                  }
+                  description="Hiện chưa có khoản phí nào được cấu hình cho đơn hàng."
+                />
+              ) : (
+                <div className="pricing-rules-grid">
+                  {pricingRules.map((rule) => {
+                    const isApplied =
+                      appliedPricingRuleIds.has(
+                        normalizeText(rule?.id)
+                      );
+
+                    const isPercentage =
+                      normalizeText(
+                        rule?.calculationType
+                      ).toUpperCase() ===
+                      "PERCENTAGE";
+
+                    return (
+                      <article
+                        key={rule?.id || rule?.ruleCode}
+                        className={`pricing-rule-item ${
+                          isApplied
+                            ? "is-applied"
+                            : ""
+                        }`}
+                      >
+                        <div className="pricing-rule-item__top">
+                          <div>
+                            <strong>
+                              {rule?.ruleName ||
+                                "Khoản phí"}
+                            </strong>
+                          </div>
+
+                          <Tag
+                            className={
+                              rule?.isRequired
+                                ? "pricing-rule-required"
+                                : "pricing-rule-optional"
+                            }
+                          >
+                            {rule?.isRequired
+                              ? "Bắt buộc"
+                              : "Tùy chọn"}
+                          </Tag>
+                        </div>
+
+                        <div className="pricing-rule-item__value">
+                          {isPercentage
+                            ? `${formatMeasurement(
+                                rule?.value,
+                                2
+                              )}%`
+                            : rule?.ruleCode ===
+                                PRICING_RULE_CODE
+                                  .VOLUMETRIC_DIVISOR
+                              ? formatMeasurement(
+                                  rule?.value,
+                                  0
+                                )
+                              : formatCurrency(
+                                  rule?.value
+                                )}
+                        </div>
+
+                        <div className="pricing-rule-item__meta">
+                          <span>
+                            {translateCalculationType(
+                              rule?.calculationType
+                            )}
+                          </span>
+                          <span>
+                            {translateConditionType(
+                              rule?.conditionType
+                            )}
+                          </span>
+                        </div>
+
+                        {rule?.description && (
+                          <p>
+                            {formatSystemDescription(
+                              rule.description
+                            )}
+                          </p>
+                        )}
+
+                        {isApplied && (
+                          <small>
+                            Đang được áp dụng cho đơn hàng
+                          </small>
+                        )}
+                      </article>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+
             {/* ================= ITEMS ================= */}
 
             <section className="consignment-detail-card consignment-products-card">
               <SectionTitle
                 icon={<ShoppingOutlined />}
                 title="Danh sách kiện hàng"
-                description={`${packageCount} kiện, tương ứng ${packageCount} dòng sản phẩm.`}
+                description="Thông tin kích thước, khối lượng quy đổi, đóng gói và giá trị hàng hóa của từng kiện."
                 extra={
                   <Tag className="consignment-package-tag">
-                    {packageCount} kiện
+                    {packageCount} kiện • {totalQuantity} sản phẩm
                   </Tag>
                 }
               />
 
-              <div className="consignment-dim-formula">
+              <div
+                className={`consignment-dim-formula ${
+                  hasApiDimDivisor
+                    ? "is-ready"
+                    : "is-missing"
+                }`}
+              >
                 <div className="consignment-dim-formula__icon">
                   <FileTextOutlined />
                 </div>
 
                 <div className="consignment-dim-formula__content">
-                  <span>
-                    CÔNG THỨC DIM
-                  </span>
+                  <span>CÁCH TÍNH KHỐI LƯỢNG QUY ĐỔI</span>
 
                   <strong>
-                    (Dài × Rộng × Cao) ÷{" "}
-                    {formatMeasurement(
-                      dimDivisor,
-                      0
-                    )}
+                    {hasApiDimDivisor
+                      ? `(Dài × Rộng × Cao) ÷ ${formatMeasurement(
+                          dimDivisor,
+                          0
+                        )}`
+                      : "Chưa thể tính khối lượng quy đổi"}
                   </strong>
 
                   <small>
-                    Kích thước dùng cm, kết quả DIM dùng kg và hiển thị chính xác 4 chữ số thập phân. Không nhân theo số lượng.
+                    Khối lượng quy đổi được lấy từ thông tin của kiện hàng. Khi chưa có sẵn, hệ thống tính theo kích thước và hệ số quy đổi đang áp dụng.
                   </small>
                 </div>
 
                 <Tag
                   className={`consignment-dim-source ${
-                    isDimDivisorFromApi
+                    hasApiDimDivisor
                       ? "is-api"
-                      : "is-fallback"
+                      : "is-missing"
                   }`}
                 >
-                  {isDimDivisorFromApi
-                    ? "Hệ số từ API"
-                    : "Hệ số mặc định"}
+                  {hasApiDimDivisor
+                    ? "Hệ số đang áp dụng"
+                    : "Chưa có hệ số quy đổi"}
                 </Tag>
               </div>
 
@@ -2862,32 +1892,34 @@ import {
                 </div>
               ) : (
                 <div className="consignment-items-table-wrapper">
-                  <table className="consignment-items-table">
+                  <table className="consignment-items-table consignment-items-table--api">
                     <colgroup>
                       <col className="col-index" />
                       <col className="col-product-name" />
                       <col className="col-product-type" />
-                      <col className="col-package" />
+                      <col className="col-quantity" />
                       <col className="col-weight" />
                       <col className="col-dimension" />
+                      <col className="col-package-config" />
                       <col className="col-volume" />
                       <col className="col-dim" />
+                      <col className="col-declared-value" />
                     </colgroup>
 
                     <thead>
                       <tr>
-                        <th className="is-center">
-                          STT
-                        </th>
-                        <th>Tên sản phẩm</th>
+                        <th className="is-center">STT</th>
+                        <th>Sản phẩm</th>
                         <th>Loại hàng</th>
                         <th className="is-center">
-                          Số kiện
+                          Số lượng
                         </th>
                         <th>Trọng lượng</th>
-                        <th>Kích thước</th>
+                        <th>Kích thước thực</th>
+                        <th>Cấu hình đóng gói</th>
                         <th>Thể tích</th>
                         <th>DIM</th>
+                        <th>Giá trị khai báo</th>
                       </tr>
                     </thead>
 
@@ -2905,16 +1937,37 @@ import {
                               dimDivisor
                             );
 
+                          const apiDimWeight =
+                            getItemApiDimWeight(
+                              item
+                            );
+
                           const productTypeName =
                             getProductTypeName(
                               item,
                               productTypeMap
                             );
 
+                          const trackingCode =
+                            getItemDomesticTrackingCode(
+                              item
+                            );
+
+                          const packageConfig =
+                            getItemPackageConfiguration(
+                              item
+                            );
+
+                          const imageUrl =
+                            Array.isArray(
+                              item?.referenceUrls
+                            )
+                              ? item.referenceUrls[0]
+                              : "";
+
                           return (
                             <tr
                               key={
-                                item?.itemId ||
                                 item?.id ||
                                 `${getItemName(
                                   item
@@ -2928,36 +1981,44 @@ import {
                               </td>
 
                               <td className="product-name-cell">
-                                <div className="consignment-product-name">
-                                  <strong>
-                                    {getItemName(
-                                      item
-                                    )}
-                                  </strong>
-
-                                  {item
-                                    ?.trackingNumber && (
-                                    <small>
-                                      Mã nội địa:{" "}
-                                      {
-                                        item.trackingNumber
-                                      }
-                                    </small>
+                                <div className="consignment-product-cell">
+                                  {imageUrl ? (
+                                    <img
+                                      src={imageUrl}
+                                      alt={getItemName(item)}
+                                      className="consignment-product-image"
+                                    />
+                                  ) : (
+                                    <div className="consignment-product-image is-empty">
+                                      <ShoppingOutlined />
+                                    </div>
                                   )}
+
+                                  <div className="consignment-product-name">
+                                    <strong>
+                                      {getItemName(item)}
+                                    </strong>
+
+                                    <small>
+                                      {trackingCode
+                                        ? `Mã nội địa: ${trackingCode}`
+                                        : "Chưa có mã nội địa"}
+                                    </small>
+                                  </div>
                                 </div>
                               </td>
 
                               <td className="product-type-cell">
                                 <Tag className="consignment-product-type-tag">
-                                  {
-                                    productTypeName
-                                  }
+                                  {productTypeName}
                                 </Tag>
                               </td>
 
                               <td className="is-center">
                                 <strong className="consignment-package-count">
-                                  1
+                                  {getItemQuantity(
+                                    item
+                                  )}
                                 </strong>
                               </td>
 
@@ -3001,10 +2062,53 @@ import {
                                       4
                                     )}
                                   </strong>
-                                  <small>
-                                    cm
-                                  </small>
+                                  <small>cm</small>
                                 </div>
+                              </td>
+
+                              <td>
+                                {!packageConfig ? (
+                                  <span className="consignment-api-empty">
+                                    Chưa có cấu hình
+                                  </span>
+                                ) : (
+                                  <div className="consignment-package-config">
+                                    <strong>
+                                      {translatePackageConfiguration(
+                                        packageConfig
+                                      )}
+                                    </strong>
+
+                                    <span>
+                                      {formatMeasurement(
+                                        packageConfig
+                                          ?.length,
+                                        2
+                                      )}{" "}
+                                      ×{" "}
+                                      {formatMeasurement(
+                                        packageConfig
+                                          ?.width,
+                                        2
+                                      )}{" "}
+                                      ×{" "}
+                                      {formatMeasurement(
+                                        packageConfig
+                                          ?.height,
+                                        2
+                                      )}{" "}
+                                      cm
+                                    </span>
+
+                                    <small>
+                                      Phí đóng gói:{" "}
+                                      {formatCurrency(
+                                        packageConfig
+                                          ?.packageFee
+                                      )}
+                                    </small>
+                                  </div>
+                                )}
                               </td>
 
                               <td>
@@ -3027,13 +2131,26 @@ import {
                                   </strong>
 
                                   <small>
-                                    ÷{" "}
-                                    {formatMeasurement(
-                                      dimDivisor,
-                                      0
-                                    )}
+                                    {apiDimWeight !== null
+                                      ? "Khối lượng quy đổi của kiện"
+                                      : hasApiDimDivisor
+                                        ? `÷ ${formatMeasurement(
+                                            dimDivisor,
+                                            0
+                                          )}`
+                                        : "Chưa đủ dữ liệu để tính"}
                                   </small>
                                 </div>
+                              </td>
+
+                              <td>
+                                <strong className="consignment-declared-value">
+                                  {formatCurrency(
+                                    getItemDeclaredValue(
+                                      item
+                                    )
+                                  )}
+                                </strong>
                               </td>
                             </tr>
                           );
@@ -3052,7 +2169,7 @@ import {
 
                         <td className="is-center">
                           <strong>
-                            {packageCount}
+                            {totalQuantity}
                           </strong>
                         </td>
 
@@ -3070,8 +2187,16 @@ import {
 
                         <td>
                           <strong>
+                            {formatCurrency(
+                              totalPackageFee
+                            )}
+                          </strong>
+                        </td>
+
+                        <td>
+                          <strong>
                             {formatMeasurement(
-                              calculatedTotalVolumeCm3,
+                              displayTotalVolumeCm3,
                               4
                             )}{" "}
                             cm³
@@ -3086,6 +2211,14 @@ import {
                             kg
                           </strong>
                         </td>
+
+                        <td>
+                          <strong>
+                            {formatCurrency(
+                              totalDeclaredValue
+                            )}
+                          </strong>
+                        </td>
                       </tr>
                     </tfoot>
                   </table>
@@ -3093,586 +2226,9 @@ import {
               )}
             </section>
 
-            {/* ================= QUOTATION BUILDER ================= */}
 
-            <section className="consignment-detail-card quotation-builder-card">
-              <SectionTitle
-                icon={<DollarOutlined />}
-                title="Lập báo giá"
-                description="Tạo báo giá tạm tính hoặc gửi báo giá chính thức đến khách hàng."
-                extra={
-                  <Tag className="quotation-builder-status-tag">
-                    {quotation
-                      ? translateQuoteType(
-                          quotation?.quoteType
-                        )
-                      : "Chưa có báo giá"}
-                  </Tag>
-                }
-              />
 
-              {!canCreateQuotation && (
-                <Alert
-                  type="warning"
-                  showIcon
-                  className="quotation-builder-alert"
-                  message="Chưa đủ điều kiện tạo báo giá"
-                  description="Đơn phải có kiện hàng, trọng lượng, thể tích, kho Origin đang hoạt động và bảng giá dịch vụ hợp lệ; đồng thời đơn chưa hoàn thành hoặc hủy."
-                />
-              )}
 
-              <div className="quotation-builder-layout">
-                <div className="quotation-builder-form-panel">
-                  <Form
-                    form={quotationForm}
-                    layout="vertical"
-                    requiredMark={false}
-                    autoComplete="off"
-                    className="quotation-builder-form"
-                  >
-                    <div className="quotation-form-section-title">
-                      <span>01</span>
-                      <div>
-                        <strong>Thông tin xử lý</strong>
-                        <small>Kho, bảng giá và tuyến vận chuyển áp dụng.</small>
-                      </div>
-                    </div>
-
-                    <div className="quotation-form-grid">
-                      <div className="quotation-warehouse-field">
-                        <span className="quotation-warehouse-field__label">
-                          Kho Origin
-                        </span>
-
-                        <Form.Item
-                          name="warehouseId"
-                          hidden
-                        >
-                          <Input />
-                        </Form.Item>
-
-                        {!hasOriginWarehouse ? (
-                          <div className="quotation-warehouse-empty">
-                            <EnvironmentOutlined />
-
-                            <div>
-                              <strong>
-                                Không có kho Origin
-                              </strong>
-
-                              <span>
-                                API /api/warehouses/active không trả về kho Origin đang hoạt động.
-                              </span>
-                            </div>
-                          </div>
-                        ) : hasSingleOriginWarehouse ? (
-                          <div className="quotation-warehouse-readonly">
-                            <div className="quotation-warehouse-readonly__icon">
-                              <EnvironmentOutlined />
-                            </div>
-
-                            <div className="quotation-warehouse-readonly__content">
-                              <strong>
-                                {
-                                  singleOriginWarehouse
-                                    ?.name
-                                }
-                              </strong>
-
-                              <span>
-                                {singleOriginWarehouse
-                                  ?.code
-                                  ? `${singleOriginWarehouse.code} • `
-                                  : ""}
-                                {singleOriginWarehouse
-                                  ?.address ||
-                                  "Chưa cập nhật địa chỉ"}
-                              </span>
-                            </div>
-
-                            <Tag className="quotation-warehouse-readonly__tag">
-                              Tự động chọn
-                            </Tag>
-                          </div>
-                        ) : (
-                          <Form.Item
-                            name="warehouseId"
-                            noStyle
-                            rules={[
-                              {
-                                required: true,
-                                message:
-                                  "Vui lòng chọn kho Origin.",
-                              },
-                            ]}
-                          >
-                            <Select
-                              size="large"
-                              showSearch
-                              allowClear
-                              placeholder="Chọn kho Origin"
-                              disabled={
-                                quotationBusy
-                              }
-                              options={
-                                warehouseOptions
-                              }
-                              optionFilterProp="searchText"
-                              filterOption={(
-                                input,
-                                option
-                              ) =>
-                                String(
-                                  option
-                                    ?.searchText ||
-                                    ""
-                                ).includes(
-                                  String(
-                                    input ||
-                                      ""
-                                  )
-                                    .trim()
-                                    .toLowerCase()
-                                )
-                              }
-                              optionRender={(
-                                option
-                              ) => {
-                                const warehouse =
-                                  option?.data;
-
-                                return (
-                                  <div className="quotation-warehouse-option">
-                                    <strong>
-                                      {
-                                        warehouse
-                                          ?.name
-                                      }
-                                    </strong>
-
-                                    <span>
-                                      {warehouse
-                                        ?.code
-                                        ? `${warehouse.code} • `
-                                        : ""}
-                                      {warehouse
-                                        ?.address ||
-                                        "Chưa cập nhật địa chỉ"}
-                                    </span>
-                                  </div>
-                                );
-                              }}
-                            />
-                          </Form.Item>
-                        )}
-
-                        {hasMultipleOriginWarehouses && (
-                          <small className="quotation-warehouse-field__hint">
-                            Có {warehouses.length} kho Origin đang hoạt động. Vui lòng chọn kho xử lý.
-                          </small>
-                        )}
-                      </div>
-
-                      <Form.Item
-                        name="servicePricingId"
-                        label="Bảng giá dịch vụ"
-                        rules={[{
-                          required: true,
-                          message: "Vui lòng chọn bảng giá dịch vụ.",
-                        }]}
-                      >
-                        <Select
-                          size="large"
-                          showSearch
-                          allowClear
-                          placeholder="Chọn bảng giá dịch vụ"
-                          disabled={quotationBusy}
-                          options={
-                            servicePricingOptions
-                          }
-                          optionFilterProp="searchText"
-                          filterOption={(
-                            input,
-                            option
-                          ) =>
-                            String(
-                              option
-                                ?.searchText ||
-                                ""
-                            ).includes(
-                              String(
-                                input || ""
-                              )
-                                .trim()
-                                .toLowerCase()
-                            )
-                          }
-                          onChange={
-                            handleServicePricingChange
-                          }
-                        />
-                      </Form.Item>
-
-                      <Form.Item
-                        name="serviceType"
-                        label="Loại dịch vụ"
-                        rules={[{
-                          required: true,
-                          message: "Không xác định được loại dịch vụ.",
-                        }]}
-                      >
-                        <Select
-                          size="large"
-                          disabled
-                          options={
-                            SERVICE_TYPE_OPTIONS
-                          }
-                          className="quotation-readonly-field"
-                        />
-                      </Form.Item>
-
-                      <Form.Item
-                        name="unitType"
-                        label="Đơn vị tính giá"
-                        rules={[{
-                          required: true,
-                          message: "Vui lòng chọn đơn vị tính giá.",
-                        }]}
-                      >
-                        <Select
-                          size="large"
-                          disabled={
-                            quotationBusy ||
-                            Boolean(
-                              selectedServicePricing
-                            )
-                          }
-                          options={[
-                            { value: "KG", label: "Theo kg tính cước" },
-                            { value: "M3", label: "Theo m³" },
-                            { value: "PACKAGE", label: "Theo kiện" },
-                          ]}
-                        />
-                      </Form.Item>
-
-                      <Form.Item
-                        name="originCountry"
-                        label="Quốc gia gửi"
-                        rules={[{
-                          required: true,
-                          message: "Không xác định được quốc gia gửi.",
-                        }]}
-                      >
-                        <Select
-                          size="large"
-                          disabled
-                          options={
-                            COUNTRY_OPTIONS
-                          }
-                          className="quotation-readonly-field"
-                        />
-                      </Form.Item>
-
-                      <Form.Item
-                        name="destinationCountry"
-                        label="Quốc gia nhận"
-                        rules={[{
-                          required: true,
-                          message: "Không xác định được quốc gia nhận.",
-                        }]}
-                      >
-                        <Select
-                          size="large"
-                          disabled
-                          options={
-                            COUNTRY_OPTIONS
-                          }
-                          className="quotation-readonly-field"
-                        />
-                      </Form.Item>
-                    </div>
-
-                    <div className="quotation-form-section-title">
-                      <span>02</span>
-                      <div>
-                        <strong>Đơn giá và giá trị hàng</strong>
-                        <small>Số tiền tự cập nhật theo đơn vị tính giá.</small>
-                      </div>
-                    </div>
-
-                    <div className="quotation-form-grid">
-                      <Form.Item
-                        name="unitPrice"
-                        label="Đơn giá"
-                        rules={[
-                          { required: true, message: "Vui lòng nhập đơn giá." },
-                          { type: "number", min: 0, message: "Đơn giá không được âm." },
-                        ]}
-                      >
-                        <InputNumber
-                          size="large"
-                          min={0}
-                          precision={2}
-                          controls={false}
-                          formatter={currencyInputFormatter}
-                          parser={currencyInputParser}
-                          addonAfter="₫"
-                          disabled={quotationBusy}
-                          className="quotation-number-input"
-                        />
-                      </Form.Item>
-
-                      <Form.Item name="declaredValue" label="Giá trị khai báo">
-                        <InputNumber
-                          size="large"
-                          min={0}
-                          precision={2}
-                          controls={false}
-                          formatter={currencyInputFormatter}
-                          parser={currencyInputParser}
-                          addonAfter="₫"
-                          disabled={quotationBusy}
-                          className="quotation-number-input"
-                        />
-                      </Form.Item>
-
-                      <Form.Item name="discountPercent" label="Chiết khấu">
-                        <InputNumber
-                          size="large"
-                          min={0}
-                          max={100}
-                          precision={2}
-                          controls={false}
-                          addonAfter="%"
-                          disabled={quotationBusy}
-                          className="quotation-number-input"
-                        />
-                      </Form.Item>
-
-                      <Form.Item name="vat" label="Thuế VAT">
-                        <InputNumber
-                          size="large"
-                          min={0}
-                          precision={2}
-                          controls={false}
-                          formatter={currencyInputFormatter}
-                          parser={currencyInputParser}
-                          addonAfter="₫"
-                          disabled={quotationBusy}
-                          className="quotation-number-input"
-                        />
-                      </Form.Item>
-
-                      <Form.Item name="importTax" label="Thuế nhập khẩu">
-                        <InputNumber
-                          size="large"
-                          min={0}
-                          precision={2}
-                          controls={false}
-                          formatter={currencyInputFormatter}
-                          parser={currencyInputParser}
-                          addonAfter="₫"
-                          disabled={quotationBusy}
-                          className="quotation-number-input"
-                        />
-                      </Form.Item>
-
-                      <Form.Item
-                        name="salesNote"
-                        label="Ghi chú báo giá"
-                        className="quotation-form-full"
-                      >
-                        <Input.TextArea
-                          rows={3}
-                          maxLength={500}
-                          showCount
-                          placeholder="Nhập ghi chú gửi khách hàng"
-                          disabled={quotationBusy}
-                        />
-                      </Form.Item>
-                    </div>
-
-                    <div className="quotation-form-section-title">
-                      <span>03</span>
-                      <div>
-                        <strong>Phụ phí áp dụng</strong>
-                        <small>Dữ liệu lấy trực tiếp từ pricing-rules.</small>
-                      </div>
-                    </div>
-
-                    <div className="quotation-fee-list">
-                      {quotationFeeRows.length === 0 ? (
-                        <Empty
-                          image={Empty.PRESENTED_IMAGE_SIMPLE}
-                          description="Không có quy tắc phụ phí đang hoạt động."
-                        />
-                      ) : (
-                        quotationFeeRows.map((fee) => (
-                          <div
-                            key={fee.id || fee.code}
-                            className={`quotation-fee-row ${
-                              !fee.eligible ? "is-disabled" : ""
-                            }`}
-                          >
-                            <div className="quotation-fee-row__main">
-                              <Switch
-                                checked={fee.enabled}
-                                disabled={
-                                  quotationBusy ||
-                                  fee.isRequired ||
-                                  !fee.eligible
-                                }
-                                onChange={(checked) => {
-                                  setEnabledFeeCodes((previous) => ({
-                                    ...previous,
-                                    [fee.code]: checked,
-                                  }));
-                                }}
-                              />
-
-                              <div className="quotation-fee-row__content">
-                                <strong>{fee.ruleName || fee.code}</strong>
-                                <span>{fee.description || "Phụ phí bổ sung"}</span>
-                                {!fee.eligible && (
-                                  <small>Chưa thỏa điều kiện áp dụng.</small>
-                                )}
-                              </div>
-                            </div>
-
-                            <div className="quotation-fee-row__amount">
-                              <strong>{formatCurrency(fee.amount)}</strong>
-                              <span>
-                                {fee.calculationType === "PERCENTAGE"
-                                  ? `${formatMeasurement(fee.value, 2)}%`
-                                  : fee.conditionType || "Cố định"}
-                              </span>
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </Form>
-                </div>
-
-                <aside className="quotation-live-summary">
-                  <div className="quotation-live-summary__header">
-                    <span>TẠM TÍNH TRỰC TIẾP</span>
-                    <strong>{formatCurrency(quotationTotal)}</strong>
-                    <small>Giá trị thay đổi theo dữ liệu biểu mẫu.</small>
-                  </div>
-
-                  <div className="quotation-metric-grid">
-                    <div>
-                      <span>Trọng lượng thực</span>
-                      <strong>{formatMeasurement(displayTotalWeightKg, 4)} kg</strong>
-                    </div>
-                    <div>
-                      <span>Trọng lượng DIM</span>
-                      <strong>{formatDimWeight(totalDimKg)} kg</strong>
-                    </div>
-                    <div className="is-highlight">
-                      <span>Khối lượng tính cước</span>
-                      <strong>{formatMeasurement(chargeableWeightKg, 4)} kg</strong>
-                    </div>
-                    <div>
-                      <span>Số kiện</span>
-                      <strong>{packageCount} kiện</strong>
-                    </div>
-                    <div>
-                      <span>Thể tích</span>
-                      <strong>{formatMeasurement(totalVolumeM3, 6)} m³</strong>
-                    </div>
-                    <div>
-                      <span>Số lượng tính giá</span>
-                      <strong>
-                        {formatMeasurement(billingQuantity, 6)}{" "}
-                        {watchedUnitType === "PACKAGE"
-                          ? "kiện"
-                          : watchedUnitType === "M3"
-                            ? "m³"
-                            : "kg"}
-                      </strong>
-                    </div>
-                  </div>
-
-                  <div className="quotation-calculation-lines">
-                    <div><span>Phí dịch vụ chính</span><strong>{formatCurrency(mainServiceAmount)}</strong></div>
-                    <div><span>Tổng phụ phí</span><strong>{formatCurrency(additionalFeeTotal)}</strong></div>
-                    <div><span>Tạm tính</span><strong>{formatCurrency(quotationSubtotal)}</strong></div>
-                    <div className="is-discount">
-                      <span>
-                        Chiết khấu (
-                        {formatMeasurement(
-                          watchedDiscountPercent,
-                          2
-                        )}
-                        %)
-                      </span>
-                      <strong>
-                        {normalizePositiveNumber(
-                          watchedDiscountPercent
-                        ) > 0
-                          ? `-${formatCurrency(
-                              quotationDiscount
-                            )}`
-                          : formatCurrency(
-                              quotationDiscount
-                            )}
-                      </strong>
-                    </div>
-                    <div><span>VAT</span><strong>{formatCurrency(watchedVat)}</strong></div>
-                    <div><span>Thuế nhập khẩu</span><strong>{formatCurrency(watchedImportTax)}</strong></div>
-                  </div>
-
-                  <div className="quotation-grand-total">
-                    <span>Tổng dự kiến</span>
-                    <strong>{formatCurrency(quotationTotal)}</strong>
-                  </div>
-
-                  <div className="quotation-builder-actions">
-                    <Button
-                      size="large"
-                      icon={<FileTextOutlined />}
-                      loading={estimating}
-                      disabled={quotationBusy || !canCreateQuotation}
-                      onClick={handleEstimateQuotation}
-                      className="quotation-estimate-button"
-                    >
-                      Tạo báo giá tạm tính
-                    </Button>
-
-                    <Popconfirm
-                      title="Tạo báo giá chính thức?"
-                      description="Hệ thống sẽ tạo và gửi báo giá chính thức với dữ liệu hiện tại."
-                      okText="Tạo chính thức"
-                      cancelText="Kiểm tra lại"
-                      placement="topRight"
-                      onConfirm={handleSendQuotation}
-                      disabled={quotationBusy || !canCreateQuotation}
-                    >
-                      <Button
-                        type="primary"
-                        size="large"
-                        icon={<SendOutlined />}
-                        loading={sending}
-                        disabled={quotationBusy || !canCreateQuotation}
-                        className="quotation-send-button"
-                      >
-                        Tạo báo giá chính thức
-                      </Button>
-                    </Popconfirm>
-                  </div>
-
-                  <div className="quotation-builder-note">
-                    <SafetyCertificateOutlined />
-                    <span>
-                      Hệ số DIM: {formatMeasurement(dimDivisor, 0)}{" "}
-                      {isDimDivisorFromApi ? "từ API" : "mặc định"}.
-                    </span>
-                  </div>
-                </aside>
-              </div>
-            </section>
           </div>
 
           <aside className="consignment-detail-sidebar">
@@ -3735,7 +2291,8 @@ import {
             <section className="consignment-detail-card consignment-quotation-card">
               <SectionTitle
                 icon={<DollarOutlined />}
-                title="Báo giá"
+                title="Chi tiết báo giá"
+                description="Các khoản phí và tổng chi phí của đơn hàng được trình bày rõ ràng bên dưới."
                 extra={
                   quotation ? (
                     <StatusBadge
@@ -3767,54 +2324,104 @@ import {
                 />
               ) : (
                 <>
-                  <div className="consignment-quotation-type">
-                    <span>
-                      Loại báo giá
-                    </span>
+                  <div className="consignment-quotation-source">
+                    <div>
+                      <span>Thông tin báo giá</span>
+                      <strong>
+                        {translateQuoteType(
+                          quotation?.quoteType
+                        )}
+                      </strong>
+                    </div>
 
-                    <strong>
-                      {translateQuoteType(
-                        quotation?.quoteType
-                      )}
-                    </strong>
+                    <Tag className="consignment-quotation-api-tag">
+                      {quotationStatus.label}
+                    </Tag>
                   </div>
 
-                  <div className="consignment-quotation-lines">
+                  <div className="consignment-quotation-meta-grid">
                     <div>
-                      <span>
-                        Phí vận chuyển dự kiến
-                      </span>
-
+                      <span>Loại báo giá</span>
                       <strong>
-                        {formatCurrency(
-                          quotation
-                            ?.estimatedFreightCharge
+                        {translateQuoteType(
+                          quotation?.quoteType
                         )}
                       </strong>
                     </div>
 
                     <div>
-                      <span>
-                        Phí dịch vụ
-                      </span>
-
+                      <span>Trạng thái</span>
                       <strong>
-                        {formatCurrency(
-                          quotation
-                            ?.serviceFee
-                        )}
+                        {quotationStatus.label}
                       </strong>
                     </div>
 
                     <div>
+                      <span>Thể tích báo giá</span>
+                      <strong>
+                        {formatMeasurement(
+                          quotation?.totalVolume,
+                          4
+                        )}{" "}
+                        cm³
+                      </strong>
+                    </div>
+
+                    <div>
+                      <span>Hệ số quy đổi</span>
+                      <strong>
+                        {hasApiDimDivisor
+                          ? formatMeasurement(
+                              dimDivisor,
+                              0
+                            )
+                          : "Chưa có dữ liệu"}
+                      </strong>
+                    </div>
+                  </div>
+
+                  <div className="consignment-quotation-lines is-detailed">
+                    <div className="is-freight">
+                      <span>
+                        Phí vận chuyển quốc tế
+                      </span>
+                      <strong>
+                        {formatCurrency(
+                          quotationBreakdown
+                            ?.freight
+                        )}
+                      </strong>
+                    </div>
+
+                    <div className="is-domestic">
+                      <span>
+                        Phí vận chuyển nội địa
+                      </span>
+                      <strong>
+                        {formatCurrency(
+                          quotationBreakdown
+                            ?.domestic
+                        )}
+                      </strong>
+                    </div>
+
+                    <div className="is-service">
+                      <span>Phí dịch vụ</span>
+                      <strong>
+                        {formatCurrency(
+                          quotationBreakdown
+                            ?.service
+                        )}
+                      </strong>
+                    </div>
+
+                    <div className="is-tax">
                       <span>
                         Thuế và phí nhập khẩu
                       </span>
-
                       <strong>
                         {formatCurrency(
-                          quotation
-                            ?.taxAndDuty
+                          quotationBreakdown?.tax
                         )}
                       </strong>
                     </div>
@@ -3827,10 +2434,49 @@ import {
 
                     <strong>
                       {formatCurrency(
-                        quotation
-                          ?.totalEstimatedCost
+                        quotationBreakdown?.total
                       )}
                     </strong>
+                  </div>
+
+                  <div
+                    className={`consignment-quotation-check ${
+                      Math.abs(
+                        quotationBreakdown
+                          ?.difference || 0
+                      ) < 1
+                        ? "is-match"
+                        : "is-mismatch"
+                    }`}
+                  >
+                    <CheckCircleOutlined />
+
+                    <div>
+                      <strong>
+                        {Math.abs(
+                          quotationBreakdown
+                            ?.difference || 0
+                        ) < 1
+                          ? "Tổng báo giá đã khớp"
+                          : "Tổng báo giá đang lệch"}
+                      </strong>
+
+                      <span>
+                        Tổng các khoản chi phí:{" "}
+                        {formatCurrency(
+                          quotationBreakdown
+                            ?.componentTotal
+                        )}
+                        {Math.abs(
+                          quotationBreakdown
+                            ?.difference || 0
+                        ) >= 1 &&
+                          ` • Chênh lệch ${formatCurrency(
+                            quotationBreakdown
+                              ?.difference
+                          )}`}
+                      </span>
+                    </div>
                   </div>
 
                   <div className="consignment-quotation-dates">
@@ -3838,14 +2484,10 @@ import {
                       <CalendarOutlined />
 
                       <span>
-                        <small>
-                          Ngày tạo
-                        </small>
-
+                        <small>Ngày tạo</small>
                         <strong>
                           {formatDateTime(
-                            quotation
-                              ?.createdAt
+                            quotation?.createdAt
                           )}
                         </strong>
                       </span>
@@ -3855,14 +2497,10 @@ import {
                       <ClockCircleOutlined />
 
                       <span>
-                        <small>
-                          Hết hạn
-                        </small>
-
+                        <small>Hết hạn</small>
                         <strong>
                           {formatDateTime(
-                            quotation
-                              ?.expiredAt
+                            quotation?.expiredAt
                           )}
                         </strong>
                       </span>
