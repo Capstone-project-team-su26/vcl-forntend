@@ -1,5 +1,5 @@
 /* =========================
-   TRANG Láº¬P BĂO GIĂ
+   TRANG LẬP BÁO GIÁ
 ========================= */
 
 .quotation-create-page {
@@ -85,7 +85,7 @@
 }
 
 /* =========================
-   THANH ÄIá»€U HÆ¯á»NG
+   THANH ĐIỀU HƯỚNG
 ========================= */
 
 .quotation-create-topbar {
@@ -284,7 +284,7 @@
 }
 
 /* =========================
-   Bá» Cá»¤C CHĂNH
+   BỐ CỤC CHÍNH
 ========================= */
 
 .quotation-create-layout {
@@ -366,7 +366,7 @@
 }
 
 /* =========================
-   THĂ”NG TIN KHĂ“A
+   THÔNG TIN KHÓA
 ========================= */
 
 .quotation-locked-grid {
@@ -432,7 +432,7 @@
 }
 
 /* =========================
-   Báº¢NG GIĂ KHĂ“A
+   BẢNG GIÁ KHÓA
 ========================= */
 
 .quotation-pricing-card {
@@ -527,7 +527,7 @@
 }
 
 /* =========================
-   ÄĂ“NG GĂ“I VĂ€ PHá»¤ PHĂ
+   ĐÓNG GÓI VÀ PHỤ PHÍ
 ========================= */
 
 .quotation-package-list,
@@ -600,7 +600,7 @@
 }
 
 /* =========================
-   BIá»‚U MáºªU
+   BIỂU MẪU
 ========================= */
 
 .quotation-create-form .ant-form-item {
@@ -657,7 +657,7 @@
 }
 
 /* =========================
-   Tá»”NG Há»¢P
+   TỔNG HỢP
 ========================= */
 
 .quotation-create-summary {
@@ -942,5 +942,210 @@
 
   .quotation-selected-fee > strong {
     grid-column: 2;
+  }
+}
+
+/* Tổng phí đóng gói = cấu hình thùng theo kiện + đóng thùng gỗ theo đơn */
+.quotation-summary-lines .is-packaging-total,
+.quotation-confirm__lines .is-packaging-total {
+  padding-top: 10px;
+  margin-top: 2px;
+  border-top: 1px dashed #cbd5e1;
+}
+
+.quotation-summary-lines .is-packaging-total span,
+.quotation-summary-lines .is-packaging-total strong,
+.quotation-confirm__lines .is-packaging-total span,
+.quotation-confirm__lines .is-packaging-total strong {
+  color: #1d4ed8;
+  font-weight: 900;
+}
+
+/* =========================
+   CHỌN KHO PHÙ HỢP VỚI TUYẾN
+========================= */
+
+.quotation-warehouse-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 152px;
+}
+
+.quotation-warehouse-select {
+  width: 100%;
+  margin-top: 2px;
+}
+
+.quotation-warehouse-select .ant-select-selector {
+  min-height: 44px !important;
+  padding: 5px 12px !important;
+  border-color: #cbd5e1 !important;
+  border-radius: 12px !important;
+  background: #ffffff !important;
+  box-shadow: none !important;
+}
+
+.quotation-warehouse-select.ant-select-focused
+  .ant-select-selector,
+.quotation-warehouse-select:hover
+  .ant-select-selector {
+  border-color: #2563eb !important;
+  box-shadow:
+    0 0 0 3px rgba(37, 99, 235, 0.1) !important;
+}
+
+.quotation-warehouse-select .ant-select-selection-item,
+.quotation-warehouse-select .ant-select-selection-placeholder {
+  display: flex;
+  align-items: center;
+  color: #172033;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.quotation-warehouse-selected {
+  display: grid;
+  gap: 4px;
+  margin-top: 11px;
+  padding: 11px 12px;
+  border: 1px solid #dbeafe;
+  border-radius: 12px;
+  background: #eff6ff;
+}
+
+.quotation-warehouse-selected strong {
+  color: #1e3a8a;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.45;
+}
+
+.quotation-warehouse-selected small {
+  color: #64748b;
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.quotation-warehouse-selected .ant-tag {
+  width: fit-content;
+  margin: 4px 0 0;
+}
+
+.quotation-warehouse-select-popup .ant-select-item {
+  min-height: 40px;
+  padding: 10px 12px;
+  border-radius: 9px;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.quotation-warehouse-select-popup
+  .ant-select-item-option-selected {
+  background: #eff6ff !important;
+  color: #1d4ed8;
+  font-weight: 900;
+}
+
+.quotation-summary-lines > div.is-domestic-fee,
+.quotation-confirm__lines > div.is-domestic-fee {
+  border-color: #fde68a;
+  background: #fffbeb;
+}
+
+@media (max-width: 720px) {
+  .quotation-warehouse-card {
+    min-height: 0;
+  }
+
+  .quotation-warehouse-select .ant-select-selector {
+    min-height: 46px !important;
+  }
+}
+
+
+/* Thuế được lấy từ kết quả tính của hệ thống */
+.quotation-summary-lines > div.is-tax-and-duty {
+  border: 1px solid #c7d2fe;
+  border-radius: 12px;
+  padding: 11px 12px;
+  background: #eef2ff;
+}
+
+.quotation-summary-lines > div.is-tax-and-duty span,
+.quotation-summary-lines > div.is-tax-and-duty strong {
+  color: #3730a3;
+}
+
+.quotation-summary-lines > div.is-tax-pending {
+  align-items: flex-start;
+  border: 1px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 11px 12px;
+  background: #f8fafc;
+}
+
+.quotation-summary-lines > div.is-tax-pending strong {
+  max-width: 175px;
+  color: #64748b;
+  font-size: 11px;
+  line-height: 1.45;
+  text-align: right;
+  white-space: normal;
+}
+
+/* =========================================================
+   TRẠNG THÁI ĐÃ GỬI BÁO GIÁ
+   Thêm cuối file CreateConsignmentQuotation.css
+========================================================= */
+
+.quotation-confirm-button.is-quotation-sent,
+.quotation-confirm-button.is-quotation-sent:hover,
+.quotation-confirm-button.is-quotation-sent:focus,
+.quotation-confirm-button.is-quotation-sent:active {
+  border-color: #cbd5e1 !important;
+  background:
+    linear-gradient(
+      135deg,
+      #e2e8f0,
+      #cbd5e1
+    ) !important;
+  color: #64748b !important;
+  opacity: 0.72;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.quotation-confirm-button.is-quotation-sent
+  .anticon {
+  color: #64748b;
+}
+
+.quotation-sent-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin-top: 11px;
+  padding: 11px 12px;
+  border: 1px solid #bbf7d0;
+  border-radius: 12px;
+  background: #f0fdf4;
+  color: #166534;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.55;
+}
+
+.quotation-sent-message > .anticon {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: #16a34a;
+  font-size: 15px;
+}
+
+@media (max-width: 560px) {
+  .quotation-sent-message {
+    font-size: 10px;
   }
 }
