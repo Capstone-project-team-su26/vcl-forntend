@@ -1,6 +1,10 @@
-import { useState } from "react";
+import {
+  useEffect,
+  useState,
+} from "react";
 import {
   NavLink,
+  useLocation,
   useNavigate,
 } from "react-router-dom";
 
@@ -11,16 +15,18 @@ import {
   CustomerServiceOutlined,
   DashboardOutlined,
   DatabaseOutlined,
+  DownOutlined,
   FileSearchOutlined,
   FileTextOutlined,
   InboxOutlined,
   LogoutOutlined,
+  PlusCircleOutlined,
   RightOutlined,
   SafetyCertificateOutlined,
   SettingOutlined,
   ShoppingCartOutlined,
+  ShoppingOutlined,
   TeamOutlined,
-  UserOutlined,
 } from "@ant-design/icons";
 
 import logoVietnamLogistics from "../../assets/anhlogocap2.jpeg";
@@ -63,27 +69,32 @@ const ROLE_INFO = {
 const MENU_BY_ROLE = {
   admin: [
     {
+      key: "admin-dashboard",
       label: "Tổng quan",
       icon: <DashboardOutlined />,
       path: "/admin",
       end: true,
     },
     {
+      key: "admin-users",
       label: "Quản lý người dùng",
       icon: <TeamOutlined />,
       path: "/admin/user",
     },
     {
+      key: "admin-roles",
       label: "Phân quyền hệ thống",
       icon: <SafetyCertificateOutlined />,
       path: "/admin/roles",
     },
     {
+      key: "admin-settings",
       label: "Cấu hình tham số",
       icon: <SettingOutlined />,
       path: "/admin/settings",
     },
     {
+      key: "admin-logs",
       label: "Nhật ký hệ thống",
       icon: <FileTextOutlined />,
       path: "/admin/logs",
@@ -92,32 +103,38 @@ const MENU_BY_ROLE = {
 
   operationsmanager: [
     {
+      key: "operations-dashboard",
       label: "Tổng quan vận hành",
       icon: <AppstoreOutlined />,
       path: "/operations-manager",
       end: true,
     },
     {
+      key: "operations-orders",
       label: "Quản lý đơn hàng",
       icon: <FileSearchOutlined />,
       path: "/operations-manager/orders",
     },
     {
+      key: "operations-parcels",
       label: "Quản lý kiện hàng",
       icon: <InboxOutlined />,
       path: "/operations-manager/parcels",
     },
     {
+      key: "operations-warehouse",
       label: "Quản lý kho hàng",
       icon: <DatabaseOutlined />,
       path: "/operations-manager/warehouse",
     },
     {
+      key: "operations-pricing",
       label: "Quản lý bảng giá",
       icon: <CalculatorOutlined />,
       path: "/operations-manager/pricing",
     },
     {
+      key: "operations-reports",
       label: "Báo cáo vận hành",
       icon: <BarChartOutlined />,
       path: "/operations-manager/reports",
@@ -126,32 +143,57 @@ const MENU_BY_ROLE = {
 
   sale: [
     {
+      key: "sale-dashboard",
       label: "Tổng quan",
       icon: <DashboardOutlined />,
       path: "/sale",
       end: true,
     },
     {
+      key: "sale-create-request",
+      label: "Tạo yêu cầu",
+      icon: <PlusCircleOutlined />,
+      children: [
+        {
+          key: "sale-create-purchase",
+          label: "Mua hộ",
+          icon: <ShoppingOutlined />,
+          path: "/sale/create-order/buy-orders",
+        },
+        {
+          key: "sale-create-consignment",
+          label: "Ký gửi",
+          icon: <InboxOutlined />,
+          path: "/sale/create-order/consignment",
+        },
+      ],
+    },
+    {
+      key: "sale-customers",
       label: "Quản lý khách hàng",
-      icon: <UserOutlined />,
+      icon: <TeamOutlined />,
       path: "/sale/customers",
     },
     {
+      key: "sale-consignments",
       label: "Yêu cầu ký gửi",
       icon: <FileSearchOutlined />,
       path: "/sale/consignments",
     },
     {
+      key: "sale-purchase-requests",
       label: "Yêu cầu mua hộ",
       icon: <ShoppingCartOutlined />,
       path: "/sale/purchase-requests",
     },
     {
+      key: "sale-quotations",
       label: "Quản lý báo giá",
       icon: <CalculatorOutlined />,
       path: "/sale/quotations",
     },
     {
+      key: "sale-customer-service",
       label: "Chăm sóc khách hàng",
       icon: <CustomerServiceOutlined />,
       path: "/sale/customer-service",
@@ -160,18 +202,56 @@ const MENU_BY_ROLE = {
 };
 
 /* =====================================================
+   PATH HELPERS
+===================================================== */
+
+const isPathActive = (
+  pathname,
+  path,
+  end = false
+) => {
+  if (!path) {
+    return false;
+  }
+
+  if (end) {
+    return pathname === path;
+  }
+
+  return (
+    pathname === path ||
+    pathname.startsWith(`${path}/`)
+  );
+};
+
+const isMenuGroupActive = (
+  pathname,
+  children = []
+) => {
+  return children.some((child) =>
+    isPathActive(
+      pathname,
+      child.path,
+      child.end
+    )
+  );
+};
+
+/* =====================================================
    STORAGE
 ===================================================== */
 
 const getStoredUser = () => {
   try {
-    const rawUser = sessionStorage.getItem("user");
+    const rawUser =
+      sessionStorage.getItem("user");
 
     if (!rawUser) {
       return {};
     }
 
-    const parsedUser = JSON.parse(rawUser);
+    const parsedUser =
+      JSON.parse(rawUser);
 
     return parsedUser &&
       typeof parsedUser === "object"
@@ -188,7 +268,8 @@ const getStoredUser = () => {
 };
 
 const getAvatarText = (fullName) => {
-  const name = String(fullName || "").trim();
+  const name =
+    String(fullName || "").trim();
 
   if (!name) {
     return "U";
@@ -208,9 +289,12 @@ const getAvatarText = (fullName) => {
     words[0]?.charAt(0) || "";
 
   const lastLetter =
-    words[words.length - 1]?.charAt(0) || "";
+    words[
+      words.length - 1
+    ]?.charAt(0) || "";
 
-  return `${firstLetter}${lastLetter}`.toUpperCase();
+  return `${firstLetter}${lastLetter}`
+    .toUpperCase();
 };
 
 const clearLoginSession = () => {
@@ -234,12 +318,23 @@ const clearLoginSession = () => {
 
 export default function Sidebar() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [profileOpen, setProfileOpen] =
     useState(false);
 
   const [userProfile, setUserProfile] =
     useState(() => getStoredUser());
+
+  const [
+    openMenuGroups,
+    setOpenMenuGroups,
+  ] = useState(() => ({
+    "sale-create-request":
+      location.pathname.startsWith(
+        "/sale/create-order/"
+      ),
+  }));
 
   const storedRole =
     sessionStorage.getItem("role") ||
@@ -274,6 +369,44 @@ export default function Sidebar() {
   const avatarText =
     getAvatarText(fullName);
 
+  /*
+   * Khi người dùng đang ở trang con,
+   * menu cha sẽ tự mở.
+   */
+  useEffect(() => {
+    menus.forEach((item) => {
+      if (
+        Array.isArray(item.children) &&
+        isMenuGroupActive(
+          location.pathname,
+          item.children
+        )
+      ) {
+        setOpenMenuGroups(
+          (previous) => ({
+            ...previous,
+            [item.key]: true,
+          })
+        );
+      }
+    });
+  }, [
+    location.pathname,
+    menus,
+  ]);
+
+  const handleToggleMenuGroup = (
+    groupKey
+  ) => {
+    setOpenMenuGroups(
+      (previous) => ({
+        ...previous,
+        [groupKey]:
+          !previous[groupKey],
+      })
+    );
+  };
+
   const handleOpenProfile = () => {
     setProfileOpen(true);
   };
@@ -281,22 +414,30 @@ export default function Sidebar() {
   const handleCloseProfile = () => {
     setProfileOpen(false);
 
-    const latestUser = getStoredUser();
+    const latestUser =
+      getStoredUser();
 
-    if (Object.keys(latestUser).length > 0) {
+    if (
+      Object.keys(latestUser)
+        .length > 0
+    ) {
       setUserProfile(latestUser);
     }
   };
 
-  const handleProfileUpdated = (updatedProfile) => {
+  const handleProfileUpdated = (
+    updatedProfile
+  ) => {
     if (!updatedProfile) {
       return;
     }
 
-    setUserProfile((previous) => ({
-      ...previous,
-      ...updatedProfile,
-    }));
+    setUserProfile(
+      (previous) => ({
+        ...previous,
+        ...updatedProfile,
+      })
+    );
   };
 
   const handleLogout = () => {
@@ -320,8 +461,13 @@ export default function Sidebar() {
           </div>
 
           <div className="vcl-sidebar__brand-content">
-            <strong>VIETNAM LOGISTICS</strong>
-            <span>Cross-border platform</span>
+            <strong>
+              VIETNAM LOGISTICS
+            </strong>
+
+            <span>
+              Cross-border platform
+            </span>
           </div>
         </div>
 
@@ -329,43 +475,185 @@ export default function Sidebar() {
 
         <section className="vcl-sidebar__navigation">
           <div className="vcl-sidebar__section-title">
-            <span>KHÔNG GIAN LÀM VIỆC</span>
+            <span>
+              KHÔNG GIAN LÀM VIỆC
+            </span>
           </div>
 
           <nav
             className="vcl-sidebar__menu"
             aria-label="Điều hướng chính"
           >
-            {menus.map((item, index) => (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                end={Boolean(item.end)}
-                title={item.label}
-                style={{
-                  "--vcl-menu-index": index,
-                }}
-                className={({ isActive }) =>
-                  `vcl-menu-item${
-                    isActive
-                      ? " vcl-menu-item--active"
-                      : ""
-                  }`
+            {menus.map(
+              (item, index) => {
+                const hasChildren =
+                  Array.isArray(
+                    item.children
+                  ) &&
+                  item.children.length > 0;
+
+                if (hasChildren) {
+                  const isGroupActive =
+                    isMenuGroupActive(
+                      location.pathname,
+                      item.children
+                    );
+
+                  const isGroupOpen =
+                    Boolean(
+                      openMenuGroups[
+                        item.key
+                      ]
+                    );
+
+                  return (
+                    <div
+                      key={item.key}
+                      className={`vcl-menu-group ${
+                        isGroupActive
+                          ? "vcl-menu-group--active"
+                          : ""
+                      }`}
+                      style={{
+                        "--vcl-menu-index":
+                          index,
+                      }}
+                    >
+                      <button
+                        type="button"
+                        title={item.label}
+                        aria-expanded={
+                          isGroupOpen
+                        }
+                        aria-controls={`${item.key}-submenu`}
+                        className={`vcl-menu-item vcl-menu-dropdown ${
+                          isGroupActive
+                            ? "vcl-menu-item--active"
+                            : ""
+                        }`}
+                        onClick={() =>
+                          handleToggleMenuGroup(
+                            item.key
+                          )
+                        }
+                      >
+                        <span className="vcl-menu-item__active-bar" />
+
+                        <span className="vcl-menu-item__icon">
+                          {item.icon}
+                        </span>
+
+                        <span className="vcl-menu-item__label">
+                          {item.label}
+                        </span>
+
+                        <DownOutlined
+                          className={`vcl-menu-item__arrow vcl-menu-dropdown__arrow ${
+                            isGroupOpen
+                              ? "is-open"
+                              : ""
+                          }`}
+                        />
+                      </button>
+
+                      <div
+                        id={`${item.key}-submenu`}
+                        className={`vcl-menu-submenu ${
+                          isGroupOpen
+                            ? "is-open"
+                            : ""
+                        }`}
+                      >
+                        <div className="vcl-menu-submenu__inner">
+                          {item.children.map(
+                            (
+                              child
+                            ) => (
+                              <NavLink
+                                key={
+                                  child.key
+                                }
+                                to={
+                                  child.path
+                                }
+                                end={Boolean(
+                                  child.end
+                                )}
+                                title={
+                                  child.label
+                                }
+                                className={({
+                                  isActive,
+                                }) =>
+                                  `vcl-submenu-item${
+                                    isActive
+                                      ? " vcl-submenu-item--active"
+                                      : ""
+                                  }`
+                                }
+                              >
+                                <span className="vcl-submenu-item__line" />
+
+                                <span className="vcl-submenu-item__icon">
+                                  {
+                                    child.icon
+                                  }
+                                </span>
+
+                                <span className="vcl-submenu-item__label">
+                                  {
+                                    child.label
+                                  }
+                                </span>
+
+                                <RightOutlined className="vcl-submenu-item__arrow" />
+                              </NavLink>
+                            )
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
                 }
-              >
-                <span className="vcl-menu-item__active-bar" />
 
-                <span className="vcl-menu-item__icon">
-                  {item.icon}
-                </span>
+                return (
+                  <NavLink
+                    key={
+                      item.key ||
+                      item.path
+                    }
+                    to={item.path}
+                    end={Boolean(item.end)}
+                    title={item.label}
+                    style={{
+                      "--vcl-menu-index":
+                        index,
+                    }}
+                    className={({
+                      isActive,
+                    }) =>
+                      `vcl-menu-item${
+                        isActive
+                          ? " vcl-menu-item--active"
+                          : ""
+                      }`
+                    }
+                  >
+                    <span className="vcl-menu-item__active-bar" />
 
-                <span className="vcl-menu-item__label">
-                  {item.label}
-                </span>
+                    <span className="vcl-menu-item__icon">
+                      {item.icon}
+                    </span>
 
-                <RightOutlined className="vcl-menu-item__arrow" />
-              </NavLink>
-            ))}
+                    <span className="vcl-menu-item__label">
+                      {item.label}
+                    </span>
+
+                    <RightOutlined className="vcl-menu-item__arrow" />
+                  </NavLink>
+                );
+              }
+            )}
           </nav>
         </section>
 
@@ -373,7 +661,9 @@ export default function Sidebar() {
           <button
             type="button"
             className="vcl-profile-card"
-            onClick={handleOpenProfile}
+            onClick={
+              handleOpenProfile
+            }
             aria-label="Mở thông tin cá nhân"
           >
             <span className="vcl-profile-card__avatar">
@@ -383,12 +673,18 @@ export default function Sidebar() {
             </span>
 
             <span className="vcl-profile-card__info">
-              <strong>{fullName}</strong>
+              <strong>
+                {fullName}
+              </strong>
 
-              <span>{roleInfo.label}</span>
+              <span>
+                {roleInfo.label}
+              </span>
 
               {email && (
-                <small>{email}</small>
+                <small>
+                  {email}
+                </small>
               )}
             </span>
 
@@ -404,19 +700,25 @@ export default function Sidebar() {
           >
             <LogoutOutlined />
 
-            <span>Đăng xuất hệ thống</span>
+            <span>
+              Đăng xuất hệ thống
+            </span>
           </button>
 
           <p className="vcl-sidebar__version">
-            Việt Nam Logictic Management System · 2026
+            Vietnam Logistics Management System · 2026
           </p>
         </footer>
       </aside>
 
       <UserProfileModal
         open={profileOpen}
-        onClose={handleCloseProfile}
-        onUpdated={handleProfileUpdated}
+        onClose={
+          handleCloseProfile
+        }
+        onUpdated={
+          handleProfileUpdated
+        }
       />
     </>
   );
