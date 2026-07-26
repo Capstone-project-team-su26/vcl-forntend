@@ -52,7 +52,7 @@
       #f6f8fc;
   }
   
-  /* Đồng bộ font cho toàn bộ thành phần bên trong */
+  /* Äá»“ng bá»™ font cho toĂ n bá»™ thĂ nh pháº§n bĂªn trong */
   
   .vcl-container *,
   .vcl-container *::before,
@@ -1146,8 +1146,8 @@
     }
   
     /*
-     * DĂ¹ng 16px trĂªn Ä‘iá»‡n thoáº¡i Ä‘á»ƒ trĂ¬nh duyá»‡t iOS
-     * khĂ´ng tá»± phĂ³ng to khi ngÆ°á»i dĂ¹ng nháº­p liá»‡u.
+     * DÄ‚Â¹ng 16px trÄ‚Âªn Ă„â€˜iĂ¡Â»â€¡n thoĂ¡ÂºÂ¡i Ă„â€˜Ă¡Â»Æ’ trÄ‚Â¬nh duyĂ¡Â»â€¡t iOS
+     * khÄ‚Â´ng tĂ¡Â»Â± phÄ‚Â³ng to khi ngĂ†Â°Ă¡Â»Âi dÄ‚Â¹ng nhĂ¡ÂºÂ­p liĂ¡Â»â€¡u.
      */
   
     .filter-search-input .ant-input,
@@ -1335,7 +1335,7 @@
   }
 
 /* =========================================================
-   CONSIGNMENT CARD â€” STABLE HEADER, COPY CODE, PRODUCT INFO
+   CONSIGNMENT CARD Ă¢â‚¬â€ STABLE HEADER, COPY CODE, PRODUCT INFO
    ========================================================= */
 
 .vcl-container .consignment-card {
@@ -1668,7 +1668,7 @@
   }
 }
 /* =========================================================
-   PRODUCT NAME LIST â€” TĂCH NHIá»€U Sáº¢N PHáº¨M THĂ€NH Tá»ªNG DĂ’NG
+   PRODUCT NAME LIST Ă¢â‚¬â€ TÄ‚ÂCH NHIĂ¡Â»â‚¬U SĂ¡ÂºÂ¢N PHĂ¡ÂºÂ¨M THÄ‚â‚¬NH TĂ¡Â»ÂªNG DÄ‚â€™NG
    ========================================================= */
 
 .vcl-container .product-name-group {
@@ -1875,5 +1875,150 @@
 @media (max-width: 768px) {
   .vcl-container {
     min-height: 100%;
+  }
+}
+
+
+/* =========================================================
+   STATUS FILTER
+========================================================= */
+
+.filter-status-select {
+  min-width: 205px;
+}
+
+.filter-status-select .ant-select-selector {
+  min-height: 44px !important;
+  display: flex;
+  align-items: center;
+  border-color: var(--vcl-border) !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+}
+
+.filter-status-select:hover
+  .ant-select-selector {
+  border-color: #93b4f7 !important;
+}
+
+.filter-status-select.ant-select-focused
+  .ant-select-selector {
+  border-color: var(--vcl-primary) !important;
+  box-shadow:
+    0 0 0 3px
+    rgba(37, 99, 235, 0.1) !important;
+}
+
+.filter-status-select
+  .ant-select-selection-item {
+  color: #334155;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+/* =========================================================
+   STATUS FROM API
+========================================================= */
+
+.tag-status-header,
+.status-badge-center {
+  gap: 7px;
+}
+
+.tag-status-header::before,
+.status-badge-center::before {
+  content: "";
+  flex: 0 0 7px;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.8;
+}
+
+.status-pending,
+.status-pending-review {
+  color: #a16207 !important;
+  background: #fefce8 !important;
+  border-color: #fde68a !important;
+}
+
+.status-approved,
+.status-deposit-paid,
+.status-delivered,
+.status-completed {
+  color: #047857 !important;
+  background: #ecfdf5 !important;
+  border-color: #a7f3d0 !important;
+}
+
+.status-quotation-sent {
+  color: #1d4ed8 !important;
+  background: #eff6ff !important;
+  border-color: #bfdbfe !important;
+}
+
+.status-quotation-rejected,
+.status-rejected,
+.status-cancelled {
+  color: #dc2626 !important;
+  background: #fef2f2 !important;
+  border-color: #fecaca !important;
+}
+
+.status-waiting-deposit {
+  color: #b45309 !important;
+  background: #fffbeb !important;
+  border-color: #fcd34d !important;
+}
+
+.status-checked-in {
+  color: #0369a1 !important;
+  background: #f0f9ff !important;
+  border-color: #bae6fd !important;
+}
+
+.status-received,
+.status-ready-delivery {
+  color: #0f766e !important;
+  background: #f0fdfa !important;
+  border-color: #99f6e4 !important;
+}
+
+.status-processing {
+  color: #6d28d9 !important;
+  background: #f5f3ff !important;
+  border-color: #ddd6fe !important;
+}
+
+.status-in-transit,
+.status-delivering {
+  color: #c2410c !important;
+  background: #fff7ed !important;
+  border-color: #fed7aa !important;
+}
+
+.status-customs-clearance {
+  color: #7e22ce !important;
+  background: #faf5ff !important;
+  border-color: #e9d5ff !important;
+}
+
+.status-unknown {
+  color: #475569 !important;
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+}
+
+@media (max-width: 1024px) {
+  .filter-status-select {
+    min-width: 190px;
+  }
+}
+
+@media (max-width: 680px) {
+  .filter-status-select {
+    width: 100%;
+    min-width: 0;
   }
 }

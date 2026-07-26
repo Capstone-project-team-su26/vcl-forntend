@@ -16,6 +16,7 @@ import "./ConfirmConsignmentQuotation.css";
 export default function ConfirmConsignmentQuotation({
   open,
   loading,
+  submitted = false,
   data,
   onCancel,
   onConfirm,
@@ -34,7 +35,7 @@ export default function ConfirmConsignmentQuotation({
       width={760}
       centered
       destroyOnClose
-      maskClosable={!loading}
+      maskClosable={!loading && !submitted}
       closable={!loading}
       footer={null}
       className="quotation-confirm-modal"
@@ -376,12 +377,19 @@ export default function ConfirmConsignmentQuotation({
           </section>
         )}
 
-        <div className="quotation-confirm__notice">
+        <div
+          className={`quotation-confirm__notice ${
+            submitted
+              ? "is-submitted"
+              : ""
+          }`}
+        >
           <CheckCircleOutlined />
 
           <span>
-            Sau khi gửi, khách hàng sẽ nhận được báo giá
-            chính thức để xem và xác nhận.
+            {submitted
+              ? "Báo giá chính thức đã được gửi thành công. Bạn không thể xác nhận hoặc gửi lại báo giá này."
+              : "Sau khi gửi, khách hàng sẽ nhận được báo giá chính thức để xem và xác nhận."}
           </span>
         </div>
 
@@ -389,19 +397,46 @@ export default function ConfirmConsignmentQuotation({
           <Button
             size="large"
             onClick={onCancel}
-            disabled={loading}
+            disabled={loading || submitted}
           >
-            Quay lại kiểm tra
+            {submitted
+              ? "Báo giá đã được gửi"
+              : "Quay lại kiểm tra"}
           </Button>
 
           <Button
             type="primary"
             size="large"
-            icon={<SendOutlined />}
+            icon={
+              submitted ? (
+                <CheckCircleOutlined />
+              ) : (
+                <SendOutlined />
+              )
+            }
             loading={loading}
-            onClick={onConfirm}
+            disabled={
+              loading || submitted
+            }
+            onClick={() => {
+              if (
+                loading ||
+                submitted
+              ) {
+                return;
+              }
+
+              onConfirm?.();
+            }}
+            className={`quotation-confirm__submit-button ${
+              submitted
+                ? "is-submitted"
+                : ""
+            }`}
           >
-            Xác nhận và gửi báo giá
+            {submitted
+              ? "Đã gửi báo giá"
+              : "Xác nhận và gửi báo giá"}
           </Button>
         </div>
       </div>

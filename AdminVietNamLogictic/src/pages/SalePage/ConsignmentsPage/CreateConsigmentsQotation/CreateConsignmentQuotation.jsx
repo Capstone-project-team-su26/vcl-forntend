@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import {
@@ -697,6 +698,14 @@ export default function CreateConsignmentQuotation() {
   const [sending, setSending] =
     useState(false);
 
+  const [
+    quotationSubmitted,
+    setQuotationSubmitted,
+  ] = useState(false);
+
+  const quotationSubmitLockRef =
+    useRef(false);
+
   const [error, setError] =
     useState("");
 
@@ -869,8 +878,13 @@ export default function CreateConsignmentQuotation() {
     }, [orderId]);
 
   useEffect(() => {
+    quotationSubmitLockRef.current =
+      false;
+
+    setQuotationSubmitted(false);
+
     loadPageData();
-  }, [loadPageData]);
+  }, [loadPageData, orderId]);
 
   const items = useMemo(() => {
     return Array.isArray(
@@ -1554,15 +1568,61 @@ export default function CreateConsignmentQuotation() {
         taxAndDuty
     );
 
+  const currentOrderStatus =
+    normalizeUpperText(
+      detail?.status
+    );
+
   const terminalStatus =
     [
       "COMPLETED",
       "CANCELLED",
-    ].includes(
-      normalizeUpperText(
-        detail?.status
-      )
-    );
+    ].includes(currentOrderStatus);
+
+  const hasSentQuotation =
+    useMemo(() => {
+      const quotation =
+        detail?.quotation || {};
+
+      const quoteType =
+        normalizeUpperText(
+          quotation?.quoteType
+        );
+
+      const quotationStatus =
+        normalizeUpperText(
+          quotation?.status
+        );
+
+      const orderStatusAlreadyQuoted =
+        [
+          "QUOTATION_SENT",
+          "WAITING_DEPOSIT",
+          "DEPOSIT_PAID",
+          "PROCESSING",
+          "COMPLETED",
+        ].includes(currentOrderStatus);
+
+      const officialQuotationExists =
+        quoteType === "OFFICIAL" &&
+        Boolean(
+          quotation?.quotationId ||
+          quotation?.id ||
+          quotationStatus
+        );
+
+      return Boolean(
+        quotationSubmitted ||
+        location?.state?.quotationSent ||
+        orderStatusAlreadyQuoted ||
+        officialQuotationExists
+      );
+    }, [
+      currentOrderStatus,
+      detail?.quotation,
+      location?.state?.quotationSent,
+      quotationSubmitted,
+    ]);
 
   const canCreateQuotation =
     Boolean(orderId) &&
@@ -1572,7 +1632,8 @@ export default function CreateConsignmentQuotation() {
     Boolean(
       selectedServicePricing?.id
     ) &&
-    !terminalStatus;
+    !terminalStatus &&
+    !hasSentQuotation;
 
   const validationMessages =
     useMemo(() => {
@@ -1615,6 +1676,15 @@ export default function CreateConsignmentQuotation() {
         );
       }
 
+      if (
+        hasSentQuotation &&
+        !terminalStatus
+      ) {
+        messages.push(
+          "Đơn hàng đã gửi báo giá chính thức nên không thể xác nhận lại."
+        );
+      }
+
       return messages;
     }, [
       packageCount,
@@ -1622,6 +1692,7 @@ export default function CreateConsignmentQuotation() {
       selectedWarehouse,
       selectedServicePricing,
       terminalStatus,
+      hasSentQuotation,
       routeCountryCodes
         .originCountry,
     ]);
@@ -1939,7 +2010,18 @@ export default function CreateConsignmentQuotation() {
 
   const handleOpenConfirmation =
     async () => {
-      if (sending) {
+      if (
+        sending ||
+        hasSentQuotation ||
+        quotationSubmitLockRef.current
+      ) {
+        if (hasSentQuotation) {
+          AuthNotify.warning(
+            "Báo giá đã được gửi",
+            "Không thể xác nhận hoặc gửi lại báo giá cho đơn hàng này."
+          );
+        }
+
         return;
       }
 
@@ -1977,10 +2059,16 @@ export default function CreateConsignmentQuotation() {
     async () => {
       if (
         sending ||
+        quotationSubmitted ||
+        hasSentQuotation ||
+        quotationSubmitLockRef.current ||
         !pendingPayload
       ) {
         return;
       }
+
+      quotationSubmitLockRef.current =
+        true;
 
       try {
         setSending(true);
@@ -1990,20 +2078,31 @@ export default function CreateConsignmentQuotation() {
           pendingPayload
         );
 
-        setConfirmationOpen(false);
+        setQuotationSubmitted(true);
+        setPendingPayload(null);
 
         AuthNotify.success(
           "Gửi báo giá thành công",
           "Báo giá chính thức đã được gửi đến khách hàng."
         );
 
+        setConfirmationOpen(false);
+
         navigate(
           `/sale/consignments/${orderId}`,
           {
             replace: true,
+            state: {
+              orderId,
+              quotationSent: true,
+              refreshQuotation: true,
+            },
           }
         );
       } catch (sendError) {
+        quotationSubmitLockRef.current =
+          false;
+
         const message =
           sendError?.response?.data
             ?.message ||
@@ -2786,19 +2885,32 @@ export default function CreateConsignmentQuotation() {
             <Button
               type="primary"
               size="large"
-              icon={<SendOutlined />}
+              icon={
+                hasSentQuotation ? (
+                  <CheckCircleOutlined />
+                ) : (
+                  <SendOutlined />
+                )
+              }
               loading={sending}
               disabled={
                 sending ||
-                !canCreateQuotation
+                !canCreateQuotation ||
+                hasSentQuotation
               }
               onClick={
                 handleOpenConfirmation
               }
               block
-              className="quotation-confirm-button"
+              className={`quotation-confirm-button ${
+                hasSentQuotation
+                  ? "is-submitted"
+                  : ""
+              }`}
             >
-              Xem lại và gửi báo giá
+              {hasSentQuotation
+                ? "Đã gửi báo giá"
+                : "Xem lại và gửi báo giá"}
             </Button>
 
             <div className="quotation-summary-note">
@@ -2822,6 +2934,10 @@ export default function CreateConsignmentQuotation() {
       <ConfirmConsignmentQuotation
         open={confirmationOpen}
         loading={sending}
+        submitted={
+          quotationSubmitted ||
+          hasSentQuotation
+        }
         data={confirmationData}
         onCancel={() => {
           if (!sending) {

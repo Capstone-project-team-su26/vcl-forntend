@@ -12,6 +12,7 @@ import {
 import {
   Button,
   Empty,
+  Modal,
   Skeleton,
   Tag,
   Tooltip,
@@ -24,11 +25,14 @@ import {
   CopyOutlined,
   DollarOutlined,
   EnvironmentOutlined,
+  EyeOutlined,
   FileTextOutlined,
   InboxOutlined,
+  LeftOutlined,
   MailOutlined,
   PhoneOutlined,
   ReloadOutlined,
+  RightOutlined,
   SafetyCertificateOutlined,
   SendOutlined,
   ShoppingOutlined,
@@ -491,6 +495,98 @@ import "./ConsignmentDetail.css";
     );
   };
 
+
+  /* =========================
+     IMAGE HELPERS
+  ========================= */
+
+  const collectImageUrls = (source) => {
+    if (
+      source === undefined ||
+      source === null ||
+      source === ""
+    ) {
+      return [];
+    }
+
+    if (Array.isArray(source)) {
+      return source.flatMap(
+        collectImageUrls
+      );
+    }
+
+    if (typeof source === "object") {
+      const directUrl =
+        source?.url ??
+        source?.imageUrl ??
+        source?.fileUrl ??
+        source?.src ??
+        source?.path ??
+        source?.secureUrl;
+
+      if (directUrl) {
+        return collectImageUrls(
+          directUrl
+        );
+      }
+
+      return collectImageUrls(
+        source?.images ??
+          source?.urls ??
+          source?.files ??
+          source?.attachments ??
+          []
+      );
+    }
+
+    const text =
+      normalizeText(source);
+
+    if (!text) {
+      return [];
+    }
+
+    if (
+      (text.startsWith("[") &&
+        text.endsWith("]")) ||
+      (text.startsWith("{") &&
+        text.endsWith("}"))
+    ) {
+      try {
+        return collectImageUrls(
+          JSON.parse(text)
+        );
+      } catch {
+        // Tiếp tục dùng như URL thường.
+      }
+    }
+
+    return [text];
+  };
+
+  const getItemImageUrls = (item) => {
+    const sources = [
+      item?.referenceUrls,
+      item?.imageUrls,
+      item?.images,
+      item?.productImages,
+      item?.referenceImages,
+      item?.attachments,
+      item?.imageUrl,
+      item?.productImageUrl,
+      item?.thumbnailUrl,
+    ];
+
+    return Array.from(
+      new Set(
+        sources
+          .flatMap(collectImageUrls)
+          .map(normalizeText)
+          .filter(Boolean)
+      )
+    );
+  };
+
   const getItemPackageConfiguration = (
     item
   ) => {
@@ -704,6 +800,220 @@ import "./ConsignmentDetail.css";
   /* =========================
      SMALL COMPONENTS
   ========================= */
+
+
+  function ProductImageGallery({
+    images = [],
+    productName = "Sản phẩm",
+  }) {
+    const [
+      previewOpen,
+      setPreviewOpen,
+    ] = useState(false);
+
+    const [
+      activeIndex,
+      setActiveIndex,
+    ] = useState(0);
+
+    const safeImages =
+      Array.isArray(images)
+        ? images.filter(Boolean)
+        : [];
+
+    const hasMultipleImages =
+      safeImages.length > 1;
+
+    const activeImage =
+      safeImages[activeIndex] ||
+      safeImages[0] ||
+      "";
+
+    const openPreview = (index) => {
+      setActiveIndex(index);
+      setPreviewOpen(true);
+    };
+
+    const showPreviousImage = () => {
+      if (!hasMultipleImages) {
+        return;
+      }
+
+      setActiveIndex(
+        (currentIndex) =>
+          currentIndex <= 0
+            ? safeImages.length - 1
+            : currentIndex - 1
+      );
+    };
+
+    const showNextImage = () => {
+      if (!hasMultipleImages) {
+        return;
+      }
+
+      setActiveIndex(
+        (currentIndex) =>
+          currentIndex >=
+          safeImages.length - 1
+            ? 0
+            : currentIndex + 1
+      );
+    };
+
+    if (safeImages.length === 0) {
+      return (
+        <div className="consignment-product-image is-empty">
+          <ShoppingOutlined />
+        </div>
+      );
+    }
+
+    return (
+      <>
+        <div
+          className="consignment-product-gallery"
+          aria-label={`Ảnh của ${productName}`}
+        >
+          {safeImages.map(
+            (imageUrl, imageIndex) => (
+              <button
+                key={`${imageUrl}-${imageIndex}`}
+                type="button"
+                className="consignment-product-thumbnail"
+                onClick={() =>
+                  openPreview(imageIndex)
+                }
+                title={`Xem ảnh ${
+                  imageIndex + 1
+                } của ${productName}`}
+                aria-label={`Xem ảnh ${
+                  imageIndex + 1
+                } của ${productName}`}
+              >
+                <img
+                  src={imageUrl}
+                  alt={`${productName} - ảnh ${
+                    imageIndex + 1
+                  }`}
+                  className="consignment-product-image"
+                  loading="lazy"
+                />
+
+                <span className="consignment-product-thumbnail__view">
+                  <EyeOutlined />
+                </span>
+              </button>
+            )
+          )}
+        </div>
+
+        <Modal
+          open={previewOpen}
+          centered
+          width={920}
+          footer={null}
+          title={null}
+          destroyOnClose
+          className="consignment-image-preview-modal"
+          onCancel={() =>
+            setPreviewOpen(false)
+          }
+        >
+          <div className="consignment-image-preview">
+            <div className="consignment-image-preview__header">
+              <div>
+                <span>
+                  THƯ VIỆN ẢNH SẢN PHẨM
+                </span>
+
+                <h3>
+                  {productName}
+                </h3>
+              </div>
+
+              <strong>
+                {activeIndex + 1}/
+                {safeImages.length}
+              </strong>
+            </div>
+
+            <div className="consignment-image-preview__stage">
+              {hasMultipleImages && (
+                <button
+                  type="button"
+                  className="consignment-image-preview__nav is-previous"
+                  onClick={
+                    showPreviousImage
+                  }
+                  aria-label="Xem ảnh trước"
+                >
+                  <LeftOutlined />
+                </button>
+              )}
+
+              <img
+                src={activeImage}
+                alt={`${productName} - ảnh lớn ${
+                  activeIndex + 1
+                }`}
+                className="consignment-image-preview__main"
+              />
+
+              {hasMultipleImages && (
+                <button
+                  type="button"
+                  className="consignment-image-preview__nav is-next"
+                  onClick={
+                    showNextImage
+                  }
+                  aria-label="Xem ảnh tiếp theo"
+                >
+                  <RightOutlined />
+                </button>
+              )}
+            </div>
+
+            <div className="consignment-image-preview__thumbnails">
+              {safeImages.map(
+                (
+                  imageUrl,
+                  imageIndex
+                ) => (
+                  <button
+                    key={`preview-${imageUrl}-${imageIndex}`}
+                    type="button"
+                    className={`consignment-image-preview__thumbnail ${
+                      activeIndex ===
+                      imageIndex
+                        ? "is-active"
+                        : ""
+                    }`}
+                    onClick={() =>
+                      setActiveIndex(
+                        imageIndex
+                      )
+                    }
+                    aria-label={`Chọn ảnh ${
+                      imageIndex + 1
+                    }`}
+                  >
+                    <img
+                      src={imageUrl}
+                      alt={`${productName} - ảnh thu nhỏ ${
+                        imageIndex + 1
+                      }`}
+                      loading="lazy"
+                    />
+                  </button>
+                )
+              )}
+            </div>
+          </div>
+        </Modal>
+      </>
+    );
+  }
 
   function StatusBadge({
     label,
@@ -1958,12 +2268,10 @@ export default function ConsignmentDetail() {
                               item
                             );
 
-                          const imageUrl =
-                            Array.isArray(
-                              item?.referenceUrls
-                            )
-                              ? item.referenceUrls[0]
-                              : "";
+                          const imageUrls =
+                            getItemImageUrls(
+                              item
+                            );
 
                           return (
                             <tr
@@ -1982,17 +2290,16 @@ export default function ConsignmentDetail() {
 
                               <td className="product-name-cell">
                                 <div className="consignment-product-cell">
-                                  {imageUrl ? (
-                                    <img
-                                      src={imageUrl}
-                                      alt={getItemName(item)}
-                                      className="consignment-product-image"
-                                    />
-                                  ) : (
-                                    <div className="consignment-product-image is-empty">
-                                      <ShoppingOutlined />
-                                    </div>
-                                  )}
+                                  <ProductImageGallery
+                                    images={
+                                      imageUrls
+                                    }
+                                    productName={
+                                      getItemName(
+                                        item
+                                      )
+                                    }
+                                  />
 
                                   <div className="consignment-product-name">
                                     <strong>
