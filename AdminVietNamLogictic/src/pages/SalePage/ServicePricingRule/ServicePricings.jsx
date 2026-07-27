@@ -32,12 +32,14 @@ import {
 
 import {
   PRICING_RULE_CODE,
-  formatVnd,
   getActivePricingRulesApi,
   getPricingRuleDetailApi,
+} from "../../../api/SaleAPI/ConsignmentAPI/pricingRuleService";
+import {
+  formatVnd,
   getServicePricingDetailApi,
   getServicePricingsApi,
-} from "../../../api/SaleAPI/ConsignmentAPI/consignmentService";
+} from "../../../api/SaleAPI/ConsignmentAPI/servicePricingService";
 
 import {
   getActivePackageConfigurationsApi,
@@ -457,7 +459,14 @@ export default function ServicePricings() {
   }, []);
 
   useEffect(() => {
-    loadData();
+    const timeoutId = window.setTimeout(
+      loadData,
+      0
+    );
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
   }, [loadData]);
 
   const filteredPricings = useMemo(() => {

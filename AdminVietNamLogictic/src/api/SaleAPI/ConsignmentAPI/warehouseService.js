@@ -1,4 +1,5 @@
 import axiosInstance from "../../axiosInstance";
+import { API_ENDPOINTS } from "../../apiEndpoints";
 
 /* =========================
    RESPONSE / AUTH HELPERS
@@ -8,7 +9,9 @@ const getResponseData = (response) =>
   response?.data?.data ?? response?.data ?? null;
 
 const getAccessToken = () => {
-  const token = sessionStorage.getItem("accessToken");
+  const token =
+    sessionStorage.getItem("accessToken") ||
+    localStorage.getItem("accessToken");
 
   if (!token) {
     throw new Error(
@@ -72,7 +75,7 @@ export const getWarehousesApi = async (
   filters = {}
 ) => {
   const response = await axiosInstance.get(
-    "/api/warehouses",
+    API_ENDPOINTS.warehouses.list,
     {
       params: removeEmptyParams(filters),
       headers: getAuthHeaders(),
@@ -94,7 +97,7 @@ export const getActiveWarehousesApi = async (
   filters = {}
 ) => {
   const response = await axiosInstance.get(
-    "/api/warehouses/active",
+    API_ENDPOINTS.warehouses.active,
     {
       params: removeEmptyParams(filters),
       headers: getAuthHeaders(),

@@ -32,7 +32,7 @@ import {
   RESTRICTION_TYPE,
   getRestrictedItemDetailApi,
   getRestrictedItemsApi,
-} from "../../../api/SaleAPI/ConsignmentAPI/consignmentService";
+} from "../../../api/SaleAPI/ConsignmentAPI/restrictedItemService";
 import AuthNotify from "../../../utils/Common/AuthNotify";
 
 import "./RestrictedItems.css";
@@ -550,7 +550,8 @@ export default function RestrictedItems() {
           </span>
         </div>
 
-        {error ? (
+        <div className="restricted-items-data-scroll">
+          {error ? (
           <div className="restricted-items-error">
             <CloseCircleOutlined />
             <h2>Không thể tải dữ liệu</h2>
@@ -685,6 +686,7 @@ export default function RestrictedItems() {
             </table>
           </div>
         )}
+        </div>
       </section>
 
       <Modal

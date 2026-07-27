@@ -742,3 +742,97 @@
     font-size: 14px;
   }
 }
+
+/* =====================================================
+   ONLY DATA AREA SCROLLS
+===================================================== */
+
+.restricted-items-page {
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.restricted-items-hero,
+.restricted-items-stats {
+  flex: 0 0 auto;
+}
+
+.restricted-items-card {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.restricted-items-toolbar,
+.restricted-items-result {
+  flex: 0 0 auto;
+}
+
+.restricted-items-data-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-right: 5px;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.restricted-items-data-scroll::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+.restricted-items-data-scroll::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: #eef2f7;
+}
+
+.restricted-items-data-scroll::-webkit-scrollbar-thumb {
+  border: 2px solid #eef2f7;
+  border-radius: 999px;
+  background: #94a3b8;
+}
+
+.restricted-items-data-scroll::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+.restricted-items-table-wrapper {
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+.restricted-items-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: #f8fafc;
+  box-shadow:
+    0 1px 0 #e8edf5;
+}
+
+.restricted-items-empty,
+.restricted-items-error {
+  min-height: 100%;
+  display: grid;
+  place-content: center;
+}
+
+@media (max-width: 760px) {
+  .restricted-items-page {
+    height: 100%;
+    max-height: 100%;
+    overflow: hidden;
+  }
+
+  .restricted-items-data-scroll {
+    padding-right: 2px;
+  }
+}

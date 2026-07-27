@@ -1,4 +1,5 @@
 import axiosInstance from "../axiosInstance";
+import { API_ENDPOINTS } from "../apiEndpoints";
 
 /* =========================
    RESPONSE HELPER
@@ -35,7 +36,7 @@ export const loginApi = async ({
   password,
 }) => {
   const response = await axiosInstance.post(
-    "/api/Auth/login",
+    API_ENDPOINTS.auth.login,
     {
       email: String(email || "").trim(),
       password,
@@ -53,7 +54,7 @@ export const getUserProfileApi = async () => {
   const token = getAccessToken();
 
   const response = await axiosInstance.get(
-    "/api/User/profile",
+    API_ENDPOINTS.auth.profile,
     {
       headers: {
         Accept: "*/*",
@@ -91,7 +92,7 @@ export const updateUserProfileApi = async ({
   }
 
   const response = await axiosInstance.put(
-    "/api/User/profile",
+    API_ENDPOINTS.auth.profile,
     payload,
     {
       headers: {

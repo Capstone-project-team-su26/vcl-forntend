@@ -1,4 +1,5 @@
 import axiosInstance from "../../axiosInstance";
+import { API_ENDPOINTS } from "../../apiEndpoints";
 
 /* =========================
    CONSTANTS
@@ -42,7 +43,8 @@ const getResponseData = (response) =>
 
 const getAccessToken = () => {
   const token =
-    sessionStorage.getItem("accessToken");
+    sessionStorage.getItem("accessToken") ||
+    localStorage.getItem("accessToken");
 
   if (!token) {
     throw new Error(
@@ -127,6 +129,14 @@ const getArrayItems = (data) => {
     return data.data;
   }
 
+  if (Array.isArray(data?.content)) {
+    return data.content;
+  }
+
+  if (Array.isArray(data?.results)) {
+    return data.results;
+  }
+
   return [];
 };
 
@@ -173,8 +183,15 @@ const clampAmount = (
 
 export const normalizePricingRule = (
   rule = {}
-) => ({
-  id: normalizeText(rule?.id),
+) => {
+  const calculationType = normalizeUpperText(
+    rule?.calculationType
+  );
+  const status = normalizeUpperText(rule?.status);
+
+  return {
+    ...rule,
+    id: normalizeText(rule?.id),
 
   servicePricingId:
     normalizeText(
@@ -204,10 +221,14 @@ export const normalizePricingRule = (
         )
       : null,
 
-  calculationType:
-    normalizeUpperText(
-      rule?.calculationType
-    ),
+  calculationType,
+
+  calculationTypeDisplayName:
+    calculationType === "PERCENTAGE"
+      ? "Phần trăm"
+      : calculationType === "FIXED"
+        ? "Cố định"
+        : calculationType || "—",
 
   value:
     normalizePositiveNumber(
@@ -228,8 +249,10 @@ export const normalizePricingRule = (
   isRequired:
     rule?.isRequired === true,
 
-  status:
-    normalizeUpperText(rule?.status),
+  status,
+
+  isActive:
+    status === PRICING_RULE_STATUS.ACTIVE,
 
   description:
     normalizeText(rule?.description),
@@ -239,7 +262,8 @@ export const normalizePricingRule = (
 
   updatedAt:
     rule?.updatedAt || null,
-});
+  };
+};
 
 /* =========================
    PRICING RULE API
@@ -250,7 +274,7 @@ export const getPricingRulesApi = async (
 ) => {
   const response =
     await axiosInstance.get(
-      "/api/pricing-rules",
+      API_ENDPOINTS.pricingRules.list,
       {
         params:
           removeEmptyParams(filters),
@@ -270,6 +294,25 @@ export const getPricingRulesApi = async (
         Boolean(rule.id) &&
         Boolean(rule.ruleCode)
     );
+};
+
+export const getPricingRuleDetailApi = async (
+  pricingRuleId
+) => {
+  const id = normalizeText(pricingRuleId);
+
+  if (!id) {
+    throw new Error("Không tìm thấy mã quy tắc tính phí.");
+  }
+
+  const response = await axiosInstance.get(
+    API_ENDPOINTS.pricingRules.detail(id),
+    { headers: getAuthHeaders() }
+  );
+
+  return normalizePricingRule(
+    getResponseData(response) || {}
+  );
 };
 
 export const getActivePricingRulesApi =
@@ -493,7 +536,7 @@ export const calculatePricingRuleAmount = (
       rule?.value
     );
 
-  let amount = 0;
+  let amount;
 
   /*
    * Hệ số DIM không phải một khoản phí.
@@ -535,7 +578,7 @@ export const calculatePricingRuleAmount = (
     calculationType ===
     CALCULATION_TYPE.PERCENTAGE
   ) {
-    let percentageBase = 0;
+    let percentageBase;
 
     if (
       conditionType ===
@@ -887,6 +930,7 @@ const pricingRuleService = {
   normalizePricingRule,
 
   getPricingRulesApi,
+  getPricingRuleDetailApi,
   getActivePricingRulesApi,
 
   isPricingRuleActive,

@@ -1,4 +1,5 @@
 import axiosInstance from "../../axiosInstance";
+import { API_ENDPOINTS } from "../../apiEndpoints";
 
 /* =========================
    RESPONSE HELPER
@@ -213,7 +214,7 @@ export const getCustomersApi = async (
 ) => {
   const response =
     await axiosInstance.get(
-      "/api/customers",
+      API_ENDPOINTS.customers.list,
       {
         params:
           removeEmptyParams(filters),
@@ -256,9 +257,7 @@ export const getCustomerByIdApi = async (
 
   const response =
     await axiosInstance.get(
-      `/api/customers/${encodeURIComponent(
-        normalizedCustomerId
-      )}`,
+      API_ENDPOINTS.customers.detail(normalizedCustomerId),
       {
         headers:
           getAuthHeaders(),

@@ -1,4 +1,5 @@
 import axiosInstance from "../../axiosInstance";
+import { API_ENDPOINTS } from "../../apiEndpoints";
 
 /* =========================
    CONSTANTS
@@ -34,7 +35,8 @@ const getResponseData = (response) =>
 
 const getAccessToken = () => {
   const token =
-    sessionStorage.getItem("accessToken");
+    sessionStorage.getItem("accessToken") ||
+    localStorage.getItem("accessToken");
 
   if (!token) {
     throw new Error(
@@ -232,7 +234,7 @@ export const getPackageConfigurationsApi =
   async (filters = {}) => {
     const response =
       await axiosInstance.get(
-        "/api/package-configurations",
+        API_ENDPOINTS.packageConfigurations,
         {
           params:
             removeEmptyParams(filters),
