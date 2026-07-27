@@ -6,7 +6,7 @@ import {
   getVietnamDistrictsApi,
   getVietnamProvincesApi,
   getVietnamWardsApi,
-} from "../../../api/AddressAPI/vietnamAddressService";
+} from "../../../../api/AddressAPI/vietnamAddressService";
 import "./CustomerAddressSelector.css";
 
 const toOptions = (items) =>

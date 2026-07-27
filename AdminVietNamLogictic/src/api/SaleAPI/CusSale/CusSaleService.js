@@ -47,6 +47,14 @@ const normalizeText = (value) => {
   return String(value ?? "").trim();
 };
 
+const normalizePhone = (value) => {
+  return normalizeText(value).replace(/\D/g, "");
+};
+
+const normalizeEmail = (value) => {
+  return normalizeText(value).toLowerCase();
+};
+
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -229,8 +237,8 @@ export const normalizeCustomer = (
 
 export const normalizeCustomerPayload = (customer = {}) => ({
   fullName: normalizeText(customer?.fullName),
-  phone: normalizeText(customer?.phone),
-  email: normalizeText(customer?.email),
+  phone: normalizePhone(customer?.phone),
+  email: normalizeEmail(customer?.email),
   address: normalizeText(customer?.address),
   companyName: normalizeText(customer?.companyName),
   taxId: normalizeText(customer?.taxId),
@@ -244,8 +252,46 @@ const validateCustomerPayload = (payload) => {
   if (!payload.phone) {
     throw new Error("Vui lòng nhập số điện thoại.");
   }
+  if (!/^0\d{9}$/.test(payload.phone)) {
+    throw new Error("Số điện thoại phải bắt đầu bằng số 0 và gồm đúng 10 chữ số.");
+  }
   if (!payload.email) {
     throw new Error("Vui lòng nhập email.");
+  }
+};
+
+export const validateCustomerUniqueness = (
+  payload,
+  customers = [],
+  excludedCustomerId = ""
+) => {
+  const normalizedExcludedId = normalizeText(excludedCustomerId);
+  const normalizedPhone = normalizePhone(payload?.phone);
+  const normalizedEmail = normalizeEmail(payload?.email);
+
+  const comparableCustomers = Array.isArray(customers)
+    ? customers.filter(
+        (customer) =>
+          resolveCustomerId(customer) !== normalizedExcludedId
+      )
+    : [];
+
+  if (
+    normalizedPhone &&
+    comparableCustomers.some(
+      (customer) => normalizePhone(customer?.phone) === normalizedPhone
+    )
+  ) {
+    throw new Error("Số điện thoại này đã tồn tại trong danh sách khách hàng.");
+  }
+
+  if (
+    normalizedEmail &&
+    comparableCustomers.some(
+      (customer) => normalizeEmail(customer?.email) === normalizedEmail
+    )
+  ) {
+    throw new Error("Email này đã tồn tại trong danh sách khách hàng.");
   }
 };
 
@@ -336,6 +382,8 @@ export const getCustomerByIdApi = async (
 export const createCustomerApi = async (customer) => {
   const payload = normalizeCustomerPayload(customer);
   validateCustomerPayload(payload);
+  const customers = await getCustomersApi();
+  validateCustomerUniqueness(payload, customers);
 
   const response = await axiosInstance.post(
     API_ENDPOINTS.customers.list,
@@ -360,6 +408,8 @@ export const updateCustomerApi = async (customerId, customer) => {
 
   const payload = normalizeCustomerPayload(customer);
   validateCustomerPayload(payload);
+  const customers = await getCustomersApi();
+  validateCustomerUniqueness(payload, customers, normalizedCustomerId);
 
   const response = await axiosInstance.put(
     API_ENDPOINTS.customers.detail(normalizedCustomerId),
@@ -521,6 +571,7 @@ const customerService = {
   normalizeCustomer,
   normalizeCustomerStatus,
   normalizeCustomerPayload,
+  validateCustomerUniqueness,
 
   getCustomersApi,
   getCustomerByIdApi,

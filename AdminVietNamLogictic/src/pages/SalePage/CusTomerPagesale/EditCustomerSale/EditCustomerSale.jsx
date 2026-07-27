@@ -15,7 +15,7 @@ import {
   updateCustomerApi,
 } from "../../../../api/SaleAPI/CusSale/CusSaleService";
 import AuthNotify from "../../../../utils/Common/AuthNotify";
-import CustomerAddressSelector from "../CustomerAddressSelector";
+import CustomerAddressSelector from "../CustomerAdress/CustomerAddressSelector";
 import "./EditCustomerSale.css";
 
 const STATUS_OPTIONS = [
@@ -27,6 +27,44 @@ const STATUS_OPTIONS = [
   { value: "SUSPENDED", label: "Tạm ngưng" },
   { value: "DELETED", label: "Đã xóa" },
 ];
+
+const getDigits = (value) => String(value ?? "").replace(/\D/g, "");
+const getNormalizedEmail = (value) => String(value ?? "").trim().toLowerCase();
+const getCustomerId = (customer) => String(customer?.id || customer?.customerId || "");
+
+const createUniquePhoneRule = (customers, excludedCustomerId) => ({
+  validator: async (_, value) => {
+    const phone = getDigits(value);
+    if (!phone || phone.length !== 10) return;
+
+    const duplicated = customers.some(
+      (item) =>
+        getCustomerId(item) !== excludedCustomerId &&
+        getDigits(item?.phone) === phone
+    );
+
+    if (duplicated) {
+      throw new Error("Số điện thoại này đã tồn tại");
+    }
+  },
+});
+
+const createUniqueEmailRule = (customers, excludedCustomerId) => ({
+  validator: async (_, value) => {
+    const email = getNormalizedEmail(value);
+    if (!email) return;
+
+    const duplicated = customers.some(
+      (item) =>
+        getCustomerId(item) !== excludedCustomerId &&
+        getNormalizedEmail(item?.email) === email
+    );
+
+    if (duplicated) {
+      throw new Error("Email này đã tồn tại");
+    }
+  },
+});
 
 const getCustomerFormValues = (customer = {}) => {
   const raw = customer?.raw || customer || {};
@@ -41,7 +79,13 @@ const getCustomerFormValues = (customer = {}) => {
   };
 };
 
-export default function EditCustomerSale({ open, customer, onClose, onSaved }) {
+export default function EditCustomerSale({
+  open,
+  customer,
+  customers = [],
+  onClose,
+  onSaved,
+}) {
   const [form] = Form.useForm();
   const [saving, setSaving] = useState(false);
   const customerId = customer?.id || customer?.customerId || "";
@@ -120,10 +164,38 @@ export default function EditCustomerSale({ open, customer, onClose, onSaved }) {
             <Form.Item name="status" label="Trạng thái hiện tại" rules={[{ required: true }]}>
               <Select suffixIcon={<SafetyCertificateOutlined />} options={STATUS_OPTIONS} />
             </Form.Item>
-            <Form.Item name="phone" label="Số điện thoại" rules={[{ required: true, message: "Vui lòng nhập số điện thoại" }]}>
-              <Input prefix={<PhoneOutlined />} />
+            <Form.Item
+              name="phone"
+              label="Số điện thoại"
+              validateTrigger={["onChange", "onBlur"]}
+              rules={[
+                { required: true, message: "Vui lòng nhập số điện thoại" },
+                {
+                  pattern: /^0\d{9}$/,
+                  message: "Số điện thoại phải bắt đầu bằng số 0 và gồm đúng 10 chữ số",
+                },
+                createUniquePhoneRule(customers, customerId),
+              ]}
+            >
+              <Input
+                prefix={<PhoneOutlined />}
+                inputMode="numeric"
+                maxLength={10}
+                onChange={(event) => {
+                  form.setFieldValue("phone", getDigits(event.target.value).slice(0, 10));
+                }}
+              />
             </Form.Item>
-            <Form.Item name="email" label="Email" rules={[{ required: true, message: "Vui lòng nhập email" }, { type: "email", message: "Email không hợp lệ" }]}>
+            <Form.Item
+              name="email"
+              label="Email"
+              validateTrigger={["onChange", "onBlur"]}
+              rules={[
+                { required: true, message: "Vui lòng nhập email" },
+                { type: "email", message: "Email không hợp lệ" },
+                createUniqueEmailRule(customers, customerId),
+              ]}
+            >
               <Input prefix={<MailOutlined />} />
             </Form.Item>
             <Form.Item name="companyName" label="Tên công ty">

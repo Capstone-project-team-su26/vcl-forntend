@@ -39,9 +39,7 @@
   box-sizing: border-box;
 }
 
-/* =========================
-   HERO Cá» Äá»NH
-========================= */
+/* Hero */
 
 .customer-list-hero {
   position: relative;
@@ -194,9 +192,7 @@
   line-height: 1;
 }
 
-/* =========================
-   CARD Cá» Äá»NH
-========================= */
+/* Main card */
 
 .customer-list-card {
   flex: 1 1 auto;
@@ -315,6 +311,19 @@
   color: #1d4ed8 !important;
 }
 
+.customer-list-toolbar__filters .ant-btn-primary {
+  border-color: transparent;
+  background: linear-gradient(135deg, #1769d2, #0f8fa0);
+  color: #ffffff;
+  box-shadow: 0 7px 16px rgba(23, 105, 210, 0.2);
+}
+
+.customer-list-toolbar__filters .ant-btn-primary:hover {
+  border-color: transparent !important;
+  background: linear-gradient(135deg, #125bb9, #0a7d8c) !important;
+  color: #ffffff !important;
+}
+
 .customer-list-result-bar {
   flex: 0 0 auto;
   display: flex;
@@ -370,9 +379,7 @@
   background: #bfdbfe;
 }
 
-/* =========================
-   CHá»ˆ Báº¢NG Dá»® LIá»†U CUá»˜N
-========================= */
+/* Scrollable data table */
 
 .customer-list-table {
   flex: 1 1 auto;
@@ -434,12 +441,17 @@
       #e2ecfb
     );
   color: #334155;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 950;
   letter-spacing: 0.055em;
   text-transform: uppercase;
   box-shadow:
     0 3px 8px rgba(15, 23, 42, 0.07);
+}
+
+.customer-list-table__header > span,
+.customer-list-row > div {
+  min-width: 0;
 }
 
 .customer-list-table__header > span:last-child {
@@ -536,7 +548,7 @@
   margin-top: 4px;
   overflow: hidden;
   color: #64748b;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 750;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -563,7 +575,7 @@
   min-width: 0;
   overflow: hidden;
   color: #334155;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 650;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -581,7 +593,7 @@
   gap: 7px;
   min-width: 0;
   color: #475569;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 650;
   line-height: 1.5;
 }
@@ -605,7 +617,7 @@
   padding: 3px 10px;
   border-width: 1px;
   border-radius: 999px;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 900;
   white-space: nowrap;
 }
@@ -649,7 +661,7 @@
 
 .customer-list-date {
   color: #334155;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
 }
 
@@ -917,7 +929,7 @@
   .customer-list-toolbar__filters {
     display: grid;
     grid-template-columns:
-      minmax(0, 1fr) auto;
+      auto minmax(180px, 1fr) auto;
   }
 
   .customer-list-toolbar__filters

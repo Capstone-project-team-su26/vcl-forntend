@@ -15,6 +15,7 @@ import {
   updateCustomerApi,
 } from "../../../../api/SaleAPI/CusSale/CusSaleService";
 import AuthNotify from "../../../../utils/Common/AuthNotify";
+import CustomerAddressSelector from "../CustomerAdress/CustomerAddressSelector";
 import "./CreateCustomerSale.css";
 
 const STATUS_OPTIONS = [
@@ -24,6 +25,44 @@ const STATUS_OPTIONS = [
   { value: "BLOCKED", label: "Đã khóa" },
   { value: "SUSPENDED", label: "Tạm ngưng" },
 ];
+
+const getDigits = (value) => String(value ?? "").replace(/\D/g, "");
+const getNormalizedEmail = (value) => String(value ?? "").trim().toLowerCase();
+const getCustomerId = (customer) => String(customer?.id || customer?.customerId || "");
+
+const createUniquePhoneRule = (customers, excludedCustomerId) => ({
+  validator: async (_, value) => {
+    const phone = getDigits(value);
+    if (!phone || phone.length !== 10) return;
+
+    const duplicated = customers.some(
+      (item) =>
+        getCustomerId(item) !== excludedCustomerId &&
+        getDigits(item?.phone) === phone
+    );
+
+    if (duplicated) {
+      throw new Error("Số điện thoại này đã tồn tại");
+    }
+  },
+});
+
+const createUniqueEmailRule = (customers, excludedCustomerId) => ({
+  validator: async (_, value) => {
+    const email = getNormalizedEmail(value);
+    if (!email) return;
+
+    const duplicated = customers.some(
+      (item) =>
+        getCustomerId(item) !== excludedCustomerId &&
+        getNormalizedEmail(item?.email) === email
+    );
+
+    if (duplicated) {
+      throw new Error("Email này đã tồn tại");
+    }
+  },
+});
 
 const getInitialValues = (customer) => {
   const raw = customer?.raw || customer || {};
@@ -41,12 +80,14 @@ const getInitialValues = (customer) => {
 export default function CreateCustomerSale({
   open,
   customer = null,
+  customers = [],
   onClose,
   onSaved,
 }) {
   const [form] = Form.useForm();
   const [saving, setSaving] = useState(false);
   const isEditing = Boolean(customer?.id || customer?.customerId);
+  const customerId = getCustomerId(customer);
   const initialValues = useMemo(
     () => getInitialValues(customer),
     [customer]
@@ -73,7 +114,10 @@ export default function CreateCustomerSale({
             customer.id || customer.customerId,
             values
           )
-        : await createCustomerApi(values);
+        : await createCustomerApi({
+            ...values,
+            status: "ACTIVE",
+          });
 
       AuthNotify.success(
         isEditing ? "Cập nhật thành công" : "Tạo khách hàng thành công",
@@ -83,7 +127,14 @@ export default function CreateCustomerSale({
       );
 
       form.resetFields();
-      onSaved?.(savedCustomer);
+      onSaved?.(
+        savedCustomer && typeof savedCustomer === "object"
+          ? savedCustomer
+          : {
+              ...values,
+              status: isEditing ? values.status : "ACTIVE",
+            }
+      );
     } catch (error) {
       if (error?.errorFields) return;
       AuthNotify.error(
@@ -103,7 +154,7 @@ export default function CreateCustomerSale({
       open={open}
       width={760}
       centered
-      destroyOnClose
+      destroyOnHidden
       title={null}
       okText={isEditing ? "Lưu thay đổi" : "Tạo khách hàng"}
       cancelText="Hủy"
@@ -143,17 +194,73 @@ export default function CreateCustomerSale({
               <Form.Item name="fullName" label="Tên khách hàng" rules={[{ required: true, message: "Vui lòng nhập tên khách hàng" }]}>
                 <Input prefix={<TeamOutlined />} placeholder="Nguyễn Văn A" />
               </Form.Item>
-              <Form.Item name="phone" label="Số điện thoại" rules={[{ required: true, message: "Vui lòng nhập số điện thoại" }]}>
-                <Input prefix={<PhoneOutlined />} placeholder="0901 234 567" />
+              <Form.Item
+                name="phone"
+                label="Số điện thoại"
+                validateTrigger={["onChange", "onBlur"]}
+                rules={[
+                  { required: true, message: "Vui lòng nhập số điện thoại" },
+                  {
+                    pattern: /^0\d{9}$/,
+                    message: "Số điện thoại phải bắt đầu bằng số 0 và gồm đúng 10 chữ số",
+                  },
+                  createUniquePhoneRule(customers, customerId),
+                ]}
+              >
+                <Input
+                  prefix={<PhoneOutlined />}
+                  placeholder="0901234567"
+                  inputMode="numeric"
+                  maxLength={10}
+                  onChange={(event) => {
+                    form.setFieldValue("phone", getDigits(event.target.value).slice(0, 10));
+                  }}
+                />
               </Form.Item>
-              <Form.Item name="email" label="Email" rules={[{ required: true, message: "Vui lòng nhập email" }, { type: "email", message: "Email không hợp lệ" }]}>
+              <Form.Item
+                name="email"
+                label="Email"
+                validateTrigger={["onChange", "onBlur"]}
+                rules={[
+                  { required: true, message: "Vui lòng nhập email" },
+                  { type: "email", message: "Email không hợp lệ" },
+                  createUniqueEmailRule(customers, customerId),
+                ]}
+              >
                 <Input prefix={<MailOutlined />} placeholder="customer@company.vn" />
               </Form.Item>
-              <Form.Item name="status" label="Trạng thái" rules={[{ required: true }]}>
-                <Select suffixIcon={<SafetyCertificateOutlined />} options={STATUS_OPTIONS} />
-              </Form.Item>
+              {isEditing ? (
+                <Form.Item name="status" label="Trạng thái" rules={[{ required: true }]}>
+                  <Select
+                    suffixIcon={<SafetyCertificateOutlined />}
+                    options={STATUS_OPTIONS}
+                  />
+                </Form.Item>
+              ) : (
+                <>
+                  <Form.Item name="status" hidden>
+                    <Input />
+                  </Form.Item>
+                  <Form.Item label="Trạng thái mặc định">
+                    <div className="create-customer-sale__fixed-status" role="status">
+                      <span className="create-customer-sale__status-icon">
+                        <SafetyCertificateOutlined />
+                      </span>
+                      <span className="create-customer-sale__status-copy">
+                        <strong>Đang hoạt động</strong>
+                        <small>Tự động áp dụng khi tạo khách hàng</small>
+                      </span>
+                    </div>
+                  </Form.Item>
+                </>
+              )}
               <Form.Item name="address" label="Địa chỉ" className="is-full">
-                <Input.TextArea rows={3} placeholder="Nhập địa chỉ liên hệ" />
+                <CustomerAddressSelector
+                  initialAddress={initialValues.address}
+                  onAddressChange={(address) => {
+                    form.setFieldValue("address", address);
+                  }}
+                />
               </Form.Item>
             </div>
           </section>

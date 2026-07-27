@@ -473,6 +473,8 @@ export default function CustomerList() {
         setCustomers(
           normalizedCustomers
         );
+
+        return normalizedCustomers;
       } catch (requestError) {
         console.error(
           "GET CUSTOMERS ERROR:",
@@ -494,6 +496,8 @@ export default function CustomerList() {
           "Tải danh sách thất bại",
           message
         );
+
+        return [];
       } finally {
         setLoading(false);
       }
@@ -1084,18 +1088,55 @@ export default function CustomerList() {
 
       <CreateCustomerSale
         open={createOpen}
+        customers={customers}
         onClose={() => {
           setCreateOpen(false);
         }}
-        onSaved={async () => {
+        onSaved={async (savedCustomer) => {
           setCreateOpen(false);
-          await loadCustomers();
+          setSearchKeyword("");
+          setStatusFilter("ALL");
+          setCurrentPage(1);
+
+          const refreshedCustomers = await loadCustomers();
+          const createdCustomer = normalizeCustomerRecord(savedCustomer);
+          const createdId = normalizeText(createdCustomer?.id);
+          const createdEmail = normalizeText(createdCustomer?.email).toLowerCase();
+          const createdPhone = normalizeText(createdCustomer?.phone).replace(/\D/g, "");
+
+          const createdIndex = refreshedCustomers.findIndex((customer) => {
+            const customerId = normalizeText(customer?.id);
+            const customerEmail = normalizeText(customer?.email).toLowerCase();
+            const customerPhone = normalizeText(customer?.phone).replace(/\D/g, "");
+
+            return (
+              (createdId && customerId === createdId) ||
+              (createdEmail && customerEmail === createdEmail) ||
+              (createdPhone && customerPhone === createdPhone)
+            );
+          });
+
+          if (createdIndex >= 0) {
+            const newestCustomer = refreshedCustomers[createdIndex];
+            setCustomers([
+              newestCustomer,
+              ...refreshedCustomers.filter((_, index) => index !== createdIndex),
+            ]);
+          } else if (createdCustomer?.id) {
+            setCustomers([
+              createdCustomer,
+              ...refreshedCustomers.filter(
+                (customer) => normalizeText(customer?.id) !== createdId
+              ),
+            ]);
+          }
         }}
       />
 
       <EditCustomerSale
         open={editOpen}
         customer={editingCustomer}
+        customers={customers}
         onClose={() => {
           setEditOpen(false);
           setEditingCustomer(null);
