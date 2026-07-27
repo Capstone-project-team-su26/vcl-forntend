@@ -8,6 +8,7 @@ import {
   Button,
   Empty,
   Input,
+  Modal,
   Pagination,
   Select,
   Skeleton,
@@ -15,23 +16,31 @@ import {
   Tooltip,
 } from "antd";
 import {
+  BankOutlined,
   EnvironmentOutlined,
-  EyeOutlined,
   FilterOutlined,
   IdcardOutlined,
   MailOutlined,
   PhoneOutlined,
   ReloadOutlined,
+  PlusOutlined,
   SearchOutlined,
   TeamOutlined,
   UserOutlined,
 } from "@ant-design/icons";
+import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
+import EditRoundedIcon from "@mui/icons-material/EditRounded";
+import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 
 import {
+  deleteCustomerApi,
   getCustomersApi,
+  normalizeCustomerStatus,
 } from "../../../api/SaleAPI/CusSale/CusSaleService";
 import AuthNotify from "../../../utils/Common/AuthNotify";
 import CustomerDetailModal from "./CusDeatilSale/CustomerDetailModal";
+import CreateCustomerSale from "./CreateCustomerSale/CreateCustomerSale";
+import EditCustomerSale from "./EditCustomerSale/EditCustomerSale";
 import "./CustomerList.css";
 
 const CUSTOMER_STATUS_CONFIG = {
@@ -49,6 +58,10 @@ const CUSTOMER_STATUS_CONFIG = {
   },
   PENDING: {
     label: "Chờ kích hoạt",
+    className: "is-pending",
+  },
+  PENDING_VERIFICATION: {
+    label: "Chờ xác minh",
     className: "is-pending",
   },
   SUSPENDED: {
@@ -77,6 +90,10 @@ const STATUS_OPTIONS = [
   {
     value: "PENDING",
     label: "Chờ kích hoạt",
+  },
+  {
+    value: "PENDING_VERIFICATION",
+    label: "Chờ xác minh",
   },
   {
     value: "BLOCKED",
@@ -158,14 +175,14 @@ const normalizeCustomerRecord = (
     )
   );
 
-  const status = normalizeText(
+  const status = normalizeCustomerStatus(
     pickValue(
       customer?.status,
       raw?.status,
       raw?.accountStatus,
       profile?.status
     )
-  ).toUpperCase();
+  );
 
   const explicitIsActive =
     pickValue(
@@ -235,6 +252,22 @@ const normalizeCustomerRecord = (
       )
     ),
 
+    companyName: normalizeText(
+      pickValue(
+        customer?.companyName,
+        raw?.companyName,
+        profile?.companyName
+      )
+    ),
+
+    taxId: normalizeText(
+      pickValue(
+        customer?.taxId,
+        raw?.taxId,
+        profile?.taxId
+      )
+    ),
+
     region: normalizeText(
       pickValue(
         customer?.region,
@@ -276,9 +309,7 @@ const normalizeCustomerRecord = (
 };
 
 const getCustomerStatusCode = (customer) => {
-  const status = normalizeText(
-    customer?.status
-  ).toUpperCase();
+  const status = normalizeCustomerStatus(customer?.status);
 
   if (status) {
     return status;
@@ -416,6 +447,10 @@ export default function CustomerList() {
   const [detailOpen, setDetailOpen] =
     useState(false);
 
+  const [createOpen, setCreateOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState(null);
+
   const loadCustomers =
     useCallback(async () => {
       try {
@@ -465,11 +500,21 @@ export default function CustomerList() {
     }, []);
 
   useEffect(() => {
-    loadCustomers();
+    const timeoutId = window.setTimeout(
+      loadCustomers,
+      0
+    );
+
+    return () => window.clearTimeout(timeoutId);
   }, [loadCustomers]);
 
   useEffect(() => {
-    setCurrentPage(1);
+    const timeoutId = window.setTimeout(
+      () => setCurrentPage(1),
+      0
+    );
+
+    return () => window.clearTimeout(timeoutId);
   }, [
     searchKeyword,
     statusFilter,
@@ -565,8 +610,15 @@ export default function CustomerList() {
 
   useEffect(() => {
     if (currentPage > totalPages) {
-      setCurrentPage(totalPages);
+      const timeoutId = window.setTimeout(
+        () => setCurrentPage(totalPages),
+        0
+      );
+
+      return () => window.clearTimeout(timeoutId);
     }
+
+    return undefined;
   }, [currentPage, totalPages]);
 
   const displayedCustomers =
@@ -608,6 +660,41 @@ export default function CustomerList() {
       setSelectedCustomerId("");
       setSelectedCustomer(null);
     }, 180);
+  };
+
+  const handleOpenCreate = () => {
+    setCreateOpen(true);
+  };
+
+  const handleOpenEdit = (customer) => {
+    setEditingCustomer(customer);
+    setEditOpen(true);
+  };
+
+  const handleDeleteCustomer = (customer) => {
+    Modal.confirm({
+      title: "Xóa khách hàng?",
+      content: `Bạn có chắc muốn xóa ${customer?.fullName || "khách hàng này"}?`,
+      okText: "Xóa",
+      cancelText: "Hủy",
+      okButtonProps: { danger: true },
+      async onOk() {
+        try {
+          await deleteCustomerApi(customer.id);
+          AuthNotify.success("Đã xóa", "Khách hàng đã được xóa khỏi hệ thống.");
+          await loadCustomers();
+        } catch (requestError) {
+          AuthNotify.error(
+            "Không thể xóa khách hàng",
+            requestError?.response?.data?.message ||
+              requestError?.response?.data?.error ||
+              requestError?.message ||
+              "Vui lòng thử lại."
+          );
+          throw requestError;
+        }
+      },
+    });
   };
 
   return (
@@ -688,6 +775,14 @@ export default function CustomerList() {
           </div>
 
           <div className="customer-list-toolbar__filters">
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={handleOpenCreate}
+            >
+              Thêm khách hàng
+            </Button>
+
             <Select
               value={statusFilter}
               options={STATUS_OPTIONS}
@@ -778,7 +873,10 @@ export default function CustomerList() {
             <div className="customer-list-table" role="region" aria-label="Danh sách khách hàng">
               <div className="customer-list-table__header">
                 <span>Khách hàng</span>
-                <span>Thông tin liên hệ</span>
+                <span>Email</span>
+                <span>Số điện thoại</span>
+                <span>Công ty</span>
+                <span>Mã số thuế</span>
                 <span>Địa chỉ</span>
                 <span>Trạng thái</span>
                 <span>Ngày tham gia</span>
@@ -831,19 +929,44 @@ export default function CustomerList() {
                         </div>
 
                         <div
-                          className="customer-list-contact"
-                          data-label="Thông tin liên hệ"
+                          className="customer-list-info-cell"
+                          data-label="Email"
                         >
                           <span>
                             <MailOutlined />
                             {customer?.email ||
                               "Chưa cập nhật email"}
                           </span>
+                        </div>
 
+                        <div
+                          className="customer-list-info-cell"
+                          data-label="Số điện thoại"
+                        >
                           <span>
                             <PhoneOutlined />
                             {customer?.phone ||
                               "Chưa cập nhật số điện thoại"}
+                          </span>
+                        </div>
+
+                        <div
+                          className="customer-list-info-cell"
+                          data-label="Công ty"
+                        >
+                          <span>
+                            <BankOutlined />
+                            {customer?.companyName || "Chưa cập nhật"}
+                          </span>
+                        </div>
+
+                        <div
+                          className="customer-list-info-cell"
+                          data-label="Mã số thuế"
+                        >
+                          <span>
+                            <IdcardOutlined />
+                            {customer?.taxId || "Chưa cập nhật"}
                           </span>
                         </div>
 
@@ -883,19 +1006,32 @@ export default function CustomerList() {
                           className="customer-list-actions"
                           data-label="Thao tác"
                         >
-                          <Button
-                            type="primary"
-                            icon={
-                              <EyeOutlined />
-                            }
-                            onClick={() =>
-                              handleOpenDetail(
-                                customer
-                              )
-                            }
-                          >
-                            Xem chi tiết
-                          </Button>
+                          <Tooltip title="Xem chi tiết">
+                            <Button
+                              className="customer-action-button is-view"
+                              aria-label="Xem chi tiết"
+                              icon={<VisibilityRoundedIcon />}
+                              onClick={() => handleOpenDetail(customer)}
+                            />
+                          </Tooltip>
+
+                          <Tooltip title="Chỉnh sửa">
+                            <Button
+                              className="customer-action-button is-edit"
+                              aria-label="Chỉnh sửa khách hàng"
+                              icon={<EditRoundedIcon />}
+                              onClick={() => handleOpenEdit(customer)}
+                            />
+                          </Tooltip>
+
+                          <Tooltip title="Xóa khách hàng">
+                            <Button
+                              className="customer-action-button is-delete"
+                              aria-label="Xóa khách hàng"
+                              icon={<DeleteOutlineRoundedIcon />}
+                              onClick={() => handleDeleteCustomer(customer)}
+                            />
+                          </Tooltip>
                         </div>
                       </article>
                     );
@@ -944,6 +1080,31 @@ export default function CustomerList() {
           selectedCustomer
         }
         onClose={handleCloseDetail}
+      />
+
+      <CreateCustomerSale
+        open={createOpen}
+        onClose={() => {
+          setCreateOpen(false);
+        }}
+        onSaved={async () => {
+          setCreateOpen(false);
+          await loadCustomers();
+        }}
+      />
+
+      <EditCustomerSale
+        open={editOpen}
+        customer={editingCustomer}
+        onClose={() => {
+          setEditOpen(false);
+          setEditingCustomer(null);
+        }}
+        onSaved={async () => {
+          setEditOpen(false);
+          setEditingCustomer(null);
+          await loadCustomers();
+        }}
       />
     </main>
   );

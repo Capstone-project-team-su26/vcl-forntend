@@ -19,9 +19,8 @@ const getResponseData = (response) => {
 
 const getAccessToken = () => {
   const token =
-    sessionStorage.getItem(
-      "accessToken"
-    );
+    sessionStorage.getItem("accessToken") ||
+    localStorage.getItem("accessToken");
 
   if (!token) {
     throw new Error(
@@ -48,6 +47,29 @@ const normalizeText = (value) => {
   return String(value ?? "").trim();
 };
 
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+const resolveCustomerId = (customer = {}) => {
+  const profile = customer?.profile || customer?.customerProfile || {};
+  const candidates = [
+    customer?.customerId,
+    customer?.userId,
+    customer?.id,
+    profile?.customerId,
+    profile?.userId,
+    profile?.id,
+  ]
+    .map(normalizeText)
+    .filter(Boolean);
+
+  return (
+    candidates.find((candidate) => UUID_PATTERN.test(candidate)) ||
+    candidates[0] ||
+    ""
+  );
+};
+
 const normalizeBoolean = (value) => {
   if (typeof value === "boolean") {
     return value;
@@ -62,6 +84,24 @@ const normalizeBoolean = (value) => {
     "active",
     "enabled",
   ].includes(normalizedValue);
+};
+
+export const normalizeCustomerStatus = (value) => {
+  const normalized = normalizeText(value)
+    .replace(/[\s_-]+/g, "")
+    .toUpperCase();
+
+  const statusMap = {
+    ACTIVE: "ACTIVE",
+    INACTIVE: "INACTIVE",
+    PENDING: "PENDING",
+    PENDINGVERIFICATION: "PENDING_VERIFICATION",
+    BLOCKED: "BLOCKED",
+    SUSPENDED: "SUSPENDED",
+    DELETED: "DELETED",
+  };
+
+  return statusMap[normalized] || normalized;
 };
 
 const removeEmptyParams = (
@@ -105,15 +145,7 @@ export const normalizeCustomer = (
   customer = {}
 ) => {
   const id =
-    normalizeText(
-      customer?.id
-    ) ||
-    normalizeText(
-      customer?.customerId
-    ) ||
-    normalizeText(
-      customer?.userId
-    );
+    resolveCustomerId(customer);
 
   const fullName =
     normalizeText(
@@ -158,6 +190,12 @@ export const normalizeCustomer = (
         customer?.address
       ),
 
+    companyName:
+      normalizeText(customer?.companyName),
+
+    taxId:
+      normalizeText(customer?.taxId),
+
     country:
       normalizeText(
         customer?.country
@@ -169,9 +207,7 @@ export const normalizeCustomer = (
       ),
 
     status:
-      normalizeText(
-        customer?.status
-      ).toUpperCase(),
+      normalizeCustomerStatus(customer?.status),
 
     isActive:
       customer?.isActive !==
@@ -179,10 +215,7 @@ export const normalizeCustomer = (
         ? normalizeBoolean(
             customer?.isActive
           )
-        : normalizeText(
-            customer?.status
-          ).toUpperCase() ===
-          "ACTIVE",
+        : normalizeCustomerStatus(customer?.status) === "ACTIVE",
 
     createdAt:
       customer?.createdAt || null,
@@ -192,6 +225,28 @@ export const normalizeCustomer = (
 
     raw: customer,
   };
+};
+
+export const normalizeCustomerPayload = (customer = {}) => ({
+  fullName: normalizeText(customer?.fullName),
+  phone: normalizeText(customer?.phone),
+  email: normalizeText(customer?.email),
+  address: normalizeText(customer?.address),
+  companyName: normalizeText(customer?.companyName),
+  taxId: normalizeText(customer?.taxId),
+  status: normalizeCustomerStatus(customer?.status) || "ACTIVE",
+});
+
+const validateCustomerPayload = (payload) => {
+  if (!payload.fullName) {
+    throw new Error("Vui lòng nhập tên khách hàng.");
+  }
+  if (!payload.phone) {
+    throw new Error("Vui lòng nhập số điện thoại.");
+  }
+  if (!payload.email) {
+    throw new Error("Vui lòng nhập email.");
+  }
 };
 
 /* =========================
@@ -255,6 +310,10 @@ export const getCustomerByIdApi = async (
     );
   }
 
+  if (!UUID_PATTERN.test(normalizedCustomerId)) {
+    throw new Error("Mã khách hàng không đúng định dạng UUID.");
+  }
+
   const response =
     await axiosInstance.get(
       API_ENDPOINTS.customers.detail(normalizedCustomerId),
@@ -272,6 +331,62 @@ export const getCustomerByIdApi = async (
   }
 
   return normalizeCustomer(data);
+};
+
+export const createCustomerApi = async (customer) => {
+  const payload = normalizeCustomerPayload(customer);
+  validateCustomerPayload(payload);
+
+  const response = await axiosInstance.post(
+    API_ENDPOINTS.customers.list,
+    payload,
+    { headers: { ...getAuthHeaders(), "Content-Type": "application/json" } }
+  );
+
+  const data = getResponseData(response);
+  return data && typeof data === "object"
+    ? normalizeCustomer(data)
+    : data;
+};
+
+export const updateCustomerApi = async (customerId, customer) => {
+  const normalizedCustomerId = normalizeText(customerId);
+  if (!normalizedCustomerId) {
+    throw new Error("Không tìm thấy mã khách hàng.");
+  }
+  if (!UUID_PATTERN.test(normalizedCustomerId)) {
+    throw new Error("Mã khách hàng không đúng định dạng UUID.");
+  }
+
+  const payload = normalizeCustomerPayload(customer);
+  validateCustomerPayload(payload);
+
+  const response = await axiosInstance.put(
+    API_ENDPOINTS.customers.detail(normalizedCustomerId),
+    payload,
+    { headers: { ...getAuthHeaders(), "Content-Type": "application/json" } }
+  );
+
+  const data = getResponseData(response);
+  return data && typeof data === "object"
+    ? normalizeCustomer(data)
+    : data;
+};
+
+export const deleteCustomerApi = async (customerId) => {
+  const normalizedCustomerId = normalizeText(customerId);
+  if (!normalizedCustomerId) {
+    throw new Error("Không tìm thấy mã khách hàng.");
+  }
+  if (!UUID_PATTERN.test(normalizedCustomerId)) {
+    throw new Error("Mã khách hàng không đúng định dạng UUID.");
+  }
+
+  const response = await axiosInstance.delete(
+    API_ENDPOINTS.customers.detail(normalizedCustomerId),
+    { headers: getAuthHeaders() }
+  );
+  return getResponseData(response);
 };
 
 /* =========================
@@ -404,9 +519,14 @@ export const findCustomerById = (
 
 const customerService = {
   normalizeCustomer,
+  normalizeCustomerStatus,
+  normalizeCustomerPayload,
 
   getCustomersApi,
   getCustomerByIdApi,
+  createCustomerApi,
+  updateCustomerApi,
+  deleteCustomerApi,
   getActiveCustomersApi,
 
   mapCustomersToOptions,

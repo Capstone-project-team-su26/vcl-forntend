@@ -13,22 +13,21 @@ import {
   Tooltip,
 } from "antd";
 import {
-  CalendarOutlined,
+  BankOutlined,
   CloseOutlined,
   CopyOutlined,
   EnvironmentOutlined,
-  GlobalOutlined,
   IdcardOutlined,
   MailOutlined,
   PhoneOutlined,
   ReloadOutlined,
   SafetyCertificateOutlined,
-  TeamOutlined,
   UserOutlined,
 } from "@ant-design/icons";
 
 import {
   getCustomerByIdApi,
+  normalizeCustomerStatus,
 } from "../../../../api/SaleAPI/CusSale/CusSaleService";
 import AuthNotify from "../../../../utils/Common/AuthNotify";
 import "./CustomerDetailModal.css";
@@ -48,6 +47,10 @@ const CUSTOMER_STATUS_CONFIG = {
   },
   PENDING: {
     label: "Chờ kích hoạt",
+    className: "is-pending",
+  },
+  PENDING_VERIFICATION: {
+    label: "Chờ xác minh",
     className: "is-pending",
   },
   SUSPENDED: {
@@ -78,91 +81,8 @@ const pickValue = (...values) => {
   return "";
 };
 
-const formatDateTime = (value) => {
-  if (!value) {
-    return "Chưa cập nhật";
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "Chưa cập nhật";
-  }
-
-  return new Intl.DateTimeFormat(
-    "vi-VN",
-    {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }
-  ).format(date);
-};
-
-const formatDate = (value) => {
-  if (!value) {
-    return "Chưa cập nhật";
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "Chưa cập nhật";
-  }
-
-  return new Intl.DateTimeFormat(
-    "vi-VN",
-    {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    }
-  ).format(date);
-};
-
-const translateGender = (value) => {
-  const normalizedValue =
-    normalizeText(value).toUpperCase();
-
-  const genderMap = {
-    MALE: "Nam",
-    FEMALE: "Nữ",
-    OTHER: "Khác",
-  };
-
-  return (
-    genderMap[normalizedValue] ||
-    normalizeText(value) ||
-    "Chưa cập nhật"
-  );
-};
-
-const translateAccountType = (value) => {
-  const normalizedValue =
-    normalizeText(value)
-      .toUpperCase()
-      .replace(/[^A-Z0-9]/g, "");
-
-  const typeMap = {
-    CUSTOMER: "Khách hàng",
-    INDIVIDUAL: "Cá nhân",
-    BUSINESS: "Doanh nghiệp",
-    COMPANY: "Doanh nghiệp",
-  };
-
-  return (
-    typeMap[normalizedValue] ||
-    normalizeText(value) ||
-    "Khách hàng"
-  );
-};
-
 const getStatusCode = (customer) => {
-  const status = normalizeText(
-    customer?.status
-  ).toUpperCase();
+  const status = normalizeCustomerStatus(customer?.status);
 
   if (status) {
     return status;
@@ -397,40 +317,22 @@ export default function CustomerDetailModal({
       return;
     }
 
-    setCustomer(
-      initialCustomer || null
-    );
+    const timeoutId = window.setTimeout(() => {
+      setCustomer(initialCustomer || null);
+      loadCustomerDetail();
+    }, 0);
 
-    loadCustomerDetail();
+    return () => window.clearTimeout(timeoutId);
   }, [
     open,
     initialCustomer,
     loadCustomerDetail,
   ]);
 
-  const rawCustomer =
-    customer?.raw || customer || {};
-
   const customerView =
     useMemo(() => {
-      const address = [
-        pickValue(
-          rawCustomer?.address,
-          customer?.address
-        ),
-        pickValue(
-          rawCustomer?.region,
-          rawCustomer?.province,
-          rawCustomer?.city,
-          customer?.region
-        ),
-        pickValue(
-          rawCustomer?.country,
-          customer?.country
-        ),
-      ]
-        .map(normalizeText)
-        .filter(Boolean);
+      const rawCustomer =
+        customer?.raw || customer || {};
 
       return {
         fullName:
@@ -463,76 +365,24 @@ export default function CustomerDetailModal({
           ),
 
         address:
-          [...new Set(address)].join(
-            ", "
-          ),
-
-        country:
           pickValue(
-            rawCustomer?.country,
-            customer?.country
+            rawCustomer?.address,
+            customer?.address
           ),
 
-        region:
+        companyName:
           pickValue(
-            rawCustomer?.region,
-            rawCustomer?.province,
-            rawCustomer?.city,
-            customer?.region
+            rawCustomer?.companyName,
+            customer?.companyName
           ),
 
-        gender:
-          translateGender(
-            pickValue(
-              rawCustomer?.gender,
-              rawCustomer?.sex
-            )
-          ),
-
-        dateOfBirth:
-          formatDate(
-            pickValue(
-              rawCustomer?.dateOfBirth,
-              rawCustomer?.birthday,
-              rawCustomer?.birthDate
-            )
-          ),
-
-        accountType:
-          translateAccountType(
-            pickValue(
-              rawCustomer?.customerType,
-              rawCustomer?.accountType,
-              rawCustomer?.userType,
-              rawCustomer?.role,
-              "CUSTOMER"
-            )
-          ),
-
-        createdAt:
-          formatDateTime(
-            pickValue(
-              rawCustomer?.createdAt,
-              customer?.createdAt
-            )
-          ),
-
-        updatedAt:
-          formatDateTime(
-            pickValue(
-              rawCustomer?.updatedAt,
-              customer?.updatedAt
-            )
-          ),
-
-        note:
+        taxId:
           pickValue(
-            rawCustomer?.note,
-            rawCustomer?.notes,
-            rawCustomer?.description
+            rawCustomer?.taxId,
+            customer?.taxId
           ),
       };
-    }, [customer, rawCustomer]);
+    }, [customer]);
 
   const status =
     getStatus(customer);
@@ -552,7 +402,7 @@ export default function CustomerDetailModal({
       title={null}
       footer={null}
       closeIcon={null}
-      maskClosable={!loading}
+      mask={{ closable: !loading }}
       className="customer-detail-modal"
       onCancel={onClose}
     >
@@ -687,12 +537,11 @@ export default function CustomerDetailModal({
 
               <div>
                 <h3>
-                  Thông tin cá nhân
+                  Thông tin khách hàng
                 </h3>
 
                 <p>
-                  Thông tin nhận diện và loại
-                  tài khoản khách hàng.
+                  Dữ liệu hồ sơ được trả về từ hệ thống.
                 </p>
               </div>
             </div>
@@ -718,29 +567,16 @@ export default function CustomerDetailModal({
               />
 
               <CustomerInfoItem
-                icon={<TeamOutlined />}
-                label="Loại tài khoản"
-                value={
-                  customerView.accountType
-                }
+                icon={<BankOutlined />}
+                label="Tên công ty"
+                value={customerView.companyName}
               />
 
               <CustomerInfoItem
-                icon={<UserOutlined />}
-                label="Giới tính"
-                value={
-                  customerView.gender
-                }
-              />
-
-              <CustomerInfoItem
-                icon={
-                  <CalendarOutlined />
-                }
-                label="Ngày sinh"
-                value={
-                  customerView.dateOfBirth
-                }
+                icon={<IdcardOutlined />}
+                label="Mã số thuế"
+                value={customerView.taxId}
+                copyable
               />
 
               <CustomerInfoItem
@@ -791,24 +627,6 @@ export default function CustomerDetailModal({
               />
 
               <CustomerInfoItem
-                icon={<GlobalOutlined />}
-                label="Quốc gia"
-                value={
-                  customerView.country
-                }
-              />
-
-              <CustomerInfoItem
-                icon={
-                  <EnvironmentOutlined />
-                }
-                label="Khu vực"
-                value={
-                  customerView.region
-                }
-              />
-
-              <CustomerInfoItem
                 icon={
                   <EnvironmentOutlined />
                 }
@@ -818,60 +636,6 @@ export default function CustomerDetailModal({
                 }
                 fullWidth
               />
-            </div>
-          </section>
-
-          <section className="customer-detail-section">
-            <div className="customer-detail-section__heading">
-              <div className="customer-detail-section__icon">
-                <CalendarOutlined />
-              </div>
-
-              <div>
-                <h3>
-                  Thông tin trên hệ thống
-                </h3>
-
-                <p>
-                  Thời gian tạo và lần cập nhật
-                  hồ sơ gần nhất.
-                </p>
-              </div>
-            </div>
-
-            <div className="customer-detail-info-grid">
-              <CustomerInfoItem
-                icon={
-                  <CalendarOutlined />
-                }
-                label="Ngày tham gia"
-                value={
-                  customerView.createdAt
-                }
-              />
-
-              <CustomerInfoItem
-                icon={
-                  <ReloadOutlined />
-                }
-                label="Cập nhật gần nhất"
-                value={
-                  customerView.updatedAt
-                }
-              />
-
-              {customerView.note && (
-                <CustomerInfoItem
-                  icon={
-                    <IdcardOutlined />
-                  }
-                  label="Ghi chú"
-                  value={
-                    customerView.note
-                  }
-                  fullWidth
-                />
-              )}
             </div>
           </section>
 
