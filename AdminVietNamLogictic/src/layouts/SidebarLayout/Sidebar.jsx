@@ -149,6 +149,33 @@ const MENU_BY_ROLE = {
       path: "/sale",
       end: true,
     },
+
+    /*
+     * Giữ nguyên tên và icon người dùng đã đặt.
+     * Chỉ sửa key và đường dẫn cho đúng chức năng.
+     */
+    {
+      key: "sale-list-and-fees",
+      label: "Danh sách và phí ",
+      icon: <PlusCircleOutlined />,
+      children: [
+        {
+          key: "sale-restricted-items",
+          label: "Hàng cấm ",
+          icon: <ShoppingOutlined />,
+          path: "/sale/restricted-items",
+          end: true,
+        },
+        {
+          key: "sale-service-pricings",
+          label: "Phí dịch vụ",
+          icon: <InboxOutlined />,
+          path: "/sale/service-pricings",
+          end: true,
+        },
+      ],
+    },
+
     {
       key: "sale-create-request",
       label: "Tạo yêu cầu",
@@ -159,15 +186,18 @@ const MENU_BY_ROLE = {
           label: "Mua hộ",
           icon: <ShoppingOutlined />,
           path: "/sale/create-order/buy-orders",
+          end: true,
         },
         {
           key: "sale-create-consignment",
           label: "Ký gửi",
           icon: <InboxOutlined />,
           path: "/sale/create-order/consignment",
+          end: true,
         },
       ],
     },
+
     {
       key: "sale-customers",
       label: "Quản lý khách hàng",
@@ -192,6 +222,29 @@ const MENU_BY_ROLE = {
       icon: <CalculatorOutlined />,
       path: "/sale/quotations",
     },
+
+    {
+      key: "sale-transaction-history",
+      label: "Lịch sử giao dịch ",
+      icon: <PlusCircleOutlined />,
+      children: [
+        {
+          key: "sale-history-purchase",
+          label: "Mua hộ",
+          icon: <ShoppingOutlined />,
+          path: "/sale/history/purchase-requests",
+          end: true,
+        },
+        {
+          key: "sale-history-consignment",
+          label: "Ký gửi",
+          icon: <InboxOutlined />,
+          path: "/sale/history/consignments",
+          end: true,
+        },
+      ],
+    },
+
     {
       key: "sale-customer-service",
       label: "Chăm sóc khách hàng",
@@ -205,6 +258,20 @@ const MENU_BY_ROLE = {
    PATH HELPERS
 ===================================================== */
 
+const normalizePath = (value) => {
+  const path =
+    String(value || "").trim();
+
+  if (
+    path.length > 1 &&
+    path.endsWith("/")
+  ) {
+    return path.replace(/\/+$/, "");
+  }
+
+  return path || "/";
+};
+
 const isPathActive = (
   pathname,
   path,
@@ -214,13 +281,21 @@ const isPathActive = (
     return false;
   }
 
+  const currentPath =
+    normalizePath(pathname);
+
+  const targetPath =
+    normalizePath(path);
+
   if (end) {
-    return pathname === path;
+    return currentPath === targetPath;
   }
 
   return (
-    pathname === path ||
-    pathname.startsWith(`${path}/`)
+    currentPath === targetPath ||
+    currentPath.startsWith(
+      `${targetPath}/`
+    )
   );
 };
 
@@ -329,12 +404,30 @@ export default function Sidebar() {
   const [
     openMenuGroups,
     setOpenMenuGroups,
-  ] = useState(() => ({
-    "sale-create-request":
-      location.pathname.startsWith(
-        "/sale/create-order/"
-      ),
-  }));
+  ] = useState(() => {
+    const pathname =
+      location.pathname;
+
+    return {
+      "sale-list-and-fees":
+        pathname.startsWith(
+          "/sale/restricted-items"
+        ) ||
+        pathname.startsWith(
+          "/sale/service-pricings"
+        ),
+
+      "sale-create-request":
+        pathname.startsWith(
+          "/sale/create-order/"
+        ),
+
+      "sale-transaction-history":
+        pathname.startsWith(
+          "/sale/history/"
+        ),
+    };
+  });
 
   const storedRole =
     sessionStorage.getItem("role") ||
@@ -399,11 +492,28 @@ export default function Sidebar() {
     groupKey
   ) => {
     setOpenMenuGroups(
-      (previous) => ({
-        ...previous,
-        [groupKey]:
-          !previous[groupKey],
-      })
+      (previous) => {
+        const isOpening =
+          !previous[groupKey];
+
+        if (!isOpening) {
+          return {
+            ...previous,
+            [groupKey]: false,
+          };
+        }
+
+        /*
+         * Chỉ mở dropdown được bấm.
+         * Tránh nhiều nhóm menu mở cùng lúc.
+         */
+        return {
+          "sale-list-and-fees": false,
+          "sale-create-request": false,
+          "sale-transaction-history": false,
+          [groupKey]: true,
+        };
+      }
     );
   };
 

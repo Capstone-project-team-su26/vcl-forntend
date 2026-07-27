@@ -17,6 +17,8 @@ import ConsignmentDetail from "../pages/SalePage/ConsignmentsPage/ConsigmentsDet
 import CreateConsignmentQuotation from "../pages/SalePage/ConsignmentsPage/CreateConsigmentsQotation/CreateConsignmentQuotation";
 
 import CustomerList from "../pages/SalePage/CusTomerPagesale/CustomerList"
+import RestrictedItems from "../pages/SalePage/BanItem/RestrictedItems";
+import ServicePricings from "../pages/SalePage/ServicePricingRule/ServicePricings";
 /* ================= ROLE CONFIG ================= */
 
 const ROLE_HOME = {
@@ -234,6 +236,16 @@ export default function AppRoutes() {
 <Route
   path="customers"
   element={<CustomerList />}
+/>
+
+<Route
+  path="/sale/restricted-items"
+  element={<RestrictedItems />}
+/>
+
+<Route
+  path="/sale/service-pricings"
+  element={<ServicePricings />}
 />
       </Route>
 

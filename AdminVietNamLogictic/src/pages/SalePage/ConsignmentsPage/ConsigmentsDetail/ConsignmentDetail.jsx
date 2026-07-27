@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import {
@@ -12,6 +13,7 @@ import {
 import {
   Button,
   Empty,
+  Input,
   Modal,
   Skeleton,
   Tag,
@@ -22,6 +24,7 @@ import {
   CalendarOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
+  CloseCircleOutlined,
   CopyOutlined,
   DollarOutlined,
   EnvironmentOutlined,
@@ -41,7 +44,10 @@ import {
   UserOutlined,
 } from "@ant-design/icons";
 
-import { getConsignmentDetailApi } from "../../../../api/SaleAPI/ConsignmentAPI/consignmentService";
+import {
+  getConsignmentDetailApi,
+  updateConsignmentStatusApi,
+} from "../../../../api/SaleAPI/ConsignmentAPI/consignmentService";
 import {
   getProductTypesApi,
 } from "../../../../api/SaleAPI/ConsignmentAPI/consignmentMasterService";
@@ -58,13 +64,33 @@ import "./ConsignmentDetail.css";
   ========================= */
 
   const ORDER_STATUS_CONFIG = {
+    PENDING: {
+      label: "Chờ xử lý",
+      className: "is-warning",
+    },
     PENDING_REVIEW: {
       label: "Chờ duyệt",
       className: "is-warning",
     },
+    ACCEPTED: {
+      label: "Đã chấp nhận",
+      className: "is-accepted",
+    },
+    APPROVED: {
+      label: "Đã phê duyệt",
+      className: "is-success",
+    },
+    REJECTED: {
+      label: "Đã hủy",
+      className: "is-danger",
+    },
     QUOTATION_SENT: {
       label: "Đã gửi báo giá",
       className: "is-info",
+    },
+    QUOTATION_REJECTED: {
+      label: "Báo giá bị từ chối",
+      className: "is-danger",
     },
     WAITING_DEPOSIT: {
       label: "Chờ đặt cọc",
@@ -74,9 +100,37 @@ import "./ConsignmentDetail.css";
       label: "Đã đặt cọc",
       className: "is-success",
     },
+    CHECKED_IN: {
+      label: "Đã nhập kho",
+      className: "is-info",
+    },
+    RECEIVED: {
+      label: "Đã tiếp nhận",
+      className: "is-info",
+    },
     PROCESSING: {
       label: "Đang xử lý",
       className: "is-info",
+    },
+    IN_TRANSIT: {
+      label: "Đang vận chuyển",
+      className: "is-info",
+    },
+    CUSTOMS_CLEARANCE: {
+      label: "Đang thông quan",
+      className: "is-info",
+    },
+    READY_FOR_DELIVERY: {
+      label: "Chờ giao hàng",
+      className: "is-warning",
+    },
+    DELIVERING: {
+      label: "Đang giao hàng",
+      className: "is-info",
+    },
+    DELIVERED: {
+      label: "Đã giao hàng",
+      className: "is-success",
     },
     COMPLETED: {
       label: "Hoàn thành",
@@ -263,38 +317,181 @@ import "./ConsignmentDetail.css";
     }).format(date);
   };
 
+
+  const STATUS_LABEL_MAP = {
+    PENDING: "Chờ xử lý",
+    PENDING_REVIEW: "Chờ duyệt",
+    ACCEPTED: "Đã chấp nhận",
+    APPROVED: "Đã phê duyệt",
+    REJECTED: "Đã từ chối",
+    QUOTATION_SENT: "Đã gửi báo giá",
+    QUOTATION_REJECTED:
+      "Báo giá bị từ chối",
+    WAITING_DEPOSIT: "Chờ đặt cọc",
+    DEPOSIT_PAID: "Đã đặt cọc",
+    CHECKED_IN: "Đã nhập kho",
+    RECEIVED: "Đã tiếp nhận",
+    PROCESSING: "Đang xử lý",
+    IN_TRANSIT: "Đang vận chuyển",
+    CUSTOMS_CLEARANCE:
+      "Đang thông quan",
+    READY_FOR_DELIVERY:
+      "Chờ giao hàng",
+    DELIVERING: "Đang giao hàng",
+    DELIVERED: "Đã giao hàng",
+    COMPLETED: "Hoàn thành",
+    CANCELLED: "Đã hủy",
+    DRAFT: "Bản nháp",
+    SENT: "Đã gửi",
+    EXPIRED: "Đã hết hạn",
+  };
+
+  const translateStatusLabel = (
+    value
+  ) => {
+    const normalizedStatus =
+      normalizeText(value)
+        .toUpperCase();
+
+    if (!normalizedStatus) {
+      return "Chưa xác định";
+    }
+
+    return (
+      STATUS_LABEL_MAP[
+        normalizedStatus
+      ] ||
+      "Trạng thái khác"
+    );
+  };
+
+  const translateCountryName = (
+    value
+  ) => {
+    const originalValue =
+      normalizeText(value);
+
+    const normalizedValue =
+      originalValue
+        .normalize("NFD")
+        .replace(
+          /[\u0300-\u036f]/g,
+          ""
+        )
+        .replace(/Đ/g, "D")
+        .replace(/đ/g, "d")
+        .replace(/[^a-zA-Z0-9]/g, "")
+        .toUpperCase();
+
+    const countryMap = {
+      CN: "Trung Quốc",
+      CHINA: "Trung Quốc",
+      TRUNGQUOC: "Trung Quốc",
+      JP: "Nhật Bản",
+      JAPAN: "Nhật Bản",
+      NHATBAN: "Nhật Bản",
+      KR: "Hàn Quốc",
+      KOREA: "Hàn Quốc",
+      SOUTHKOREA: "Hàn Quốc",
+      HANQUOC: "Hàn Quốc",
+      VN: "Việt Nam",
+      VIETNAM: "Việt Nam",
+    };
+
+    return (
+      countryMap[normalizedValue] ||
+      originalValue ||
+      "Chưa xác định"
+    );
+  };
+
+  const translateRoute = (value) => {
+    const routeText =
+      normalizeText(value);
+
+    if (!routeText) {
+      return "Chưa xác định";
+    }
+
+    const routeParts = routeText
+      .split(
+        /\s*(?:-->|->|→|⇒|đến|to)\s*/i
+      )
+      .map((part) => part.trim())
+      .filter(Boolean);
+
+    if (routeParts.length >= 2) {
+      return routeParts
+        .map(translateCountryName)
+        .join(" → ");
+    }
+
+    return translateCountryName(
+      routeText
+    );
+  };
+
   const translateConsignmentType = (
     value
   ) => {
+    const originalValue =
+      normalizeText(value);
+
     const normalizedValue =
-      normalizeText(value)
+      originalValue
         .toLowerCase()
         .replace(/[^a-z0-9]/g, "");
 
     const typeMap = {
       express: "Hỏa tốc",
-      standard: "Tiêu chuẩn",
-      economy: "Tiết kiệm",
       expedited: "Hỏa tốc",
+      priority: "Ưu tiên",
+      standard: "Tiêu chuẩn",
+      normal: "Tiêu chuẩn",
+      economy: "Tiết kiệm",
     };
 
-    return (
-      typeMap[normalizedValue] ||
-      value ||
-      "Chưa xác định"
-    );
+    if (typeMap[normalizedValue]) {
+      return typeMap[normalizedValue];
+    }
+
+    /*
+     * Nếu API đã trả tiếng Việt thì giữ nguyên.
+     * Không đưa mã tiếng Anh chưa dịch ra giao diện.
+     */
+    if (
+      /[À-ỹ]/.test(
+        originalValue
+      )
+    ) {
+      return originalValue;
+    }
+
+    return originalValue
+      ? "Loại dịch vụ khác"
+      : "Chưa xác định";
   };
 
-  const translateQuoteType = (value) => {
+  const translateQuoteType = (
+    value
+  ) => {
     const quoteTypeMap = {
       ESTIMATE: "Báo giá tạm tính",
+      TEMPORARY: "Báo giá tạm tính",
       OFFICIAL: "Báo giá chính thức",
     };
 
+    const normalizedValue =
+      normalizeText(value)
+        .toUpperCase();
+
     return (
-      quoteTypeMap[value] ||
-      value ||
-      "—"
+      quoteTypeMap[
+        normalizedValue
+      ] ||
+      (normalizedValue
+        ? "Loại báo giá khác"
+        : "—")
     );
   };
 
@@ -389,10 +586,18 @@ import "./ConsignmentDetail.css";
   };
 
   const getOrderStatus = (status) => {
+    const normalizedStatus =
+      normalizeText(status)
+        .toUpperCase();
+
     return (
-      ORDER_STATUS_CONFIG[status] || {
+      ORDER_STATUS_CONFIG[
+        normalizedStatus
+      ] || {
         label:
-          status || "Chưa xác định",
+          translateStatusLabel(
+            normalizedStatus
+          ),
         className: "is-default",
       }
     );
@@ -401,12 +606,18 @@ import "./ConsignmentDetail.css";
   const getQuotationStatus = (
     status
   ) => {
+    const normalizedStatus =
+      normalizeText(status)
+        .toUpperCase();
+
     return (
       QUOTATION_STATUS_CONFIG[
-        status
+        normalizedStatus
       ] || {
         label:
-          status || "Chưa xác định",
+          translateStatusLabel(
+            normalizedStatus
+          ),
         className: "is-default",
       }
     );
@@ -1188,6 +1399,29 @@ export default function ConsignmentDetail() {
   const [error, setError] = useState("");
   const [masterDataWarning, setMasterDataWarning] = useState("");
 
+  const [
+    reviewModalOpen,
+    setReviewModalOpen,
+  ] = useState(false);
+
+  const [
+    reviewAction,
+    setReviewAction,
+  ] = useState("");
+
+  const [
+    rejectionReason,
+    setRejectionReason,
+  ] = useState("");
+
+  const [
+    statusUpdating,
+    setStatusUpdating,
+  ] = useState(false);
+
+  const statusUpdateLockRef =
+    useRef(false);
+
   const loadPageData = useCallback(async () => {
     if (!orderId) {
       setError("Không tìm thấy mã đơn ký gửi.");
@@ -1515,9 +1749,251 @@ export default function ConsignmentDetail() {
       };
     }, [quotation]);
 
-  const terminalStatus = ["COMPLETED", "CANCELLED"].includes(
-    normalizeText(detail?.status).toUpperCase()
-  );
+  const currentOrderStatus =
+    normalizeText(
+      detail?.status ??
+        detail?.orderStatus ??
+        detail?.consignmentStatus
+    ).toUpperCase();
+
+  const currentQuotationStatus =
+    normalizeText(
+      detail?.quotation?.status ??
+        detail?.quotationStatus ??
+        detail?.quoteStatus
+    ).toUpperCase();
+
+  const currentPaymentStatus =
+    normalizeText(
+      detail?.paymentStatus ??
+        detail?.depositStatus ??
+        detail?.quotation?.paymentStatus ??
+        detail?.quotation?.depositStatus
+    ).toUpperCase();
+
+  const allCurrentStatuses = [
+    currentOrderStatus,
+    currentQuotationStatus,
+    currentPaymentStatus,
+  ].filter(Boolean);
+
+  /*
+   * CHỜ DUYỆT:
+   * Chỉ được hủy yêu cầu.
+   */
+  const canCancelPendingOrder =
+    allCurrentStatuses.some(
+      (status) =>
+        status === "PENDING" ||
+        status === "PENDING_REVIEW"
+    );
+
+  /*
+   * ĐÃ ĐẶT CỌC:
+   * Chỉ được xác nhận yêu cầu.
+   */
+  const canConfirmDepositedOrder =
+    allCurrentStatuses.some(
+      (status) =>
+        status === "DEPOSIT_PAID" ||
+        status === "PAID" ||
+        status === "DEPOSITED" ||
+        status === "PAYMENT_COMPLETED"
+    );
+
+  /*
+   * Sau khi thao tác thành công,
+   * vẫn giữ nút trên giao diện nhưng khóa lại.
+   */
+  const isOrderCancelled =
+    allCurrentStatuses.some(
+      (status) =>
+        status === "REJECTED" ||
+        status === "CANCELLED"
+    );
+
+  const isOrderConfirmed =
+    allCurrentStatuses.includes(
+      "APPROVED"
+    );
+
+  const canShowReviewActions =
+    canCancelPendingOrder ||
+    canConfirmDepositedOrder ||
+    isOrderCancelled ||
+    isOrderConfirmed;
+
+  const openReviewModal = (
+    action
+  ) => {
+    const canOpenAction =
+      action === "REJECT"
+        ? canCancelPendingOrder
+        : canConfirmDepositedOrder;
+
+    if (
+      !canOpenAction ||
+      statusUpdating ||
+      statusUpdateLockRef.current
+    ) {
+      AuthNotify.warning(
+        "Không thể thực hiện thao tác",
+        action === "REJECT"
+          ? "Chỉ yêu cầu đang chờ duyệt mới có thể hủy."
+          : "Chỉ yêu cầu đã đặt cọc mới có thể xác nhận."
+      );
+      return;
+    }
+
+    setReviewAction(action);
+    setRejectionReason("");
+    setReviewModalOpen(true);
+  };
+
+  const closeReviewModal = () => {
+    if (
+      statusUpdating ||
+      statusUpdateLockRef.current
+    ) {
+      return;
+    }
+
+    setReviewModalOpen(false);
+    setReviewAction("");
+    setRejectionReason("");
+  };
+
+  const handleConfirmReviewStatus =
+    async () => {
+      const canSubmitAction =
+        reviewAction === "REJECT"
+          ? canCancelPendingOrder
+          : canConfirmDepositedOrder;
+
+      if (
+        statusUpdating ||
+        statusUpdateLockRef.current ||
+        !canSubmitAction
+      ) {
+        return;
+      }
+
+      const nextStatus =
+        reviewAction === "REJECT"
+          ? "REJECTED"
+          : "APPROVED";
+
+      const normalizedReason =
+        normalizeText(
+          rejectionReason
+        );
+
+      if (
+        nextStatus === "REJECTED" &&
+        normalizedReason.length < 3
+      ) {
+        AuthNotify.warning(
+          "Thiếu lý do hủy",
+          "Vui lòng nhập lý do hủy ít nhất 3 ký tự."
+        );
+        return;
+      }
+
+      try {
+        statusUpdateLockRef.current =
+          true;
+        setStatusUpdating(true);
+
+        await updateConsignmentStatusApi(
+          orderId,
+          {
+            status: nextStatus,
+            rejectionReason:
+              nextStatus === "REJECTED"
+                ? normalizedReason
+                : "",
+          }
+        );
+
+        /*
+         * Cập nhật giao diện ngay sau khi API thành công.
+         */
+        setDetail(
+          (previousDetail) => ({
+            ...previousDetail,
+            status: nextStatus,
+            rejectionReason:
+              nextStatus === "REJECTED"
+                ? normalizedReason
+                : null,
+          })
+        );
+
+        setReviewModalOpen(false);
+        setReviewAction("");
+        setRejectionReason("");
+
+        AuthNotify.success(
+          nextStatus === "APPROVED"
+            ? "Xác nhận thành công"
+            : "Hủy yêu cầu thành công",
+          nextStatus === "APPROVED"
+            ? "Yêu cầu ký gửi đã được xác nhận."
+            : "Yêu cầu ký gửi đã được hủy."
+        );
+
+        /*
+         * Đồng bộ lại dữ liệu mới nhất từ server.
+         * Việc tải lại thất bại không làm mất kết quả cập nhật.
+         */
+        try {
+          const refreshedDetail =
+            await getConsignmentDetailApi(
+              orderId
+            );
+
+          if (refreshedDetail) {
+            setDetail(
+              refreshedDetail
+            );
+          }
+        } catch (
+          refreshError
+        ) {
+          console.warn(
+            "REFRESH CONSIGNMENT AFTER STATUS UPDATE ERROR:",
+            refreshError
+          );
+        }
+      } catch (requestError) {
+        console.error(
+          "UPDATE CONSIGNMENT STATUS ERROR:",
+          requestError
+        );
+
+        const message =
+          requestError?.response?.data
+            ?.message ||
+          requestError?.response?.data
+            ?.error ||
+          requestError?.message ||
+          "Không thể cập nhật trạng thái yêu cầu ký gửi.";
+
+        AuthNotify.error(
+          "Cập nhật trạng thái thất bại",
+          message
+        );
+      } finally {
+        setStatusUpdating(false);
+        statusUpdateLockRef.current =
+          false;
+      }
+    };
+
+  const terminalStatus = [
+    "COMPLETED",
+    "CANCELLED",
+  ].includes(currentOrderStatus);
 
   const canOpenQuotationPage =
     Boolean(orderId) && !terminalStatus;
@@ -1835,6 +2311,171 @@ export default function ConsignmentDetail() {
 
         <div className="consignment-detail-layout">
           <div className="consignment-detail-main">
+            {/* ================= SALE REVIEW ACTION ================= */}
+
+            {canShowReviewActions && (
+              <section className="consignment-detail-card consignment-review-card">
+                <SectionTitle
+                  icon={<SafetyCertificateOutlined />}
+                  title={
+                    isOrderCancelled
+                      ? "Yêu cầu đã được hủy"
+                      : isOrderConfirmed
+                        ? "Yêu cầu đã được xác nhận"
+                        : canConfirmDepositedOrder
+                          ? "Xác nhận yêu cầu đã đặt cọc"
+                          : "Xử lý yêu cầu đang chờ duyệt"
+                  }
+                  description={
+                    isOrderCancelled
+                      ? "Yêu cầu này đã được hủy và không thể thao tác lại."
+                      : isOrderConfirmed
+                        ? "Yêu cầu này đã được xác nhận và không thể xác nhận lại."
+                        : canConfirmDepositedOrder
+                          ? "Báo giá đã được đặt cọc. Nhân viên kinh doanh cần xác nhận để tiếp tục xử lý."
+                          : "Yêu cầu đang chờ duyệt. Nhân viên kinh doanh chỉ có thể hủy yêu cầu."
+                  }
+                  extra={
+                    <Tag className="consignment-review-card__status">
+                      {isOrderCancelled
+                        ? "Đã hủy"
+                        : isOrderConfirmed
+                          ? "Đã xác nhận"
+                          : canConfirmDepositedOrder
+                            ? "Đã đặt cọc"
+                            : "Chờ duyệt"}
+                    </Tag>
+                  }
+                />
+
+                <div className="consignment-review-card__content">
+                  <div className="consignment-review-card__message">
+                    <div className="consignment-review-card__message-icon">
+                      {isOrderCancelled ? (
+                        <CloseCircleOutlined />
+                      ) : (
+                        <SafetyCertificateOutlined />
+                      )}
+                    </div>
+
+                    <div>
+                      <strong>
+                        {isOrderCancelled
+                          ? "Yêu cầu đã được hủy"
+                          : isOrderConfirmed
+                            ? "Yêu cầu đã được xác nhận"
+                            : canConfirmDepositedOrder
+                              ? "Kiểm tra khoản đặt cọc trước khi xác nhận"
+                              : "Kiểm tra thông tin trước khi hủy"}
+                      </strong>
+
+                      <span>
+                        {isOrderCancelled
+                          ? "Nút hủy được giữ lại để thể hiện trạng thái nhưng đã bị khóa."
+                          : isOrderConfirmed
+                            ? "Nút xác nhận được giữ lại để thể hiện trạng thái nhưng đã bị khóa."
+                            : canConfirmDepositedOrder
+                              ? "Sau khi xác nhận, yêu cầu sẽ chuyển sang trạng thái Đã xác nhận."
+                              : "Khi hủy yêu cầu, bạn bắt buộc phải nhập lý do để lưu trên hệ thống."}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="consignment-review-card__actions">
+                    {(canCancelPendingOrder ||
+                      isOrderCancelled) && (
+                      <Button
+                        danger={!isOrderCancelled}
+                        size="large"
+                        icon={<CloseCircleOutlined />}
+                        loading={
+                          statusUpdating &&
+                          reviewAction ===
+                            "REJECT"
+                        }
+                        disabled={
+                          statusUpdating ||
+                          isOrderCancelled
+                        }
+                        onClick={() =>
+                          openReviewModal(
+                            "REJECT"
+                          )
+                        }
+                        className="consignment-review-card__reject"
+                        style={
+                          isOrderCancelled
+                            ? {
+                                borderColor:
+                                  "#cbd5e1",
+                                background:
+                                  "#e2e8f0",
+                                color:
+                                  "#64748b",
+                                opacity: 0.78,
+                                cursor:
+                                  "not-allowed",
+                                boxShadow:
+                                  "none",
+                              }
+                            : undefined
+                        }
+                      >
+                        {isOrderCancelled
+                          ? "Đã hủy yêu cầu"
+                          : "Hủy yêu cầu"}
+                      </Button>
+                    )}
+
+                    {(canConfirmDepositedOrder ||
+                      isOrderConfirmed) && (
+                      <Button
+                        type="primary"
+                        size="large"
+                        icon={<CheckCircleOutlined />}
+                        loading={
+                          statusUpdating &&
+                          reviewAction ===
+                            "APPROVE"
+                        }
+                        disabled={
+                          statusUpdating ||
+                          isOrderConfirmed
+                        }
+                        onClick={() =>
+                          openReviewModal(
+                            "APPROVE"
+                          )
+                        }
+                        className="consignment-review-card__approve"
+                        style={
+                          isOrderConfirmed
+                            ? {
+                                borderColor:
+                                  "#cbd5e1",
+                                background:
+                                  "#e2e8f0",
+                                color:
+                                  "#64748b",
+                                opacity: 0.78,
+                                cursor:
+                                  "not-allowed",
+                                boxShadow:
+                                  "none",
+                              }
+                            : undefined
+                        }
+                      >
+                        {isOrderConfirmed
+                          ? "Đã xác nhận"
+                          : "Xác nhận yêu cầu"}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </section>
+            )}
+
             {/* ================= QUOTATION ACTION ================= */}
 
             <section className="consignment-detail-card quotation-entry-card">
@@ -1921,7 +2562,9 @@ export default function ConsignmentDetail() {
                     <EnvironmentOutlined />
                   }
                   label="Tuyến hàng"
-                  value={detail?.route}
+                  value={translateRoute(
+                    detail?.route
+                  )}
                   fullWidth
                 />
 
@@ -2573,7 +3216,7 @@ export default function ConsignmentDetail() {
               <div className="consignment-customer__details">
                 <DetailItem
                   icon={<MailOutlined />}
-                  label="Email"
+                  label="Thư điện tử"
                   value={
                     detail?.customer?.email
                   }
@@ -2610,7 +3253,9 @@ export default function ConsignmentDetail() {
                         quotationStatus.className
                       }
                       icon={
-                        quotation?.status ===
+                        normalizeText(
+                          quotation?.status
+                        ).toUpperCase() ===
                         "DRAFT" ? (
                           <ClockCircleOutlined />
                         ) : (
@@ -2818,6 +3463,177 @@ export default function ConsignmentDetail() {
             </section>
           </aside>
         </div>
+
+        <Modal
+          open={reviewModalOpen}
+          centered
+          width={560}
+          footer={null}
+          title={null}
+          maskClosable={!statusUpdating}
+          closable={!statusUpdating}
+          destroyOnClose
+          className="consignment-review-modal"
+          onCancel={closeReviewModal}
+        >
+          <div className="consignment-review-modal__content">
+            <div
+              className={`consignment-review-modal__hero ${
+                reviewAction === "REJECT"
+                  ? "is-reject"
+                  : "is-approve"
+              }`}
+            >
+              <div className="consignment-review-modal__icon">
+                {reviewAction ===
+                "REJECT" ? (
+                  <CloseCircleOutlined />
+                ) : (
+                  <CheckCircleOutlined />
+                )}
+              </div>
+
+              <div>
+                <span>
+                  XÁC NHẬN TRẠNG THÁI
+                </span>
+
+                <h2>
+                  {reviewAction ===
+                  "REJECT"
+                    ? "Hủy yêu cầu ký gửi"
+                    : "Xác nhận yêu cầu ký gửi"}
+                </h2>
+
+                <p>
+                  {reviewAction ===
+                  "REJECT"
+                    ? "Yêu cầu sẽ chuyển sang trạng thái Đã hủy."
+                    : "Yêu cầu sẽ chuyển sang trạng thái Đã xác nhận."}
+                </p>
+              </div>
+            </div>
+
+            <div className="consignment-review-modal__body">
+              <div className="consignment-review-modal__order">
+                <span>
+                  Mã yêu cầu
+                </span>
+
+                <strong>
+                  {detail?.consignmentCode ||
+                    "—"}
+                </strong>
+              </div>
+
+              {reviewAction ===
+                "REJECT" && (
+                <div className="consignment-review-modal__reason">
+                  <label htmlFor="consignment-rejection-reason">
+                    Lý do hủy
+                    <b>*</b>
+                  </label>
+
+                  <Input.TextArea
+                    id="consignment-rejection-reason"
+                    value={
+                      rejectionReason
+                    }
+                    rows={5}
+                    maxLength={500}
+                    showCount
+                    disabled={
+                      statusUpdating
+                    }
+                    placeholder="Nhập lý do hủy yêu cầu ký gửi..."
+                    onChange={(event) =>
+                      setRejectionReason(
+                        event.target.value
+                      )
+                    }
+                  />
+
+                  <small>
+                    Lý do cần có ít nhất 3 ký tự.
+                  </small>
+                </div>
+              )}
+
+              <div
+                className={`consignment-review-modal__notice ${
+                  reviewAction ===
+                  "REJECT"
+                    ? "is-reject"
+                    : "is-approve"
+                }`}
+              >
+                {reviewAction ===
+                "REJECT" ? (
+                  <CloseCircleOutlined />
+                ) : (
+                  <SafetyCertificateOutlined />
+                )}
+
+                <span>
+                  {reviewAction ===
+                  "REJECT"
+                    ? "Sau khi hủy, nút Hủy yêu cầu vẫn hiển thị nhưng sẽ bị khóa."
+                    : "Sau khi xác nhận, nút Xác nhận yêu cầu vẫn hiển thị nhưng sẽ bị khóa."}
+                </span>
+              </div>
+            </div>
+
+            <div className="consignment-review-modal__actions">
+              <Button
+                size="large"
+                disabled={
+                  statusUpdating
+                }
+                onClick={
+                  closeReviewModal
+                }
+              >
+                Quay lại
+              </Button>
+
+              <Button
+                type="primary"
+                danger={
+                  reviewAction ===
+                  "REJECT"
+                }
+                size="large"
+                icon={
+                  reviewAction ===
+                  "REJECT" ? (
+                    <CloseCircleOutlined />
+                  ) : (
+                    <CheckCircleOutlined />
+                  )
+                }
+                loading={
+                  statusUpdating
+                }
+                disabled={
+                  statusUpdating ||
+                  (reviewAction ===
+                    "REJECT" &&
+                    normalizeText(
+                      rejectionReason
+                    ).length < 3)
+                }
+                onClick={
+                  handleConfirmReviewStatus
+                }
+              >
+                {reviewAction ===
+                "REJECT"
+                  ? "Xác nhận hủy"
+                  : "Xác nhận yêu cầu"}
+              </Button>
+            </div>
+          </div>
+        </Modal>
       </main>
     );
   }

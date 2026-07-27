@@ -1,19 +1,17 @@
 .consignment-detail-page {
   width: 100%;
   font-family:
-    Inter,
-    ui-sans-serif,
     -apple-system,
     BlinkMacSystemFont,
     "Segoe UI",
     Roboto,
-    Helvetica,
+    "Helvetica Neue",
     Arial,
     sans-serif;
   font-size: 14px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
+  text-rendering: auto;
   min-height: 100%;
   padding: 24px;
   box-sizing: border-box;
@@ -52,7 +50,7 @@
   border-radius: 10px;
   color: #64748b;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .consignment-back-button:hover {
@@ -87,7 +85,7 @@
 .consignment-master-warning .ant-btn {
   color: #92400e;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 /* =========================
@@ -155,7 +153,7 @@
   margin-bottom: 9px;
   color: #93c5fd;
   font-size: 11px;
-  font-weight: 900;
+  font-weight: 700;
   letter-spacing: 0.15em;
 }
 
@@ -170,9 +168,9 @@
   margin: 0;
   color: #ffffff;
   font-size: clamp(25px, 3vw, 36px);
-  font-weight: 900;
+  font-weight: 700;
   line-height: 1.2;
-  letter-spacing: -0.03em;
+  letter-spacing: 0;
   overflow-wrap: anywhere;
 }
 
@@ -186,7 +184,7 @@
   background: transparent;
   color: #bfdbfe;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 700;
   cursor: pointer;
 }
 
@@ -256,7 +254,7 @@
   padding: 4px 11px;
   border-radius: 999px;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 700;
   white-space: nowrap;
 }
 
@@ -343,7 +341,7 @@
   margin-bottom: 4px;
   color: #8792a8;
   font-size: 10px;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.35;
 }
 
@@ -351,7 +349,7 @@
   display: block;
   color: #172033;
   font-size: 15px;
-  font-weight: 900;
+  font-weight: 700;
   line-height: 1.25;
   overflow-wrap: anywhere;
 }
@@ -466,7 +464,7 @@
   margin: 0;
   color: #172033;
   font-size: 15px;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .consignment-section-heading p {
@@ -483,7 +481,7 @@
   background: #eff6ff;
   color: #1d4ed8;
   font-size: 11px;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 /* =========================
@@ -535,7 +533,7 @@
   margin-bottom: 5px;
   color: #94a3b8;
   font-size: 10px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0.03em;
   text-transform: uppercase;
 }
@@ -551,7 +549,7 @@
   min-width: 0;
   color: #334155;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.55;
   overflow-wrap: anywhere;
 }
@@ -621,7 +619,7 @@
   margin-bottom: 3px;
   color: #7c3aed;
   font-size: 9px;
-  font-weight: 900;
+  font-weight: 700;
   letter-spacing: 0.12em;
 }
 
@@ -629,7 +627,7 @@
   display: block;
   color: #312e81;
   font-size: 14px;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .consignment-dim-formula__content small {
@@ -644,7 +642,7 @@
   margin: 0;
   border-radius: 999px;
   font-size: 10px;
-  font-weight: 900;
+  font-weight: 700;
   white-space: nowrap;
 }
 
@@ -694,7 +692,7 @@
     );
   color: #ffffff;
   font-size: 17px;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .consignment-customer__name {
@@ -705,7 +703,7 @@
   display: block;
   color: #172033;
   font-size: 14px;
-  font-weight: 900;
+  font-weight: 700;
   overflow-wrap: anywhere;
 }
 
@@ -744,7 +742,7 @@
 .consignment-quotation-type strong {
   color: #1d4ed8;
   font-size: 13px;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .consignment-quotation-lines {
@@ -763,7 +761,7 @@
 .consignment-quotation-lines strong {
   color: #334155;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 700;
   white-space: nowrap;
 }
 
@@ -781,13 +779,13 @@
 .consignment-quotation-total span {
   color: #475569;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .consignment-quotation-total strong {
   color: #dc2626;
   font-size: 21px;
-  font-weight: 950;
+  font-weight: 700;
   white-space: nowrap;
 }
 
@@ -817,7 +815,7 @@
 .consignment-quotation-dates small {
   color: #94a3b8;
   font-size: 9px;
-  font-weight: 800;
+  font-weight: 700;
   text-transform: uppercase;
 }
 
@@ -871,7 +869,7 @@
   background: #f8fafc;
   color: #64748b;
   font-size: 9px;
-  font-weight: 900;
+  font-weight: 700;
   letter-spacing: 0.035em;
   text-transform: uppercase;
   white-space: nowrap;
@@ -916,7 +914,7 @@
   background: #f1f5f9;
   color: #475569;
   font-size: 11px;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .consignment-product-name {
@@ -927,7 +925,7 @@
   display: block;
   color: #172033;
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 700;
   line-height: 1.45;
 }
 
@@ -947,7 +945,7 @@
   background: #eff6ff;
   color: #1d4ed8;
   font-size: 10px;
-  font-weight: 800;
+  font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -962,13 +960,13 @@
   background: #ecfdf5;
   color: #047857;
   font-size: 11px;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .consignment-measure-value {
   color: #334155;
   font-size: 11px;
-  font-weight: 850;
+  font-weight: 700;
   white-space: nowrap;
 }
 
@@ -983,7 +981,7 @@
 
 .consignment-dimension-value strong {
   font-size: 11px;
-  font-weight: 850;
+  font-weight: 700;
 }
 
 .consignment-dimension-value span {
@@ -995,7 +993,7 @@
   margin-left: 2px;
   color: #64748b;
   font-size: 9px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .consignment-dim-value {
@@ -1007,7 +1005,7 @@
 .consignment-dim-value strong {
   color: #6d28d9;
   font-size: 12px;
-  font-weight: 950;
+  font-weight: 700;
   white-space: nowrap;
 }
 
@@ -1035,7 +1033,7 @@
 .consignment-table-total-dim {
   color: #6d28d9;
   font-size: 12px;
-  font-weight: 950;
+  font-weight: 700;
   white-space: nowrap;
 }
 
@@ -1303,7 +1301,7 @@
   margin: 0;
   color: #172033;
   font-size: 12px;
-  font-weight: 850;
+  font-weight: 700;
   line-height: 1.5;
   overflow-wrap: anywhere;
 }
@@ -1328,7 +1326,7 @@
   background: #eef2ff;
   color: #4338ca;
   font-size: 10px;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.35;
   white-space: normal;
   text-align: center;
@@ -1357,9 +1355,9 @@
 
 .consignment-section-heading h2 {
   font-size: 16px;
-  font-weight: 750;
+  font-weight: 700;
   line-height: 1.35;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
 }
 
 .consignment-section-heading p {
@@ -1374,7 +1372,7 @@
 
 .consignment-detail-item__value {
   font-size: 14px;
-  font-weight: 650;
+  font-weight: 600;
 }
 
 .consignment-summary-card span {
@@ -1383,7 +1381,7 @@
 
 .consignment-summary-card strong {
   font-size: 18px;
-  font-weight: 750;
+  font-weight: 700;
 }
 
 .consignment-summary-card small {
@@ -1393,7 +1391,7 @@
 .consignment-items-table th {
   height: 46px;
   font-size: 12px;
-  font-weight: 750;
+  font-weight: 700;
   letter-spacing: 0.02em;
 }
 
@@ -1492,7 +1490,7 @@
   background: #eff6ff;
   color: #1d4ed8;
   font-size: 12px;
-  font-weight: 750;
+  font-weight: 700;
 }
 
 .quotation-builder-alert {
@@ -1538,7 +1536,7 @@
   background: #1d4ed8;
   color: #fff;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .quotation-form-section-title > div {
@@ -1550,7 +1548,7 @@
 .quotation-form-section-title strong {
   color: #172033;
   font-size: 14px;
-  font-weight: 750;
+  font-weight: 700;
 }
 
 .quotation-form-section-title small {
@@ -1643,7 +1641,7 @@
 .quotation-fee-row__content strong {
   color: #1e293b;
   font-size: 13px;
-  font-weight: 750;
+  font-weight: 700;
 }
 
 .quotation-fee-row__content span {
@@ -1655,7 +1653,7 @@
 .quotation-fee-row__content small {
   color: #b45309;
   font-size: 10px;
-  font-weight: 650;
+  font-weight: 600;
 }
 
 .quotation-fee-row__amount {
@@ -1668,7 +1666,7 @@
 .quotation-fee-row__amount strong {
   color: #172033;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 700;
   white-space: nowrap;
 }
 
@@ -1696,7 +1694,7 @@
   display: block;
   color: #bfdbfe;
   font-size: 10px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0.12em;
 }
 
@@ -1705,7 +1703,7 @@
   margin-top: 6px;
   color: #fff;
   font-size: 25px;
-  font-weight: 850;
+  font-weight: 700;
   line-height: 1.2;
   font-variant-numeric: tabular-nums;
 }
@@ -1741,7 +1739,7 @@
   display: block;
   color: #64748b;
   font-size: 10px;
-  font-weight: 650;
+  font-weight: 600;
 }
 
 .quotation-metric-grid strong {
@@ -1749,7 +1747,7 @@
   margin-top: 4px;
   color: #172033;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 700;
   overflow-wrap: anywhere;
   font-variant-numeric: tabular-nums;
 }
@@ -1776,7 +1774,7 @@
 .quotation-calculation-lines strong {
   color: #334155;
   font-size: 12px;
-  font-weight: 750;
+  font-weight: 700;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
@@ -1798,13 +1796,13 @@
 .quotation-grand-total span {
   color: #475569;
   font-size: 12px;
-  font-weight: 750;
+  font-weight: 700;
 }
 
 .quotation-grand-total strong {
   color: #dc2626;
   font-size: 21px;
-  font-weight: 900;
+  font-weight: 700;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
@@ -1820,7 +1818,7 @@
   min-height: 43px;
   border-radius: 10px;
   font-size: 12px;
-  font-weight: 750;
+  font-weight: 700;
 }
 
 .quotation-estimate-button {
@@ -1946,7 +1944,7 @@
 .quotation-warehouse-empty strong {
   color: #1e293b;
   font-size: 13px;
-  font-weight: 750;
+  font-weight: 700;
   line-height: 1.4;
 }
 
@@ -1966,7 +1964,7 @@
   background: #f0fdf4;
   color: #15803d;
   font-size: 10px;
-  font-weight: 750;
+  font-weight: 700;
 }
 
 .quotation-warehouse-empty {
@@ -2019,7 +2017,7 @@
 }
 /* =========================================================
  QUOTATION QUICK ENTRY
- Ă„â€Ă¢â‚¬ÂÄ‚â€Ă‚ÂĂ„â€Ă¢â‚¬ Ä‚â€Ă‚Â°a khĂ„â€Ă‚Â¡Ä‚â€Ă‚Â»Ä‚Â¢Ă¢â€Â¬Ă‹Å“i tĂ„â€Ă‚Â¡Ä‚â€Ă‚ÂºÄ‚â€Ă‚Â¡o bÄ‚â€Ă¢â‚¬ÂÄ‚â€Ă‚Â¡o giÄ‚â€Ă¢â‚¬ÂÄ‚â€Ă‚Â¡ lÄ‚â€Ă¢â‚¬ÂÄ‚â€Ă‚Âªn Ă„â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‹Å“Ă„â€Ă‚Â¡Ä‚â€Ă‚ÂºÄ‚â€Ă‚Â§u nĂ„â€Ă‚Â¡Ä‚â€Ă‚Â»Ä‚Â¢Ă¢â‚¬ÂĂ‚Â¢i dung vÄ‚â€Ă¢â‚¬Â  giĂ„â€Ă‚Â¡Ä‚â€Ă‚Â»Ä‚â€Ă‚Â¯ luÄ‚â€Ă¢â‚¬ÂÄ‚â€Ă‚Â´n dĂ„â€Ă‚Â¡Ä‚â€Ă‚Â»Ä‚Â¢Ă¢â€Â¬Ă‚Â¦ thĂ„â€Ă‚Â¡Ä‚â€Ă‚ÂºÄ‚â€Ă‚Â¥y.
+ Ă„â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă‚Â¢Ä‚Â¢Ă¢â‚¬ÂĂ‚Â¬Ä‚â€Ă‚ÂÄ‚â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă¢â‚¬ÂÄ‚â€Ă‚ÂĂ„â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă‚Â¢Ä‚Â¢Ă¢â‚¬ÂĂ‚Â¬ Ä‚â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă¢â‚¬ÂÄ‚â€Ă‚Â°a khĂ„â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă¢â‚¬ÂÄ‚â€Ă‚Â¡Ä‚â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă¢â‚¬ÂÄ‚â€Ă‚Â»Ä‚â€Ă¢â‚¬ÂÄ‚â€Ă‚Â¢Ă„â€Ă‚Â¢Ä‚Â¢Ă¢â€Â¬Ă‚ÂÄ‚â€Ă‚Â¬Ă„â€Ă¢â‚¬Â¹Ä‚â€¦Ă¢â‚¬Å“i tĂ„â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă¢â‚¬ÂÄ‚â€Ă‚Â¡Ä‚â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă¢â‚¬ÂÄ‚â€Ă‚ÂºÄ‚â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă¢â‚¬ÂÄ‚â€Ă‚Â¡o bÄ‚â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă‚Â¢Ä‚Â¢Ă¢â‚¬ÂĂ‚Â¬Ä‚â€Ă‚ÂÄ‚â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă¢â‚¬ÂÄ‚â€Ă‚Â¡o giÄ‚â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă‚Â¢Ä‚Â¢Ă¢â‚¬ÂĂ‚Â¬Ä‚â€Ă‚ÂÄ‚â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă¢â‚¬ÂÄ‚â€Ă‚Â¡ lÄ‚â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă‚Â¢Ä‚Â¢Ă¢â‚¬ÂĂ‚Â¬Ä‚â€Ă‚ÂÄ‚â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă¢â‚¬ÂÄ‚â€Ă‚Âªn Ă„â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă‚Â¢Ä‚Â¢Ă¢â‚¬ÂĂ‚Â¬Ä‚â€Ă‚ÂÄ‚â€Ă¢â‚¬ÂÄ‚â€Ă‚Â¢Ă„â€Ă‚Â¢Ä‚Â¢Ă¢â€Â¬Ă‚ÂÄ‚â€Ă‚Â¬Ă„â€Ă¢â‚¬Â¹Ä‚â€¦Ă¢â‚¬Å“Ă„â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă¢â‚¬ÂÄ‚â€Ă‚Â¡Ä‚â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă¢â‚¬ÂÄ‚â€Ă‚ÂºÄ‚â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă¢â‚¬ÂÄ‚â€Ă‚Â§u nĂ„â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă¢â‚¬ÂÄ‚â€Ă‚Â¡Ä‚â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă¢â‚¬ÂÄ‚â€Ă‚Â»Ä‚â€Ă¢â‚¬ÂÄ‚â€Ă‚Â¢Ă„â€Ă‚Â¢Ä‚Â¢Ă¢â‚¬ÂĂ‚Â¬Ä‚â€Ă‚ÂĂ„â€Ă¢â‚¬ÂÄ‚â€Ă‚Â¢i dung vÄ‚â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă‚Â¢Ä‚Â¢Ă¢â‚¬ÂĂ‚Â¬Ä‚â€Ă‚Â  giĂ„â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă¢â‚¬ÂÄ‚â€Ă‚Â¡Ä‚â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă¢â‚¬ÂÄ‚â€Ă‚Â»Ä‚â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă¢â‚¬ÂÄ‚â€Ă‚Â¯ luÄ‚â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă‚Â¢Ä‚Â¢Ă¢â‚¬ÂĂ‚Â¬Ä‚â€Ă‚ÂÄ‚â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă¢â‚¬ÂÄ‚â€Ă‚Â´n dĂ„â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă¢â‚¬ÂÄ‚â€Ă‚Â¡Ä‚â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă¢â‚¬ÂÄ‚â€Ă‚Â»Ä‚â€Ă¢â‚¬ÂÄ‚â€Ă‚Â¢Ă„â€Ă‚Â¢Ä‚Â¢Ă¢â€Â¬Ă‚ÂÄ‚â€Ă‚Â¬Ă„â€Ă¢â‚¬ÂÄ‚â€Ă‚Â¦ thĂ„â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă¢â‚¬ÂÄ‚â€Ă‚Â¡Ä‚â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă¢â‚¬ÂÄ‚â€Ă‚ÂºÄ‚â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă¢â‚¬ÂÄ‚â€Ă‚Â¥y.
 ========================================================= */
 
 .consignment-detail-main > .quotation-entry-card {
@@ -2085,7 +2083,7 @@ gap: 4px;
 .quotation-entry-card__text strong {
 color: #172033;
 font-size: 15px;
-font-weight: 800;
+font-weight: 700;
 line-height: 1.35;
 }
 
@@ -2098,7 +2096,7 @@ line-height: 1.55;
 .quotation-entry-card__text small {
 color: #b45309;
 font-size: 11px;
-font-weight: 650;
+font-weight: 600;
 line-height: 1.45;
 }
 
@@ -2111,7 +2109,7 @@ border-radius: 12px;
 background: linear-gradient(135deg, #2563eb, #1d4ed8);
 color: #ffffff;
 font-size: 13px;
-font-weight: 800;
+font-weight: 700;
 box-shadow: 0 10px 22px rgba(37, 99, 235, 0.25);
 transition:
   transform 0.2s ease,
@@ -2194,7 +2192,7 @@ box-shadow: none;
 
 /* =========================================================
    API-DRIVEN CONSIGNMENT DETAIL
-   KhĂ„â€Ă‚Â´ng hard-code phĂ„â€Ă‚Â­, DIM hoÄ‚Â¡Ă‚ÂºĂ‚Â·c dÄ‚Â¡Ă‚Â»Ă‚Â¯ liÄ‚Â¡Ă‚Â»Ă¢â‚¬Â¡u bĂ„â€Ă‚Â¡o giĂ„â€Ă‚Â¡.
+   KhĂ„â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă¢â‚¬ÂÄ‚â€Ă‚Â´ng hard-code phĂ„â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă¢â‚¬ÂÄ‚â€Ă‚Â­, DIM hoÄ‚â€Ă¢â‚¬ÂÄ‚â€Ă‚Â¡Ă„â€Ă¢â‚¬ÂÄ‚â€Ă‚ÂºĂ„â€Ă¢â‚¬ÂÄ‚â€Ă‚Â·c dÄ‚â€Ă¢â‚¬ÂÄ‚â€Ă‚Â¡Ă„â€Ă¢â‚¬ÂÄ‚â€Ă‚Â»Ă„â€Ă¢â‚¬ÂÄ‚â€Ă‚Â¯ liÄ‚â€Ă¢â‚¬ÂÄ‚â€Ă‚Â¡Ă„â€Ă¢â‚¬ÂÄ‚â€Ă‚Â»Ă„â€Ă‚Â¢Ä‚Â¢Ă¢â‚¬ÂĂ‚Â¬Ä‚â€Ă‚Â¡u bĂ„â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă¢â‚¬ÂÄ‚â€Ă‚Â¡o giĂ„â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â€Â¬Ă‚ÂĂ„â€Ă¢â‚¬ÂÄ‚â€Ă‚Â¡.
 ========================================================= */
 
 .consignment-summary-grid {
@@ -2233,7 +2231,7 @@ box-shadow: none;
   background: #eef2ff;
   color: #4338ca;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .pricing-rules-grid {
@@ -2298,7 +2296,7 @@ box-shadow: none;
 .pricing-rule-item__top strong {
   color: #172033;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.4;
 }
 
@@ -2326,7 +2324,7 @@ box-shadow: none;
   margin: 0;
   border-radius: 999px;
   font-size: 10px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .pricing-rule-required {
@@ -2345,7 +2343,7 @@ box-shadow: none;
   margin-top: 14px;
   color: #1d4ed8;
   font-size: 20px;
-  font-weight: 900;
+  font-weight: 700;
   line-height: 1.2;
   font-variant-numeric: tabular-nums;
 }
@@ -2378,7 +2376,7 @@ box-shadow: none;
   margin-top: 10px;
   color: #15803d;
   font-size: 10px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 /* =========================
@@ -2571,20 +2569,20 @@ box-shadow: none;
 .consignment-package-config strong {
   color: #172033;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .consignment-package-config span {
   color: #475569;
   font-size: 11px;
-  font-weight: 650;
+  font-weight: 600;
   white-space: nowrap;
 }
 
 .consignment-package-config small {
   color: #1d4ed8;
   font-size: 10px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .consignment-api-empty {
@@ -2596,7 +2594,7 @@ box-shadow: none;
 .consignment-declared-value {
   color: #0f766e;
   font-size: 12px;
-  font-weight: 850;
+  font-weight: 700;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
@@ -2636,7 +2634,7 @@ box-shadow: none;
 .consignment-quotation-source span {
   color: #64748b;
   font-size: 10px;
-  font-weight: 750;
+  font-weight: 700;
   text-transform: uppercase;
 }
 
@@ -2644,7 +2642,7 @@ box-shadow: none;
   overflow-wrap: anywhere;
   color: #1e3a8a;
   font-size: 12px;
-  font-weight: 850;
+  font-weight: 700;
 }
 
 .consignment-quotation-api-tag {
@@ -2655,7 +2653,7 @@ box-shadow: none;
   background: #dbeafe;
   color: #1d4ed8;
   font-size: 10px;
-  font-weight: 850;
+  font-weight: 700;
 }
 
 .consignment-quotation-meta-grid {
@@ -2679,7 +2677,7 @@ box-shadow: none;
   margin-bottom: 4px;
   color: #94a3b8;
   font-size: 9px;
-  font-weight: 750;
+  font-weight: 700;
   text-transform: uppercase;
 }
 
@@ -2687,7 +2685,7 @@ box-shadow: none;
   display: block;
   color: #334155;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 700;
   overflow-wrap: anywhere;
 }
 
@@ -2741,7 +2739,7 @@ box-shadow: none;
 
 .consignment-quotation-lines.is-detailed strong {
   font-size: 13px;
-  font-weight: 850;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
@@ -2769,7 +2767,7 @@ box-shadow: none;
 
 .consignment-quotation-check strong {
   font-size: 11px;
-  font-weight: 850;
+  font-weight: 700;
 }
 
 .consignment-quotation-check span {
@@ -2847,7 +2845,7 @@ box-shadow: none;
 }
 
 /* =========================
-   HIĂ¡Â»â€N THĂ¡Â»Â TIĂ¡ÂºÂ¾NG VIĂ¡Â»â€ T VÄ‚â‚¬ TIĂ¡Â»â‚¬N TĂ¡Â»â€ 
+   HIĂ„â€Ă‚Â¡Ä‚â€Ă‚Â»Ä‚Â¢Ă¢â€Â¬Ă‚ÂN THĂ„â€Ă‚Â¡Ä‚â€Ă‚Â»Ä‚â€Ă‚Â TIĂ„â€Ă‚Â¡Ä‚â€Ă‚ÂºÄ‚â€Ă‚Â¾NG VIĂ„â€Ă‚Â¡Ä‚â€Ă‚Â»Ä‚Â¢Ă¢â€Â¬ T VÄ‚â€Ă¢â‚¬ÂÄ‚Â¢Ă¢â‚¬ÂĂ‚Â¬ TIĂ„â€Ă‚Â¡Ä‚â€Ă‚Â»Ä‚Â¢Ă¢â‚¬ÂĂ‚Â¬N TĂ„â€Ă‚Â¡Ä‚â€Ă‚Â»Ä‚Â¢Ă¢â€Â¬ 
 ========================= */
 
 .consignment-summary-card strong,
@@ -2902,7 +2900,7 @@ box-shadow: none;
   border-color: #bfdbfe;
   background: #eff6ff;
   color: #1d4ed8;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .consignment-quotation-lines.is-detailed > div {
@@ -2932,7 +2930,7 @@ box-shadow: none;
 
 
 /* =========================================================
-   CHá»® RĂ• HÆ N
+   CHÄ‚Â¡Ă‚Â»Ă‚Â® RĂ„â€Ă¢â‚¬Â¢ HÄ‚â€  N
 ========================================================= */
 
 .consignment-detail-page {
@@ -2954,25 +2952,25 @@ box-shadow: none;
 .consignment-section-heading h2 {
   color: #0f172a;
   font-size: 17px;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .consignment-section-heading p {
   color: #475569;
   font-size: 12px;
-  font-weight: 550;
+  font-weight: 500;
 }
 
 .consignment-detail-item__label {
   color: #475569;
   font-size: 11px;
-  font-weight: 850;
+  font-weight: 700;
 }
 
 .consignment-detail-item__value {
   color: #1e293b;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .consignment-items-table th {
@@ -2993,7 +2991,7 @@ box-shadow: none;
 .consignment-product-name small {
   color: #475569;
   font-size: 10px;
-  font-weight: 650;
+  font-weight: 600;
 }
 
 .consignment-package-config strong,
@@ -3010,7 +3008,7 @@ box-shadow: none;
 }
 
 /* =========================================================
-   POPUP XEM NHIá»€U áº¢NH
+   POPUP XEM NHIÄ‚Â¡Ă‚Â»Ă¢â€Â¬U Ä‚Â¡Ă‚ÂºĂ‚Â¢NH
 ========================================================= */
 
 .consignment-image-preview-modal {
@@ -3082,7 +3080,7 @@ box-shadow: none;
   margin-bottom: 4px;
   color: #93c5fd;
   font-size: 9px;
-  font-weight: 900;
+  font-weight: 700;
   letter-spacing: 0.13em;
 }
 
@@ -3090,7 +3088,7 @@ box-shadow: none;
   margin: 0;
   color: #ffffff;
   font-size: 18px;
-  font-weight: 900;
+  font-weight: 700;
   line-height: 1.35;
 }
 
@@ -3099,7 +3097,7 @@ box-shadow: none;
   flex: 0 0 auto;
   color: #e2e8f0;
   font-size: 12px;
-  font-weight: 850;
+  font-weight: 700;
 }
 
 .consignment-image-preview__stage {
@@ -3292,5 +3290,889 @@ box-shadow: none;
     flex-basis: 58px;
     width: 58px;
     height: 58px;
+  }
+}
+
+
+/* =========================================================
+   SALE REVIEW - ACCEPTED -> APPROVED / REJECTED
+========================================================= */
+
+.consignment-detail-status.is-accepted {
+  border-color: #c4b5fd;
+  background: #f5f3ff;
+  color: #6d28d9;
+}
+
+.consignment-review-card {
+  overflow: hidden;
+  border-color: #c7d2fe;
+  background:
+    linear-gradient(
+      145deg,
+      #ffffff 0%,
+      #f5f7ff 100%
+    );
+  box-shadow:
+    0 14px 34px
+    rgba(79, 70, 229, 0.09);
+}
+
+.consignment-review-card
+  .consignment-section-heading {
+  border-bottom-color: #dbeafe;
+}
+
+.consignment-review-card__status {
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  margin: 0;
+  border-color: #c4b5fd;
+  border-radius: 999px;
+  background: #f5f3ff;
+  color: #6d28d9;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.consignment-review-card__content {
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1fr)
+    auto;
+  align-items: center;
+  gap: 18px;
+  padding: 16px;
+  border: 1px solid #dbeafe;
+  border-radius: 15px;
+  background:
+    linear-gradient(
+      135deg,
+      #eff6ff,
+      #ffffff
+    );
+}
+
+.consignment-review-card__message {
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.consignment-review-card__message-icon {
+  flex: 0 0 42px;
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #c7d2fe;
+  border-radius: 12px;
+  background:
+    linear-gradient(
+      145deg,
+      #e0e7ff,
+      #eef2ff
+    );
+  color: #4f46e5;
+  font-size: 18px;
+}
+
+.consignment-review-card__message
+  > div:last-child {
+  min-width: 0;
+}
+
+.consignment-review-card__message
+  strong {
+  display: block;
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.consignment-review-card__message
+  span {
+  display: block;
+  max-width: 680px;
+  margin-top: 5px;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.65;
+}
+
+.consignment-review-card__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.consignment-review-card__actions
+  .ant-btn {
+  min-height: 43px;
+  border-radius: 11px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.consignment-review-card__reject {
+  border-color: #fca5a5 !important;
+  background: #fff !important;
+  color: #dc2626 !important;
+}
+
+.consignment-review-card__reject:hover {
+  border-color: #ef4444 !important;
+  background: #fef2f2 !important;
+  color: #b91c1c !important;
+}
+
+.consignment-review-card__approve {
+  border: 0 !important;
+  background:
+    linear-gradient(
+      135deg,
+      #16a34a,
+      #15803d
+    ) !important;
+  box-shadow:
+    0 10px 22px
+    rgba(22, 163, 74, 0.2);
+}
+
+.consignment-review-card__approve:hover {
+  background:
+    linear-gradient(
+      135deg,
+      #15803d,
+      #166534
+    ) !important;
+}
+
+/* =========================
+   REVIEW MODAL
+========================= */
+
+.consignment-review-modal.ant-modal {
+  max-width:
+    calc(100vw - 24px);
+  padding-bottom: 0;
+}
+
+.consignment-review-modal
+  .ant-modal-content {
+  overflow: hidden;
+  padding: 0;
+  border: 1px solid
+    rgba(148, 163, 184, 0.24);
+  border-radius: 20px;
+  background: #f8fafc;
+  box-shadow:
+    0 28px 80px
+    rgba(15, 23, 42, 0.28);
+}
+
+.consignment-review-modal
+  .ant-modal-body {
+  padding: 0;
+}
+
+.consignment-review-modal__content {
+  max-height: 88vh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color:
+    #94a3b8 #e2e8f0;
+}
+
+.consignment-review-modal__hero {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  min-height: 112px;
+  padding: 21px 62px 21px 21px;
+  color: #ffffff;
+}
+
+.consignment-review-modal__hero.is-approve {
+  background:
+    linear-gradient(
+      135deg,
+      #052e16,
+      #15803d
+    );
+}
+
+.consignment-review-modal__hero.is-reject {
+  background:
+    linear-gradient(
+      135deg,
+      #450a0a,
+      #dc2626
+    );
+}
+
+.consignment-review-modal__icon {
+  flex: 0 0 48px;
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border: 1px solid
+    rgba(255, 255, 255, 0.2);
+  border-radius: 14px;
+  background:
+    rgba(255, 255, 255, 0.13);
+  color: #ffffff;
+  font-size: 21px;
+}
+
+.consignment-review-modal__hero
+  > div:last-child {
+  min-width: 0;
+}
+
+.consignment-review-modal__hero
+  span {
+  display: block;
+  color: rgba(
+    255,
+    255,
+    255,
+    0.75
+  );
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+}
+
+.consignment-review-modal__hero h2 {
+  margin: 5px 0 0;
+  color: #ffffff;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.consignment-review-modal__hero p {
+  margin: 5px 0 0;
+  color: rgba(
+    255,
+    255,
+    255,
+    0.82
+  );
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.consignment-review-modal
+  .ant-modal-close {
+  top: 15px;
+  right: 15px;
+  width: 37px;
+  height: 37px;
+  border-radius: 10px;
+  background:
+    rgba(255, 255, 255, 0.13);
+  color: #ffffff;
+}
+
+.consignment-review-modal
+  .ant-modal-close:hover {
+  background:
+    rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+}
+
+.consignment-review-modal__body {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+}
+
+.consignment-review-modal__order {
+  padding: 13px 14px;
+  border: 1px solid #dbe3ef;
+  border-radius: 13px;
+  background: #ffffff;
+}
+
+.consignment-review-modal__order
+  span,
+.consignment-review-modal__order
+  strong {
+  display: block;
+}
+
+.consignment-review-modal__order
+  span {
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.consignment-review-modal__order
+  strong {
+  margin-top: 5px;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.consignment-review-modal__reason {
+  display: grid;
+  gap: 7px;
+}
+
+.consignment-review-modal__reason
+  label {
+  color: #334155;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.consignment-review-modal__reason
+  label b {
+  margin-left: 3px;
+  color: #dc2626;
+}
+
+.consignment-review-modal__reason
+  textarea.ant-input {
+  min-height: 120px;
+  padding: 11px 12px;
+  border-color: #cbd5e1;
+  border-radius: 11px;
+  color: #1e293b;
+  font-size: 12px;
+  line-height: 1.65;
+  resize: vertical;
+}
+
+.consignment-review-modal__reason
+  textarea.ant-input:hover,
+.consignment-review-modal__reason
+  textarea.ant-input:focus {
+  border-color: #60a5fa;
+  box-shadow:
+    0 0 0 3px
+    rgba(37, 99, 235, 0.1);
+}
+
+.consignment-review-modal__reason
+  small {
+  color: #64748b;
+  font-size: 10px;
+}
+
+.consignment-review-modal__notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 12px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.6;
+}
+
+.consignment-review-modal__notice
+  > .anticon {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  font-size: 15px;
+}
+
+.consignment-review-modal__notice.is-approve {
+  border: 1px solid #bbf7d0;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.consignment-review-modal__notice.is-reject {
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.consignment-review-modal__actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 4;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 18px 16px;
+  border-top: 1px solid #dbe3ef;
+  background:
+    rgba(255, 255, 255, 0.97);
+  box-shadow:
+    0 -7px 20px
+    rgba(15, 23, 42, 0.06);
+  backdrop-filter: blur(12px);
+}
+
+.consignment-review-modal__actions
+  .ant-btn {
+  min-width: 125px;
+  min-height: 42px;
+  border-radius: 11px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* =========================
+   REVIEW RESPONSIVE
+========================= */
+
+@media (max-width: 900px) {
+  .consignment-review-card__content {
+    grid-template-columns: 1fr;
+  }
+
+  .consignment-review-card__actions {
+    justify-content: stretch;
+  }
+
+  .consignment-review-card__actions
+    .ant-btn {
+    flex: 1;
+  }
+}
+
+@media (max-width: 560px) {
+  .consignment-review-card__content {
+    padding: 13px;
+  }
+
+  .consignment-review-card__message {
+    flex-direction: column;
+  }
+
+  .consignment-review-card__actions {
+    flex-direction: column-reverse;
+  }
+
+  .consignment-review-card__actions
+    .ant-btn {
+    width: 100%;
+  }
+
+  .consignment-review-modal.ant-modal {
+    width:
+      calc(100vw - 14px) !important;
+    max-width:
+      calc(100vw - 14px);
+    margin: 7px auto;
+  }
+
+  .consignment-review-modal
+    .ant-modal-content {
+    border-radius: 16px;
+  }
+
+  .consignment-review-modal__hero {
+    padding:
+      17px 52px 17px 15px;
+  }
+
+  .consignment-review-modal__hero h2 {
+    font-size: 17px;
+  }
+
+  .consignment-review-modal__body {
+    padding: 14px;
+  }
+
+  .consignment-review-modal__actions {
+    flex-direction: column-reverse;
+    padding: 12px 14px 14px;
+  }
+
+  .consignment-review-modal__actions
+    .ant-btn {
+    width: 100%;
+  }
+}
+
+
+/* =========================================================
+   FONT CLARITY FIX
+   - KhĂ´ng táº¡o chá»¯ Ä‘áº­m giáº£
+   - Há»— trá»£ tiáº¿ng Viá»‡t rĂµ nĂ©t
+   - TÄƒng kĂ­ch thÆ°á»›c cĂ¡c chá»¯ quĂ¡ nhá»
+========================================================= */
+
+.consignment-detail-page,
+.consignment-detail-page .ant-btn,
+.consignment-detail-page .ant-tag,
+.consignment-detail-page .ant-input,
+.consignment-detail-page .ant-input-number,
+.consignment-detail-page .ant-select,
+.consignment-detail-page .ant-select-item,
+.consignment-detail-page .ant-modal,
+.consignment-review-modal,
+.consignment-review-modal .ant-btn,
+.consignment-review-modal .ant-input {
+  font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    Arial,
+    sans-serif !important;
+  font-synthesis: none;
+  font-kerning: normal;
+  font-feature-settings:
+    "kern" 1,
+    "liga" 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: auto;
+}
+
+.consignment-detail-page {
+  font-size: 15px;
+  line-height: 1.65;
+  color: #0f172a;
+}
+
+/* =========================
+   HERO
+========================= */
+
+.consignment-detail-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.5;
+  letter-spacing: 0.1em;
+}
+
+.consignment-detail-title-row h1 {
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: 0;
+}
+
+.consignment-detail-description {
+  color: rgba(241, 245, 249, 0.92);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.75;
+}
+
+.consignment-detail-hero__meta span {
+  color: rgba(241, 245, 249, 0.78);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.consignment-detail-hero__meta strong {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+/* =========================
+   STATUS / BUTTON
+========================= */
+
+.consignment-detail-status {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.consignment-back-button,
+.consignment-code-copy {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* =========================
+   SUMMARY
+========================= */
+
+.consignment-summary-card span {
+  color: #475569;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.consignment-summary-card strong {
+  color: #0f172a;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.consignment-summary-card small {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+/* =========================
+   SECTION
+========================= */
+
+.consignment-section-heading h2 {
+  color: #0f172a;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: 0;
+}
+
+.consignment-section-heading p {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+/* =========================
+   DETAIL ITEM
+========================= */
+
+.consignment-detail-item__label {
+  color: #475569;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.45;
+  letter-spacing: 0.02em;
+}
+
+.consignment-detail-item__value {
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.6;
+}
+
+/* =========================
+   TABLE
+========================= */
+
+.consignment-items-table th {
+  height: 46px;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: 0.015em;
+}
+
+.consignment-items-table td {
+  color: #334155;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.55;
+}
+
+.consignment-product-name strong {
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.55;
+}
+
+.consignment-product-name small {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.consignment-product-type-tag {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.consignment-measure-value,
+.consignment-dimension-value strong,
+.consignment-dim-value strong,
+.consignment-table-total-dim {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.consignment-dimension-value span,
+.consignment-dimension-value small,
+.consignment-dim-value small {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* =========================
+   QUOTATION
+========================= */
+
+.consignment-quotation-lines,
+.consignment-quotation-lines > div {
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.consignment-quotation-lines strong {
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.consignment-quotation-total span {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.consignment-quotation-total strong {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+/* =========================
+   REVIEW CARD
+========================= */
+
+.consignment-review-card__status {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.consignment-review-card__message strong {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.consignment-review-card__message span {
+  color: #475569;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.7;
+}
+
+.consignment-review-card__actions .ant-btn {
+  min-height: 44px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* =========================
+   REVIEW MODAL
+========================= */
+
+.consignment-review-modal__hero span {
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.45;
+  letter-spacing: 0.1em;
+}
+
+.consignment-review-modal__hero h2 {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: 0;
+}
+
+.consignment-review-modal__hero p {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.65;
+}
+
+.consignment-review-modal__order span {
+  color: #475569;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.consignment-review-modal__order strong {
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.55;
+}
+
+.consignment-review-modal__reason label {
+  color: #334155;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.consignment-review-modal__reason textarea.ant-input {
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.65;
+}
+
+.consignment-review-modal__reason small {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.consignment-review-modal__notice {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.65;
+}
+
+.consignment-review-modal__actions .ant-btn {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* =========================
+   ANT DESIGN DISABLED TEXT
+========================= */
+
+.consignment-detail-page
+  .ant-btn:disabled,
+.consignment-detail-page
+  .ant-btn-disabled {
+  text-shadow: none !important;
+  -webkit-text-fill-color: black;
+}
+
+@media (max-width: 680px) {
+  .consignment-detail-page {
+    font-size: 14px;
+  }
+
+  .consignment-section-heading h2 {
+    font-size: 16px;
+  }
+
+  .consignment-items-table th {
+    font-size: 11px;
+  }
+
+  .consignment-items-table td,
+  .consignment-product-name strong {
+    font-size: 13px;
+  }
+
+  .consignment-review-card__message span,
+  .consignment-review-modal__hero p {
+    font-size: 12px;
   }
 }
