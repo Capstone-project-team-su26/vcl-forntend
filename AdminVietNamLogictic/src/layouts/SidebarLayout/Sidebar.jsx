@@ -206,22 +206,22 @@ const MENU_BY_ROLE = {
     },
     {
       key: "sale-consignments",
-      label: "Yêu cầu ký gửi",
+      label: "Quản lý ký gửi",
       icon: <FileSearchOutlined />,
       path: "/sale/consignments",
     },
     {
       key: "sale-purchase-requests",
-      label: "Yêu cầu mua hộ",
+      label: "Quản lý mua hộ",
       icon: <ShoppingCartOutlined />,
       path: "/sale/purchase-requests",
     },
-    {
-      key: "sale-quotations",
-      label: "Quản lý báo giá",
-      icon: <CalculatorOutlined />,
-      path: "/sale/quotations",
-    },
+    // {
+    //   key: "sale-quotations",
+    //   label: "Quản lý báo giá",
+    //   icon: <CalculatorOutlined />,
+    //   path: "/sale/quotations",
+    // },
 
     {
       key: "sale-transaction-history",
