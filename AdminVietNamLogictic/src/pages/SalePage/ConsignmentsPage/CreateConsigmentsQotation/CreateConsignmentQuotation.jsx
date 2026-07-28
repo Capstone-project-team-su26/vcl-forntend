@@ -187,19 +187,21 @@ const formatMeasurement = (
 };
 
 const formatDimWeight = (value) => {
-  const number = Number(value);
+  const number =
+    normalizePositiveNumber(value);
 
-  if (!Number.isFinite(number)) {
-    return "0,0000";
-  }
+  return new Intl.NumberFormat(
+    "vi-VN",
+    {
+      minimumFractionDigits:
+        DIM_DECIMAL_PLACES,
 
-  return new Intl.NumberFormat("vi-VN", {
-    minimumFractionDigits:
-      DIM_DECIMAL_PLACES,
-    maximumFractionDigits:
-      DIM_DECIMAL_PLACES,
-    useGrouping: true,
-  }).format(
+      maximumFractionDigits:
+        DIM_DECIMAL_PLACES,
+
+      useGrouping: true,
+    }
+  ).format(
     roundToDecimals(
       number,
       DIM_DECIMAL_PLACES
@@ -1337,12 +1339,35 @@ export default function CreateConsignmentQuotation() {
           );
         })
         .map((rule) => {
+          const ruleCode =
+            normalizeUpperText(
+              rule?.ruleCode
+            );
+
+          /*
+           * Phí đóng thùng gỗ áp dụng theo toàn đơn.
+           * Không truyền tổng số kiện vào công thức vì
+           * sẽ làm mức phí bị nhân nhiều lần.
+           *
+           * Các phụ phí theo kiện khác vẫn dùng đúng
+           * packageCount thực tế của đơn.
+           */
+          const calculationPackageCount =
+            ruleCode ===
+            PRICING_RULE_CODE
+              .WOOD_CRATE
+              ? 1
+              : packageCount;
+
           const amount =
             calculatePricingRuleAmount(
               rule,
               {
                 declaredValue,
-                packageCount,
+
+                packageCount:
+                  calculationPackageCount,
+
                 requiresInspection:
                   detail
                     ?.requiresInspection,
@@ -1416,6 +1441,13 @@ export default function CreateConsignmentQuotation() {
       );
     }, [selectedOptionalFeeRows]);
 
+  /*
+   * Giá trị duy nhất dùng chung cho:
+   * - Tổng hợp báo giá phía sale.
+   * - Popup xác nhận gửi báo giá.
+   * - Payload gửi về API.
+   * - Báo giá phía khách hàng.
+   */
   const woodCrateFee =
     roundMoney(
       woodCrateFeeRow?.amount
@@ -1730,13 +1762,33 @@ export default function CreateConsignmentQuotation() {
 
       const additionalFees =
         additionalFeeRows.map(
-          (row) => ({
-            feeId: row.id,
-            code: row.code,
-            label: row.label,
-            amount: row.amount,
-            enabled: true,
-          })
+          (row) => {
+            const code =
+              normalizeUpperText(
+                row?.code
+              );
+
+            return {
+              feeId: row.id,
+              code,
+              label: row.label,
+
+              /*
+               * WOOD_CRATE đã được chuẩn hóa thành
+               * phí một lần cho toàn đơn ở trên.
+               */
+              amount:
+                code ===
+                PRICING_RULE_CODE
+                  .WOOD_CRATE
+                  ? woodCrateFee
+                  : roundMoney(
+                      row.amount
+                    ),
+
+              enabled: true,
+            };
+          }
         );
 
       return {
@@ -1842,6 +1894,13 @@ export default function CreateConsignmentQuotation() {
           packageConfigurationFee:
             packageConfigurationFee,
 
+          /*
+           * Phí đóng thùng gỗ chỉ tính một lần
+           * cho toàn đơn. Trường này giúp màn
+           * hình khách và sale dùng cùng số tiền.
+           */
+          woodCrateFee,
+
           additionalFees,
 
           discountPercent,
@@ -1890,6 +1949,7 @@ export default function CreateConsignmentQuotation() {
       freightCharge,
       domesticShippingFee,
       packageConfigurationFee,
+      woodCrateFee,
       discountPercent,
       subtotal,
       discountAmount,
@@ -2788,7 +2848,7 @@ export default function CreateConsignmentQuotation() {
               {woodCrateFee > 0 && (
                 <div>
                   <span>
-                    Phí đóng thùng gỗ theo đơn
+                    Phí đóng thùng gỗ (1 lần/đơn)
                   </span>
                   <strong>
                     {formatCurrency(
