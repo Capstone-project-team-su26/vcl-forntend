@@ -69,9 +69,56 @@ export const composeVietnamAddress = ({
     .filter(Boolean)
     .join(", ");
 
+export const getProvinces = () => getVietnamProvincesApi();
+
+export const getDistrictsByProvinceCode = (provinceCode) =>
+  getVietnamDistrictsApi(provinceCode);
+
+export const getWardsByDistrictCode = (districtCode) =>
+  getVietnamWardsApi(districtCode);
+
+export const getFullAddressByCodes = async ({
+  provinceCode,
+  districtCode,
+  wardCode,
+  detailAddress = "",
+} = {}) => {
+  const [provinces, districts, wards] = await Promise.all([
+    getVietnamProvincesApi(),
+    getVietnamDistrictsApi(provinceCode),
+    getVietnamWardsApi(districtCode),
+  ]);
+
+  const province = provinces.find(
+    (item) => String(item.code) === String(provinceCode)
+  );
+  const district = districts.find(
+    (item) => String(item.code) === String(districtCode)
+  );
+  const ward = wards.find(
+    (item) => String(item.code) === String(wardCode)
+  );
+
+  return {
+    province: province || null,
+    district: district || null,
+    ward: ward || null,
+    fullAddress: composeVietnamAddress({
+      street: detailAddress,
+      ward: ward?.name,
+      district: district?.name,
+      province: province?.name,
+    }),
+  };
+};
+
 export default {
   getVietnamProvincesApi,
   getVietnamDistrictsApi,
   getVietnamWardsApi,
   composeVietnamAddress,
+  getProvinces,
+  getDistrictsByProvinceCode,
+  getWardsByDistrictCode,
+  getFullAddressByCodes,
 };

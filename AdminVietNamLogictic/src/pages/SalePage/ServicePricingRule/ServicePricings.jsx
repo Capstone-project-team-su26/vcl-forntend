@@ -1213,7 +1213,7 @@ export default function ServicePricings() {
         width={660}
         footer={null}
         title={null}
-        destroyOnClose
+        destroyOnHidden
         className="service-pricings-detail-modal"
         onCancel={handleCloseDetail}
       >

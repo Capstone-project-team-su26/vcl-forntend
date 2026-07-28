@@ -2,6 +2,10 @@ import {
   Navigate,
   useLocation,
 } from "react-router-dom";
+import {
+  clearAuthSession,
+  isAccessTokenExpired,
+} from "../utils/Common/authSession";
 
 const ROLE_HOME = {
   sale: "/sale",
@@ -14,15 +18,6 @@ const normalizeRole = (role) => {
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9]/g, "");
-};
-
-const clearAuthSession = () => {
-  sessionStorage.removeItem("accessToken");
-  sessionStorage.removeItem("refreshToken");
-  sessionStorage.removeItem("tokenExpiresAt");
-  sessionStorage.removeItem("user");
-  sessionStorage.removeItem("role");
-  sessionStorage.removeItem("isAuth");
 };
 
 export default function RequireAuth({
@@ -44,7 +39,9 @@ export default function RequireAuth({
   const userRole = normalizeRole(storedRole);
 
   // Chưa đăng nhập
-  if (!isAuth || !accessToken) {
+  if (!isAuth || !accessToken || isAccessTokenExpired(accessToken)) {
+    clearAuthSession();
+
     return (
       <Navigate
         to="/login"

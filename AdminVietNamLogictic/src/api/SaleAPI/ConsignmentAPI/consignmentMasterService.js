@@ -24,23 +24,68 @@ const getArrayItems = (data) => {
   return [];
 };
 
+const getNamedArrayItems = (data, keys = []) => {
+  const directItems = getArrayItems(data);
+  if (directItems.length) return directItems;
+
+  for (const key of keys) {
+    if (Array.isArray(data?.[key])) return data[key];
+    if (Array.isArray(data?.data?.[key])) return data.data[key];
+  }
+
+  return [];
+};
+
 const normalizeText = (value) =>
   String(value ?? "").trim();
 
 const normalizeUpperText = (value) =>
   normalizeText(value).toUpperCase();
 
-export const getProductTypesApi = async () => {
+export const getProductTypesApi = async ({ signal } = {}) => {
   const response = await axiosInstance.get(
-    API_ENDPOINTS.productTypes
+    API_ENDPOINTS.productTypes,
+    { signal }
   );
 
-  return getArrayItems(getResponseData(response))
-    .map((item) => ({
-      id: normalizeText(item?.id),
-      name: normalizeText(item?.name),
-    }))
+  return getNamedArrayItems(getResponseData(response), ["productTypes"])
+    .map((item) => {
+      if (typeof item === "string" || typeof item === "number") {
+        const value = normalizeText(item);
+        return { id: value, name: value };
+      }
+
+      return {
+        ...item,
+        id: normalizeText(item?.id ?? item?.value ?? item?.code),
+        name: normalizeText(item?.name ?? item?.label ?? item?.displayName),
+      };
+    })
     .filter((item) => item.id && item.name);
+};
+
+export const getConsignmentRoutesApi = async ({ signal } = {}) => {
+  const response = await axiosInstance.get(
+    API_ENDPOINTS.consignments.routes,
+    { signal }
+  );
+
+  return getNamedArrayItems(getResponseData(response), ["routes"]);
+};
+
+export const getConsignmentShippingOptionsApi = async ({
+  route,
+  signal,
+} = {}) => {
+  const response = await axiosInstance.get(
+    API_ENDPOINTS.consignments.shippingOptions,
+    {
+      params: route ? { route: normalizeText(route) } : undefined,
+      signal,
+    }
+  );
+
+  return getNamedArrayItems(getResponseData(response), ["shippingOptions"]);
 };
 
 export const getConsignmentMasterDataApi = async ({
@@ -83,6 +128,8 @@ export const getConsignmentMasterDataApi = async ({
 
 const consignmentMasterService = {
   getProductTypesApi,
+  getConsignmentRoutesApi,
+  getConsignmentShippingOptionsApi,
   getConsignmentMasterDataApi,
 };
 

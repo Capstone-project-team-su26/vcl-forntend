@@ -1,4 +1,4 @@
-import React, {
+import {
   useCallback,
   useEffect,
   useMemo,
@@ -24,6 +24,7 @@ import SearchIcon from "@mui/icons-material/Search";
 
 import { getConsignmentsApi } from "../../../api/SaleAPI/ConsignmentAPI/consignmentService";
 import AuthNotify from "../../../utils/Common/AuthNotify";
+import { isAuthenticationError } from "../../../utils/Common/authSession";
 
 import {
   apiToTimestamp,
@@ -601,6 +602,10 @@ export default function PendingConsignmentList() {
         );
       }
     } catch (error) {
+      if (isAuthenticationError(error)) {
+        return;
+      }
+
       console.error(
         "Lỗi khi lấy danh sách ký gửi:",
         error
@@ -623,7 +628,8 @@ export default function PendingConsignmentList() {
   ]);
 
   useEffect(() => {
-    fetchConsignments();
+    const timeoutId = window.setTimeout(fetchConsignments, 0);
+    return () => window.clearTimeout(timeoutId);
   }, [fetchConsignments, refreshKey]);
 
   useEffect(() => {
@@ -749,9 +755,14 @@ export default function PendingConsignmentList() {
     filteredConsignments;
 
   useEffect(() => {
-    if (pageNumber > totalPages) {
-      setPageNumber(totalPages);
-    }
+    if (pageNumber <= totalPages) return undefined;
+
+    const timeoutId = window.setTimeout(
+      () => setPageNumber(totalPages),
+      0,
+    );
+
+    return () => window.clearTimeout(timeoutId);
   }, [pageNumber, totalPages]);
 
   /* =========================================================

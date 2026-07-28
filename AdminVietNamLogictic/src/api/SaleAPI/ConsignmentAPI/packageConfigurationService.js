@@ -232,12 +232,20 @@ export const normalizePackageConfiguration = (
 
 export const getPackageConfigurationsApi =
   async (filters = {}) => {
+    const {
+      signal,
+      onlyActive,
+      ...queryFilters
+    } = filters || {};
+
     const response =
       await axiosInstance.get(
-        API_ENDPOINTS.packageConfigurations,
+        API_ENDPOINTS.packageConfigurations.list,
         {
           params:
-            removeEmptyParams(filters),
+            removeEmptyParams(queryFilters),
+
+          signal,
 
           headers:
             getAuthHeaders(),
@@ -247,7 +255,7 @@ export const getPackageConfigurationsApi =
     const data =
       getResponseData(response);
 
-    return getArrayItems(data)
+    const configurations = getArrayItems(data)
       .map(
         normalizePackageConfiguration
       )
@@ -258,6 +266,13 @@ export const getPackageConfigurationsApi =
             configuration.configCode
           )
       );
+
+    return onlyActive === true
+      ? configurations.filter(
+          (configuration) =>
+            configuration.status === PACKAGE_CONFIGURATION_STATUS.ACTIVE
+        )
+      : configurations;
   };
 
 export const getActivePackageConfigurationsApi =
@@ -273,6 +288,35 @@ export const getActivePackageConfigurationsApi =
         PACKAGE_CONFIGURATION_STATUS.ACTIVE
     );
   };
+
+export const suggestPackageConfigurationApi = async (item = {}) => {
+  const payload = {
+    length: normalizePositiveNumber(item?.length),
+    width: normalizePositiveNumber(item?.width),
+    height: normalizePositiveNumber(item?.height),
+    weight: normalizePositiveNumber(item?.weight),
+  };
+
+  const response = await axiosInstance.post(
+    API_ENDPOINTS.packageConfigurations.suggest,
+    payload,
+    {
+      headers: {
+        ...getAuthHeaders(),
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  const data = getResponseData(response);
+  const configuration =
+    data?.configuration ||
+    data?.packageConfiguration ||
+    data?.suggestion ||
+    data;
+
+  return normalizePackageConfiguration(configuration || {});
+};
 
 /* =========================
    LOOKUP HELPERS
@@ -601,6 +645,7 @@ const packageConfigurationService = {
 
   getPackageConfigurationsApi,
   getActivePackageConfigurationsApi,
+  suggestPackageConfigurationApi,
 
   findPackageConfigurationById,
   findPackageConfigurationByCode,

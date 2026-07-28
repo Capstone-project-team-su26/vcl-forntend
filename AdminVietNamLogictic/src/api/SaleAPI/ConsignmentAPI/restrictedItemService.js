@@ -79,15 +79,22 @@ export const normalizeRestrictedItem = (item = {}) => {
 };
 
 export const getRestrictedItemsApi = async (filters = {}) => {
+  const { signal, ...queryFilters } = filters || {};
   const response = await axiosInstance.get(
     API_ENDPOINTS.restrictedItems.list,
-    { params: removeEmptyParams(filters) }
+    {
+      params: removeEmptyParams(queryFilters),
+      signal,
+    }
   );
 
   return getArrayItems(getResponseData(response))
     .map(normalizeRestrictedItem)
     .filter((item) => Boolean(item.id));
 };
+
+export const getRestrictedItemListApi = (filters = {}) =>
+  getRestrictedItemsApi(filters);
 
 export const getRestrictedItemDetailApi = async (
   restrictedItemId
@@ -108,6 +115,7 @@ const restrictedItemService = {
   RESTRICTION_TYPE,
   normalizeRestrictedItem,
   getRestrictedItemsApi,
+  getRestrictedItemListApi,
   getRestrictedItemDetailApi,
   getActiveRestrictedItemsApi,
 };

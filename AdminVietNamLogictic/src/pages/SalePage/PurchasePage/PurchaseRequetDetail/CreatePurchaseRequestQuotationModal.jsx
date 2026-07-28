@@ -668,9 +668,9 @@ export default function CreatePurchaseRequestQuotationModal({
       width={1080}
       footer={null}
       closable={false}
-      maskClosable={!submitting}
+      mask={{ closable: !submitting }}
       keyboard={!submitting}
-      destroyOnClose
+      destroyOnHidden
       onCancel={handleClose}
       className="purchase-quotation-modal"
       rootClassName="purchase-quotation-modal-root"

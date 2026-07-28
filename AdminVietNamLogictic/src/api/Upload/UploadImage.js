@@ -1,9 +1,14 @@
 import axios from "axios";
+import { API_ENDPOINTS } from "../apiEndpoints";
+import {
+  expireAuthSession,
+  getStoredAccessToken,
+  isAccessTokenExpired,
+} from "../../utils/Common/authSession";
 
 /* ================= CONFIG ================= */
 
 const DEFAULT_API_BASE_URL = "https://api-vcl.zushin.io.vn";
-const UPLOAD_ENDPOINT = "/api/uploads/images";
 
 const getEnvValue = (value) => {
   if (typeof value !== "string") {
@@ -17,8 +22,6 @@ const UPLOAD_API_BASE_URL =
   getEnvValue(import.meta.env.VITE_UPLOAD_API_BASE_URL) ||
   getEnvValue(import.meta.env.VITE_API_BASE_URL) ||
   DEFAULT_API_BASE_URL;
-
-console.info("[UploadImage] API base URL:", UPLOAD_API_BASE_URL);
 
 /* ================= AXIOS INSTANCE ================= */
 
@@ -38,9 +41,17 @@ const uploadAxios = axios.create({
 
 uploadAxios.interceptors.request.use(
   (config) => {
-    const token =
-      sessionStorage.getItem("accessToken") ||
-      localStorage.getItem("accessToken");
+    const token = getStoredAccessToken();
+
+    if (token && isAccessTokenExpired(token)) {
+      expireAuthSession();
+
+      const error = new Error(
+        "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.",
+      );
+      error.code = "AUTH_SESSION_EXPIRED";
+      return Promise.reject(error);
+    }
 
     config.headers = config.headers || {};
 
@@ -65,15 +76,6 @@ uploadAxios.interceptors.request.use(
       }
     }
 
-    console.info("[UploadImage] Request:", {
-      method: config.method?.toUpperCase(),
-      url: `${config.baseURL || ""}${config.url || ""}`,
-      hasToken: Boolean(token),
-      isFormData:
-        typeof FormData !== "undefined" &&
-        config.data instanceof FormData,
-    });
-
     return config;
   },
   (error) => Promise.reject(error),
@@ -92,15 +94,7 @@ uploadAxios.interceptors.response.use(
     const status = error?.response?.status;
 
     if (status === 401) {
-      sessionStorage.removeItem("accessToken");
-      localStorage.removeItem("accessToken");
-
-      if (
-        typeof window !== "undefined" &&
-        window.location.pathname !== "/login"
-      ) {
-        window.location.assign("/login");
-      }
+      expireAuthSession();
     }
 
     return Promise.reject(error);
@@ -229,7 +223,7 @@ const getUploadErrorMessage = (error) => {
   if (status === 400) {
     return (
       "Dữ liệu ảnh gửi lên không hợp lệ. " +
-      'API yêu cầu multipart field có tên "files".'
+      "Vui lòng kiểm tra file ảnh và định dạng multipart gửi lên."
     );
   }
 
@@ -296,7 +290,7 @@ export const uploadImages = async (
 
   try {
     const response = await uploadAxios.post(
-      UPLOAD_ENDPOINT,
+      API_ENDPOINTS.uploads.images,
       formData,
       {
         onUploadProgress: (progressEvent) => {
@@ -320,8 +314,6 @@ export const uploadImages = async (
       },
     );
 
-    console.info("[UploadImage] Response:", response.data);
-
     return response.data;
   } catch (error) {
     console.error("[UploadImage] Upload failed:", {
@@ -330,7 +322,7 @@ export const uploadImages = async (
       message: error?.message,
     });
 
-    throw new Error(getUploadErrorMessage(error));
+    throw new Error(getUploadErrorMessage(error), { cause: error });
   }
 };
 
@@ -341,10 +333,39 @@ export const uploadImage = async (
   inputFile,
   onUploadProgress,
 ) => {
-  return uploadImages(
-    [inputFile],
-    onUploadProgress,
-  );
+  const file = normalizeImageFile(inputFile);
+
+  if (!file.type?.startsWith("image/")) {
+    throw new Error(`File "${file.name || "đã chọn"}" không phải là hình ảnh.`);
+  }
+
+  const formData = new FormData();
+  formData.append("file", file, file.name || `image-${Date.now()}.jpg`);
+
+  try {
+    const response = await uploadAxios.post(
+      API_ENDPOINTS.uploads.image,
+      formData,
+      {
+        onUploadProgress: (progressEvent) => {
+          if (typeof onUploadProgress !== "function" || !progressEvent.total) {
+            return;
+          }
+
+          onUploadProgress(
+            Math.min(
+              100,
+              Math.round((progressEvent.loaded * 100) / progressEvent.total),
+            ),
+          );
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error) {
+    throw new Error(getUploadErrorMessage(error), { cause: error });
+  }
 };
 
 export { uploadAxios };

@@ -104,6 +104,131 @@ const removeEmptyParams = (
   );
 };
 
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+const normalizeUuid = (value, fieldName) => {
+  const id = normalizeText(value);
+  if (!id) return null;
+  if (!UUID_PATTERN.test(id)) {
+    throw new Error(`${fieldName} không đúng định dạng UUID.`);
+  }
+  return id;
+};
+
+const normalizeUuidArray = (value, fieldName) => {
+  if (!Array.isArray(value)) return [];
+  return Array.from(
+    new Set(
+      value
+        .map((item) => normalizeUuid(item, fieldName))
+        .filter(Boolean)
+    )
+  );
+};
+
+const normalizeConsignmentItem = (item = {}, index = 0) => {
+  const productName = normalizeText(item?.productName);
+  const productType = normalizeText(item?.productType);
+  const quantity = Math.trunc(normalizeNumber(item?.quantity));
+
+  if (!productName) {
+    throw new Error(`Kiện ${index + 1}: vui lòng nhập tên sản phẩm.`);
+  }
+  if (!productType) {
+    throw new Error(`Kiện ${index + 1}: vui lòng chọn loại sản phẩm.`);
+  }
+  if (quantity < 1 || quantity > 2147483647) {
+    throw new Error(`Kiện ${index + 1}: số lượng phải từ 1 đến 2147483647.`);
+  }
+
+  const referenceUrls = Array.from(
+    new Set(
+      (Array.isArray(item?.referenceUrls) ? item.referenceUrls : [])
+        .map(normalizeText)
+        .filter(Boolean)
+    )
+  );
+
+  return {
+    productName,
+    productType,
+    quantity,
+    weight: normalizePositiveNumber(item?.weight),
+    width: normalizePositiveNumber(item?.width),
+    height: normalizePositiveNumber(item?.height),
+    length: normalizePositiveNumber(item?.length),
+    declaredValue: normalizePositiveNumber(item?.declaredValue),
+    referenceUrls,
+    domesticTrackingCode: normalizeText(item?.domesticTrackingCode) || null,
+    packageConfigurationId: normalizeUuid(
+      item?.packageConfigurationId,
+      `Kiện ${index + 1}: packageConfigurationId`
+    ),
+  };
+};
+
+export const normalizeCreateConsignmentPayload = (payload = {}) => {
+  const route = normalizeText(payload?.route);
+  const shippingOption = normalizeText(payload?.shippingOption);
+  const items = Array.isArray(payload?.items)
+    ? payload.items.map(normalizeConsignmentItem)
+    : [];
+
+  if (!route) throw new Error("Vui lòng chọn tuyến hàng.");
+  if (!shippingOption) throw new Error("Vui lòng chọn phương thức vận chuyển.");
+  if (!items.length) throw new Error("Vui lòng thêm ít nhất một kiện hàng.");
+
+  const receiverPhone = normalizeText(payload?.receiverPhone);
+  if (receiverPhone && !/^0\d{9}$/.test(receiverPhone)) {
+    throw new Error("Số điện thoại người nhận phải bắt đầu bằng 0 và gồm đúng 10 chữ số.");
+  }
+
+  return {
+    route,
+    shippingOption,
+    receiverName: normalizeText(payload?.receiverName) || null,
+    receiverPhone: receiverPhone || null,
+    receiverAddress: normalizeText(payload?.receiverAddress) || null,
+    pricingRuleIds: normalizeUuidArray(
+      payload?.pricingRuleIds,
+      "pricingRuleIds"
+    ),
+    requiresInspection: Boolean(payload?.requiresInspection),
+    requiresPacking: Boolean(payload?.requiresPacking),
+    requiresWoodenCrate: Boolean(payload?.requiresWoodenCrate),
+    requiresInsurance: Boolean(payload?.requiresInsurance),
+    note: normalizeText(payload?.note) || null,
+    items,
+  };
+};
+
+export const createConsignmentApi = async (payload = {}) => {
+  const requestBody = normalizeCreateConsignmentPayload(payload);
+  const response = await axiosInstance.post(
+    API_ENDPOINTS.consignments.list,
+    requestBody,
+    { headers: getAuthHeaders({ contentType: true }) }
+  );
+  return getResponseData(response);
+};
+
+export const validateConsignmentItemsApi = async (items = []) => {
+  const normalizedItems = Array.isArray(items)
+    ? items.map(normalizeConsignmentItem)
+    : [];
+  if (!normalizedItems.length) {
+    throw new Error("Vui lòng thêm ít nhất một kiện hàng để kiểm tra.");
+  }
+
+  const response = await axiosInstance.post(
+    API_ENDPOINTS.consignments.validateItems,
+    { items: normalizedItems },
+    { headers: getAuthHeaders({ contentType: true }) }
+  );
+  return getResponseData(response);
+};
+
 /* =========================
    UNIT HELPER
 ========================= */
@@ -905,6 +1030,9 @@ const consignmentService = {
   convertM3ToCm3,
   normalizeQuotationPayload,
   normalizeConsignmentStatusPayload,
+  normalizeCreateConsignmentPayload,
+  createConsignmentApi,
+  validateConsignmentItemsApi,
   getConsignmentsApi,
   getConsignmentDetailApi,
   updateConsignmentStatusApi,

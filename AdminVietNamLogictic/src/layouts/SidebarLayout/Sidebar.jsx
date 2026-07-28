@@ -31,6 +31,7 @@ import {
 
 import logoVietnamLogistics from "../../assets/anhlogocap2.jpeg";
 import UserProfileModal from "../../components/UserComponents/UserProfileModal";
+import { clearAuthSession } from "../../utils/Common/authSession";
 
 import "./Sidebar.css";
 
@@ -214,7 +215,7 @@ const MENU_BY_ROLE = {
       key: "sale-purchase-requests",
       label: "Quản lý mua hộ",
       icon: <ShoppingCartOutlined />,
-      path: "purchase-requests",
+      path: "/sale/purchase-requests",
     },
     // {
     //   key: "sale-quotations",
@@ -370,21 +371,6 @@ const getAvatarText = (fullName) => {
 
   return `${firstLetter}${lastLetter}`
     .toUpperCase();
-};
-
-const clearLoginSession = () => {
-  const sessionKeys = [
-    "accessToken",
-    "refreshToken",
-    "tokenExpiresAt",
-    "user",
-    "role",
-    "isAuth",
-  ];
-
-  sessionKeys.forEach((key) => {
-    sessionStorage.removeItem(key);
-  });
 };
 
 /* =====================================================
@@ -551,7 +537,7 @@ export default function Sidebar() {
   };
 
   const handleLogout = () => {
-    clearLoginSession();
+    clearAuthSession();
 
     navigate("/login", {
       replace: true,

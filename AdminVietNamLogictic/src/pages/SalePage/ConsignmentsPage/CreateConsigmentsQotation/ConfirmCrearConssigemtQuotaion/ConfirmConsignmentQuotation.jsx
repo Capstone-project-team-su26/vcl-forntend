@@ -34,8 +34,8 @@ export default function ConfirmConsignmentQuotation({
       onCancel={onCancel}
       width={760}
       centered
-      destroyOnClose
-      maskClosable={!loading && !submitted}
+      destroyOnHidden
+      mask={{ closable: !loading && !submitted }}
       closable={!loading}
       footer={null}
       className="quotation-confirm-modal"

@@ -1,5 +1,9 @@
 import axiosInstance from "../../axiosInstance";
 import { API_ENDPOINTS } from "../../apiEndpoints";
+import {
+  getPackageConfigurationsApi,
+  suggestPackageConfigurationApi,
+} from "./packageConfigurationService";
 
 /* =========================
    CONSTANTS
@@ -272,12 +276,20 @@ export const normalizePricingRule = (
 export const getPricingRulesApi = async (
   filters = {}
 ) => {
+  const {
+    signal,
+    onlyActive,
+    ...queryFilters
+  } = filters || {};
+
   const response =
     await axiosInstance.get(
       API_ENDPOINTS.pricingRules.list,
       {
         params:
-          removeEmptyParams(filters),
+          removeEmptyParams(queryFilters),
+
+        signal,
 
         headers:
           getAuthHeaders(),
@@ -287,14 +299,27 @@ export const getPricingRulesApi = async (
   const data =
     getResponseData(response);
 
-  return getArrayItems(data)
+  const rules = getArrayItems(data)
     .map(normalizePricingRule)
     .filter(
       (rule) =>
         Boolean(rule.id) &&
         Boolean(rule.ruleCode)
     );
+
+  return onlyActive === true
+    ? rules.filter((rule) => rule.status === PRICING_RULE_STATUS.ACTIVE)
+    : rules;
 };
+
+export const getPricingRules = (options = {}) =>
+  getPricingRulesApi(options);
+
+export const getPackageConfigurations = (options = {}) =>
+  getPackageConfigurationsApi(options);
+
+export const suggestPackageConfiguration = (payload = {}) =>
+  suggestPackageConfigurationApi(payload);
 
 export const getPricingRuleDetailApi = async (
   pricingRuleId
@@ -930,8 +955,11 @@ const pricingRuleService = {
   normalizePricingRule,
 
   getPricingRulesApi,
+  getPricingRules,
   getPricingRuleDetailApi,
   getActivePricingRulesApi,
+  getPackageConfigurations,
+  suggestPackageConfiguration,
 
   isPricingRuleActive,
   filterPricingRulesByStatus,

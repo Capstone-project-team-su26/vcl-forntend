@@ -797,7 +797,7 @@ export default function RestrictedItems() {
         width={620}
         footer={null}
         title={null}
-        destroyOnClose
+        destroyOnHidden
         className="restricted-items-detail-modal"
         onCancel={handleCloseDetail}
       >

@@ -20,6 +20,7 @@ import { Button } from "antd";
 
 import { loginApi } from "../../api/Auth/authService";
 import AuthNotify from "../../utils/Common/AuthNotify";
+import { clearAuthSession } from "../../utils/Common/authSession";
 import LoginLoaderPay from "../../utils/LoginLoader/LoginLoaderPay";
 
 import "./login.css";
@@ -45,21 +46,6 @@ const normalizeRole = (role) => {
 
 const getLoginData = (response) => {
   return response?.data?.data ?? response?.data ?? response ?? {};
-};
-
-const clearLoginSession = () => {
-  const sessionKeys = [
-    "accessToken",
-    "refreshToken",
-    "tokenExpiresAt",
-    "user",
-    "role",
-    "isAuth",
-  ];
-
-  sessionKeys.forEach((key) => {
-    sessionStorage.removeItem(key);
-  });
 };
 
 export default function Login() {
@@ -159,7 +145,7 @@ export default function Login() {
 
     try {
       setLoading(true);
-      clearLoginSession();
+      clearAuthSession();
 
       const response = await loginApi({
         email: form.email.trim(),
@@ -256,7 +242,7 @@ export default function Login() {
     } catch (error) {
       console.error("LOGIN ERROR:", error);
 
-      clearLoginSession();
+      clearAuthSession();
 
       const message =
         error?.response?.data?.message ||

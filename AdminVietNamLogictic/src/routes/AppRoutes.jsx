@@ -7,6 +7,10 @@ import {
 import Login from "../pages/LoginPage/Login";
 import MainLayout from "../layouts/mainLayout";
 import RequireAuth from "./PrivateRoute";
+import {
+  clearAuthSession,
+  isAccessTokenExpired,
+} from "../utils/Common/authSession";
 
 /* ================= SALE ================= */
 
@@ -26,6 +30,10 @@ import PurchaseRequestList
 
 import PurchaseRequestDetail
   from "../pages/SalePage/PurchasePage/PurchaseRequetDetail/PurchaseRequestDetail";
+import ConsignmentBuyOrder
+  from "../pages/SalePage/CreateRequestPage/CreateRequestBuyCuspage/ConsignmentBuyOrder";
+import ConsignmentOrder
+  from "../pages/SalePage/CreateRequestPage/CreateRequestOrderCusPage/ConsignmentOrder";
 /* ================= ROLE CONFIG ================= */
 
 const ROLE_HOME = {
@@ -39,17 +47,6 @@ const normalizeRole = (role) => {
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9]/g, "");
-};
-
-/* ================= CLEAR AUTH ================= */
-
-const clearAuthStorage = () => {
-  sessionStorage.removeItem("accessToken");
-  sessionStorage.removeItem("refreshToken");
-  sessionStorage.removeItem("tokenExpiresAt");
-  sessionStorage.removeItem("user");
-  sessionStorage.removeItem("role");
-  sessionStorage.removeItem("isAuth");
 };
 
 /* ================= REDIRECT COMPONENT ================= */
@@ -66,10 +63,12 @@ function RoleRedirect() {
   );
 
   const isLoggedIn = Boolean(
-    accessToken && isAuth
+    accessToken && isAuth && !isAccessTokenExpired(accessToken)
   );
 
   if (!isLoggedIn) {
+    clearAuthSession();
+
     return (
       <Navigate
         to="/login"
@@ -82,7 +81,7 @@ function RoleRedirect() {
 
   // Có token nhưng role không hợp lệ
   if (!homePath) {
-    clearAuthStorage();
+    clearAuthSession();
 
     return (
       <Navigate
@@ -118,6 +117,7 @@ function LoginRoute() {
   if (
     accessToken &&
     isAuth &&
+    !isAccessTokenExpired(accessToken) &&
     homePath
   ) {
     return (
@@ -224,6 +224,16 @@ export default function AppRoutes() {
           }
         />
 
+        <Route
+          path="create-order/buy-orders"
+          element={<ConsignmentBuyOrder />}
+        />
+
+        <Route
+          path="create-order/consignment"
+          element={<ConsignmentOrder />}
+        />
+
         {/* Chi tiết đơn ký gửi */}
         <Route
           path="consignments/:orderId"
@@ -310,4 +320,3 @@ export default function AppRoutes() {
     </Routes>
   );
 }
-

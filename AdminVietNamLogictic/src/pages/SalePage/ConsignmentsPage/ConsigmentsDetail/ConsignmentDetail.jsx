@@ -272,28 +272,18 @@ import "./ConsignmentDetail.css";
   };
 
   /**
-   * DIM luôn hiển thị đúng 4 chữ số thập phân.
-   * 2      -> 2,0000
+   * DIM giữ tối đa 4 chữ số thập phân nhưng không ép số 0 ở cuối.
+   * 6      -> 6
+   * 6.25   -> 6,25
    * 0.0016 -> 0,0016
    */
   const formatDimWeight = (value) => {
-    const number = Number(value);
-
-    if (!Number.isFinite(number)) {
-      return "0,0000";
-    }
-
-    return new Intl.NumberFormat("vi-VN", {
-      minimumFractionDigits:
-        DIM_DECIMAL_PLACES,
-      maximumFractionDigits:
-        DIM_DECIMAL_PLACES,
-      useGrouping: true,
-    }).format(
+    return formatMeasurement(
       roundToDecimals(
-        number,
+        value,
         DIM_DECIMAL_PLACES
-      )
+      ),
+      DIM_DECIMAL_PLACES
     );
   };
 
@@ -1125,7 +1115,7 @@ import "./ConsignmentDetail.css";
           width={920}
           footer={null}
           title={null}
-          destroyOnClose
+          destroyOnHidden
           className="consignment-image-preview-modal"
           onCancel={() =>
             setPreviewOpen(false)
@@ -3485,9 +3475,9 @@ export default function ConsignmentDetail() {
           width={560}
           footer={null}
           title={null}
-          maskClosable={!statusUpdating}
+          mask={{ closable: !statusUpdating }}
           closable={!statusUpdating}
-          destroyOnClose
+          destroyOnHidden
           className="consignment-review-modal"
           onCancel={closeReviewModal}
         >

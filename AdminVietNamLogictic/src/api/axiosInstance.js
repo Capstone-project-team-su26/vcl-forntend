@@ -1,4 +1,9 @@
 import axios from "axios";
+import {
+  expireAuthSession,
+  getStoredAccessToken,
+  isAccessTokenExpired,
+} from "../utils/Common/authSession";
 
 const baseURL =
   import.meta.env.VITE_API_BASE_URL?.replace(
@@ -23,9 +28,17 @@ const axiosInstance = axios.create({
 
 axiosInstance.interceptors.request.use(
   (config) => {
-    const token =
-      sessionStorage.getItem("accessToken") ||
-      localStorage.getItem("accessToken");
+    const token = getStoredAccessToken();
+
+    if (token && isAccessTokenExpired(token)) {
+      expireAuthSession();
+
+      const error = new Error(
+        "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.",
+      );
+      error.code = "AUTH_SESSION_EXPIRED";
+      return Promise.reject(error);
+    }
 
     if (token) {
       config.headers.Authorization =
@@ -39,7 +52,17 @@ axiosInstance.interceptors.request.use(
 
 axiosInstance.interceptors.response.use(
   (response) => response,
-  (error) => Promise.reject(error),
+  (error) => {
+    const isLoginRequest = String(error?.config?.url || "")
+      .toLowerCase()
+      .includes("/api/auth/login");
+
+    if (error?.response?.status === 401 && !isLoginRequest) {
+      expireAuthSession();
+    }
+
+    return Promise.reject(error);
+  },
 );
 
 export default axiosInstance;
