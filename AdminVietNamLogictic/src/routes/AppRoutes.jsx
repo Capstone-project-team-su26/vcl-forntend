@@ -20,6 +20,7 @@ import CustomerList from "../pages/SalePage/CusTomerPagesale/CustomerList"
 import RestrictedItems from "../pages/SalePage/BanItem/RestrictedItems";
 import ServicePricings from "../pages/SalePage/ServicePricingRule/ServicePricings";
 import PendingConsignmentListHistory from "../pages/SalePage/HistorySalePage/HistoryOrderPage/PendingConsignmentListHistory"
+import OrderPaymentHistory from "../pages/SalePage/HistorySalePage/HistoryOrderPage/OrderDetailhisstory/OrderPaymentHistory";
 /* ================= ROLE CONFIG ================= */
 
 const ROLE_HOME = {
@@ -233,12 +234,7 @@ export default function AppRoutes() {
             <CreateConsignmentQuotation />
           }
         />
-          <Route
-          path="history/order"
-          element={
-            <PendingConsignmentListHistory />
-          }
-        />
+      
 
 <Route
   path="customers"
@@ -253,6 +249,19 @@ export default function AppRoutes() {
 <Route
   path="/sale/service-pricings"
   element={<ServicePricings />}
+/>
+<Route
+  path="history/order"
+  element={
+    <PendingConsignmentListHistory />
+  }
+/>
+
+<Route
+  path="orders/:orderId/payments/history"
+  element={
+    <OrderPaymentHistory />
+  }
 />
       </Route>
 

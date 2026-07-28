@@ -1060,22 +1060,47 @@ export default function PendingConsignmentListHistory() {
     );
   };
 
-  const handleViewDetail = (item) => {
-    if (!item?.orderId) {
+  const handleViewPaymentHistory = (
+    item
+  ) => {
+    const orderId =
+      String(
+        item?.orderId || ""
+      ).trim();
+  
+    if (!orderId) {
+      AuthNotify.warning(
+        "Không thể mở lịch sử thanh toán",
+        "Không tìm thấy orderId của đơn hàng."
+      );
+  
       return;
     }
-
-    navigate(`/sale/consignments/${item.orderId}`, {
-      state: {
-        consignment: item,
-      },
-    });
+  
+    navigate(
+      `/sale/orders/${orderId}/payments/history`,
+      {
+        state: {
+          orderId,
+          consignment: item,
+        },
+      }
+    );
   };
 
-  const handleCardKeyDown = (event, item) => {
-    if (event.key === "Enter" || event.key === " ") {
+  const handleCardKeyDown = (
+    event,
+    item
+  ) => {
+    if (
+      event.key === "Enter" ||
+      event.key === " "
+    ) {
       event.preventDefault();
-      handleViewDetail(item);
+
+      handleViewPaymentHistory(
+        item
+      );
     }
   };
 
@@ -1209,11 +1234,15 @@ export default function PendingConsignmentListHistory() {
                     className="consignment-card"
                     role="button"
                     tabIndex={0}
-                    onClick={() => handleViewDetail(item)}
+                    onClick={() =>
+                      handleViewPaymentHistory(
+                        item
+                      )
+                    }
                     onKeyDown={(event) =>
                       handleCardKeyDown(event, item)
                     }
-                    aria-label={`Xem chi tiết yêu cầu ký gửi ${trackingCode}`}
+                    aria-label={`Xem lịch sử thanh toán của đơn ${trackingCode}`}
                   >
                     <div className="card-header">
                       <div className="header-left">
@@ -1283,11 +1312,14 @@ export default function PendingConsignmentListHistory() {
                         endIcon={<ArrowForwardIcon />}
                         onClick={(event) => {
                           event.stopPropagation();
-                          handleViewDetail(item);
+
+                          handleViewPaymentHistory(
+                            item
+                          );
                         }}
                         className="view-detail-button"
                       >
-                        Xem chi tiết
+                        Xem thanh toán
                       </Button>
                     </div>
 
