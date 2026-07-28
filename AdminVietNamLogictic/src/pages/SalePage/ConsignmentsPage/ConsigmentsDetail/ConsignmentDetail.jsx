@@ -1779,43 +1779,46 @@ export default function ConsignmentDetail() {
 
   /*
    * CHỜ DUYỆT:
-   * Chỉ được hủy yêu cầu.
+   * Chỉ kiểm tra trạng thái của ĐƠN HÀNG.
+   *
+   * Không dùng quotation.status vì báo giá
+   * có thể đang PENDING trong khi đơn đã là
+   * QUOTATION_SENT. Trường hợp đó không được
+   * hiển thị nút Hủy yêu cầu.
    */
-  const canCancelPendingOrder =
-    allCurrentStatuses.some(
-      (status) =>
-        status === "PENDING" ||
-        status === "PENDING_REVIEW"
-    );
+  const canCancelPendingOrder = [
+    "PENDING",
+    "PENDING_REVIEW",
+  ].includes(currentOrderStatus);
 
   /*
    * ĐÃ ĐẶT CỌC:
-   * Chỉ được xác nhận yêu cầu.
+   * Có thể được trả ở order status hoặc
+   * payment/deposit status.
    */
   const canConfirmDepositedOrder =
-    allCurrentStatuses.some(
-      (status) =>
-        status === "DEPOSIT_PAID" ||
-        status === "PAID" ||
-        status === "DEPOSITED" ||
-        status === "PAYMENT_COMPLETED"
-    );
+    currentOrderStatus ===
+      "DEPOSIT_PAID" ||
+    [
+      "DEPOSIT_PAID",
+      "PAID",
+      "DEPOSITED",
+      "PAYMENT_COMPLETED",
+    ].includes(currentPaymentStatus);
 
   /*
-   * Sau khi thao tác thành công,
-   * vẫn giữ nút trên giao diện nhưng khóa lại.
+   * Trạng thái hoàn tất thao tác phải dựa
+   * vào trạng thái đơn hàng, không lấy trạng
+   * thái báo giá để tránh hiển thị sai nút.
    */
-  const isOrderCancelled =
-    allCurrentStatuses.some(
-      (status) =>
-        status === "REJECTED" ||
-        status === "CANCELLED"
-    );
+  const isOrderCancelled = [
+    "REJECTED",
+    "CANCELLED",
+  ].includes(currentOrderStatus);
 
   const isOrderConfirmed =
-    allCurrentStatuses.includes(
-      "APPROVED"
-    );
+    currentOrderStatus ===
+    "APPROVED";
 
   const canShowReviewActions =
     canCancelPendingOrder ||
@@ -1823,12 +1826,21 @@ export default function ConsignmentDetail() {
     isOrderCancelled ||
     isOrderConfirmed;
 
+  const hasQuotationBeenSent =
+    currentOrderStatus ===
+      "QUOTATION_SENT" ||
+    currentOrderStatus ===
+      "WAITING_DEPOSIT" ||
+    currentOrderStatus ===
+      "QUOTATION_REJECTED";
+
   const openReviewModal = (
     action
   ) => {
     const canOpenAction =
       action === "REJECT"
-        ? canCancelPendingOrder
+        ? canCancelPendingOrder &&
+          !hasQuotationBeenSent
         : canConfirmDepositedOrder;
 
     if (
@@ -1839,7 +1851,7 @@ export default function ConsignmentDetail() {
       AuthNotify.warning(
         "Không thể thực hiện thao tác",
         action === "REJECT"
-          ? "Chỉ yêu cầu đang chờ duyệt mới có thể hủy."
+          ? "Chỉ đơn đang chờ xử lý hoặc chờ duyệt mới có thể hủy. Đơn đã gửi báo giá không thể hủy tại đây."
           : "Chỉ yêu cầu đã đặt cọc mới có thể xác nhận."
       );
       return;
@@ -1867,7 +1879,8 @@ export default function ConsignmentDetail() {
     async () => {
       const canSubmitAction =
         reviewAction === "REJECT"
-          ? canCancelPendingOrder
+          ? canCancelPendingOrder &&
+            !hasQuotationBeenSent
           : canConfirmDepositedOrder;
 
       if (
@@ -2249,8 +2262,9 @@ export default function ConsignmentDetail() {
             <div>
               <span>Tổng khối lượng quy đổi</span>
               <strong>
-                {formatDimWeight(
-                  totalDimKg
+                {formatMeasurement(
+                  totalDimKg,
+                  DIM_DECIMAL_PLACES
                 )}{" "}
                 kg
               </strong>
@@ -3155,8 +3169,9 @@ export default function ConsignmentDetail() {
 
                         <td>
                           <strong className="consignment-table-total-dim">
-                            {formatDimWeight(
-                              totalDimKg
+                            {formatMeasurement(
+                              totalDimKg,
+                              DIM_DECIMAL_PLACES
                             )}{" "}
                             kg
                           </strong>

@@ -19,6 +19,7 @@ import CreateConsignmentQuotation from "../pages/SalePage/ConsignmentsPage/Creat
 import CustomerList from "../pages/SalePage/CusTomerPagesale/CustomerList"
 import RestrictedItems from "../pages/SalePage/BanItem/RestrictedItems";
 import ServicePricings from "../pages/SalePage/ServicePricingRule/ServicePricings";
+import PendingConsignmentListHistory from "../pages/SalePage/HistorySalePage/HistoryOrderPage/PendingConsignmentListHistory"
 /* ================= ROLE CONFIG ================= */
 
 const ROLE_HOME = {
@@ -230,6 +231,12 @@ export default function AppRoutes() {
           path="consignments/:orderId/create-quotation"
           element={
             <CreateConsignmentQuotation />
+          }
+        />
+          <Route
+          path="history/order"
+          element={
+            <PendingConsignmentListHistory />
           }
         />
 

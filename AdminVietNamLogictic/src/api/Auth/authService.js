@@ -91,6 +91,12 @@ export const updateUserProfileApi = async ({
     );
   }
 
+  if (payload.phone && !/^0\d{9}$/.test(payload.phone)) {
+    throw new Error(
+      "Số điện thoại phải bắt đầu bằng 0 và gồm đúng 10 chữ số."
+    );
+  }
+
   const response = await axiosInstance.put(
     API_ENDPOINTS.auth.profile,
     payload,

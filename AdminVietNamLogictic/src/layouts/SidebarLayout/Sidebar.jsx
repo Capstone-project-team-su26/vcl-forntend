@@ -239,7 +239,7 @@ const MENU_BY_ROLE = {
           key: "sale-history-consignment",
           label: "Ký gửi",
           icon: <InboxOutlined />,
-          path: "/sale/history/consignments",
+          path: "/sale/history/order",
           end: true,
         },
       ],
@@ -444,7 +444,7 @@ export default function Sidebar() {
       : "admin";
 
   const menus =
-    MENU_BY_ROLE[currentRole] || [];
+    MENU_BY_ROLE[currentRole] || MENU_BY_ROLE.admin;
 
   const roleInfo =
     ROLE_INFO[currentRole] ||
