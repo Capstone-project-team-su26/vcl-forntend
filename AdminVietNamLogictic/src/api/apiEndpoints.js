@@ -11,7 +11,7 @@ export const API_ENDPOINTS = Object.freeze({
       `/api/customers/${encodeId(customerId)}`,
   }),
   consignments: Object.freeze({
-    list: "/api/orders/consignments",
+    list: "/api/staff/consignments",
     routes: "/api/orders/consignments/routes",
     shippingOptions: "/api/orders/consignments/shipping-options",
     validateItems: "/api/orders/consignments/validate-items",
