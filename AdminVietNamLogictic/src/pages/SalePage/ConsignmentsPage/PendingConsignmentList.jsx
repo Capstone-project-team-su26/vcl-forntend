@@ -530,6 +530,26 @@ export default function PendingConsignmentList() {
     useState("");
 
   const copyResetTimerRef = useRef(null);
+  const dataPanelRef = useRef(null);
+
+  useEffect(() => {
+    const layoutContent =
+      document.querySelector(
+        ".app-layout__content"
+      );
+
+    layoutContent?.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: "auto",
+    });
+
+    dataPanelRef.current?.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: "auto",
+    });
+  }, []);
 
   /* =========================================================
      LOAD DATA
@@ -838,22 +858,18 @@ export default function PendingConsignmentList() {
   const handlePageChange = (_, nextPageNumber) => {
     setPageNumber(nextPageNumber);
 
-    const scrollTarget =
-      document.querySelector(".main-layout__content") ||
-      document.querySelector(".page-sub-content") ||
-      window;
+    window.requestAnimationFrame(() => {
+      const cardList =
+        dataPanelRef.current?.querySelector(
+          ".card-list"
+        );
 
-    if (scrollTarget === window) {
-      window.scrollTo({
+      cardList?.scrollTo({
         top: 0,
+        left: 0,
         behavior: "smooth",
       });
-    } else {
-      scrollTarget.scrollTo({
-        top: 0,
-        behavior: "smooth",
-      });
-    }
+    });
   };
 
   const handleViewDetail = (item) => {
@@ -886,7 +902,7 @@ export default function PendingConsignmentList() {
   ========================================================= */
 
   return (
-    <div className="vcl-container">
+    <div className="vcl-container pending-consignment-page">
       <div className="vcl-fixed-panel">
         <div className="page-header">
         <div>
@@ -961,7 +977,10 @@ export default function PendingConsignmentList() {
       </div>
       </div>
 
-      <div className="vcl-data-panel">
+      <div
+        className="vcl-data-panel"
+        ref={dataPanelRef}
+      >
       {loading ? (
         <div className="vcl-loading-box">
           <CircularProgress size={38} />

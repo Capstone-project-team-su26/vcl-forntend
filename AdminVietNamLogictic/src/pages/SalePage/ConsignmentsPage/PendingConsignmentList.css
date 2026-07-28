@@ -2027,16 +2027,17 @@
    FIXED TOP PANEL - ONLY LOWER DATA AREA SCROLLS
 ========================================================= */
 
-.vcl-container {
+.vcl-container.pending-consignment-page {
   height: 100%;
   max-height: 100%;
   min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  padding-block: clamp(14px, 2.2vh, 24px);
 }
 
-.vcl-fixed-panel {
+.pending-consignment-page .vcl-fixed-panel {
   flex: 0 0 auto;
   position: relative;
   z-index: 20;
@@ -2044,101 +2045,217 @@
   background: #f6f8fc;
 }
 
-.vcl-fixed-panel .page-header {
-  margin-bottom: 24px;
+.pending-consignment-page .vcl-fixed-panel .page-header {
+  margin-bottom: clamp(12px, 1.8vh, 20px);
 }
 
-.vcl-fixed-panel .filter-section {
-  margin-bottom: 16px;
+.pending-consignment-page .vcl-fixed-panel .filter-section {
+  margin-bottom: clamp(10px, 1.5vh, 14px);
 }
 
-.vcl-data-panel {
+.pending-consignment-page .vcl-data-panel {
   flex: 1 1 auto;
   min-height: 0;
   width: 100%;
-  overflow-x: hidden;
-  overflow-y: auto;
-  padding-right: 6px;
-  padding-bottom: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: hidden;
   overscroll-behavior: contain;
-  scrollbar-gutter: stable;
-  -webkit-overflow-scrolling: touch;
 }
 
-.vcl-data-panel::-webkit-scrollbar {
+.pending-consignment-page .vcl-data-panel .card-list::-webkit-scrollbar {
   width: 7px;
   height: 7px;
 }
 
-.vcl-data-panel::-webkit-scrollbar-track {
+.pending-consignment-page .vcl-data-panel .card-list::-webkit-scrollbar-track {
   border-radius: 999px;
   background: #eaf0f7;
 }
 
-.vcl-data-panel::-webkit-scrollbar-thumb {
+.pending-consignment-page .vcl-data-panel .card-list::-webkit-scrollbar-thumb {
   border: 2px solid #eaf0f7;
   border-radius: 999px;
   background: #94a3b8;
 }
 
-.vcl-data-panel::-webkit-scrollbar-thumb:hover {
+.pending-consignment-page .vcl-data-panel .card-list::-webkit-scrollbar-thumb:hover {
   background: #64748b;
 }
 
-.vcl-data-panel .card-list {
+.pending-consignment-page .vcl-data-panel .card-list {
+  flex: 1 1 0;
+  align-self: stretch;
   width: 100%;
-  min-height: auto;
-  overflow: visible !important;
-  margin: 0 auto 24px;
-  padding-right: 0;
+  height: 0;
+  min-height: 0;
+  overflow-x: hidden !important;
+  overflow-y: scroll !important;
+  margin: 0 auto;
+  padding-right: 6px;
+  padding-bottom: 2px;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
 }
 
-.vcl-data-panel .vcl-loading-box {
+.pending-consignment-page .vcl-data-panel .consignment-card,
+.pending-consignment-page .vcl-data-panel .empty-container {
+  flex: 0 0 auto;
+}
+
+.pending-consignment-page .vcl-data-panel .vcl-loading-box {
+  flex: 1 1 0;
+  align-self: stretch;
   width: 100%;
-  min-height: 320px;
+  height: 0;
+  min-height: 0;
   margin-bottom: 0;
 }
 
-.vcl-data-panel .pagination-section {
+.pending-consignment-page .vcl-data-panel .pagination-section {
+  flex: 0 0 auto;
   width: 100%;
+  min-height: 52px;
   margin-bottom: 0;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  overflow: visible;
+  border-color: #dbe4f0;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
 }
 
-.vcl-fixed-panel .filter-search-input,
-.vcl-fixed-panel .filter-date-picker,
-.vcl-fixed-panel .filter-status-select {
+.pending-consignment-page .vcl-data-panel .pagination-summary {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pending-consignment-page .vcl-data-panel .MuiPagination-root {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  overflow: visible;
+}
+
+.pending-consignment-page .vcl-data-panel .MuiPagination-ul {
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.pending-consignment-page .vcl-data-panel .MuiPaginationItem-root {
+  min-width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.pending-consignment-page .vcl-fixed-panel .filter-search-input,
+.pending-consignment-page .vcl-fixed-panel .filter-date-picker,
+.pending-consignment-page .vcl-fixed-panel .filter-status-select {
   min-height: 44px;
 }
 
-.vcl-fixed-panel .filter-status-select {
+.pending-consignment-page .vcl-fixed-panel .filter-status-select {
   height: 44px;
 }
 
-.vcl-fixed-panel .filter-status-select .ant-select-selector {
+.pending-consignment-page .vcl-fixed-panel .filter-status-select .ant-select-selector {
   min-height: 44px !important;
   height: 44px !important;
   display: flex !important;
   align-items: center !important;
 }
 
-.vcl-fixed-panel .filter-status-select .ant-select-selection-wrap,
-.vcl-fixed-panel .filter-status-select .ant-select-selection-search-input {
+.pending-consignment-page .vcl-fixed-panel .filter-status-select .ant-select-selection-wrap,
+.pending-consignment-page .vcl-fixed-panel .filter-status-select .ant-select-selection-search-input {
   height: 42px !important;
 }
 
-.vcl-fixed-panel .filter-status-select .ant-select-selection-item,
-.vcl-fixed-panel .filter-status-select .ant-select-selection-placeholder {
+.pending-consignment-page .vcl-fixed-panel .filter-status-select .ant-select-selection-item,
+.pending-consignment-page .vcl-fixed-panel .filter-status-select .ant-select-selection-placeholder {
   line-height: 42px !important;
 }
 
 @media (max-width: 768px) {
-  .vcl-container {
+  .vcl-container.pending-consignment-page {
     height: 100%;
     max-height: 100%;
     overflow: hidden;
   }
 
-  .vcl-data-panel {
+  .pending-consignment-page .vcl-data-panel {
+    gap: 8px;
+  }
+
+  .pending-consignment-page .vcl-data-panel .card-list {
     padding-right: 2px;
+  }
+
+  .pending-consignment-page .vcl-data-panel .pagination-section {
+    min-height: 50px;
+    padding: 7px 8px;
+    flex-direction: row;
+    justify-content: center;
+  }
+
+  .pending-consignment-page .vcl-data-panel .pagination-summary {
+    display: none;
+  }
+
+  .pending-consignment-page .vcl-data-panel .MuiPagination-root {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+
+  .pending-consignment-page .vcl-data-panel .MuiPagination-root::-webkit-scrollbar {
+    display: none;
+  }
+
+  .pending-consignment-page .vcl-data-panel .MuiPagination-ul {
+    width: max-content;
+    min-width: 100%;
+    margin-inline: auto;
+    justify-content: center;
+  }
+
+  .pending-consignment-page .vcl-data-panel .MuiPaginationItem-root {
+    min-width: 31px;
+    height: 31px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .pending-consignment-page .vcl-data-panel .pagination-section {
+    min-height: 46px;
+    padding: 6px;
+  }
+
+  .pending-consignment-page .vcl-data-panel .MuiPagination-ul {
+    gap: 1px;
+  }
+
+  .pending-consignment-page .vcl-data-panel .MuiPaginationItem-root {
+    min-width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    font-size: 11px;
   }
 }
