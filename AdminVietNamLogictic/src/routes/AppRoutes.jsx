@@ -34,6 +34,8 @@ import ConsignmentBuyOrder
   from "../pages/SalePage/CreateRequestPage/CreateRequestBuyCuspage/ConsignmentBuyOrder";
 import ConsignmentOrder
   from "../pages/SalePage/CreateRequestPage/CreateRequestOrderCusPage/ConsignmentOrder";
+import CustomerServiceChat
+  from "../pages/SalePage/Chat/CustomerServiceChat";
 /* ================= ROLE CONFIG ================= */
 
 const ROLE_HOME = {
@@ -290,6 +292,11 @@ export default function AppRoutes() {
   element={
     <PurchaseRequestDetail />
   }
+/>
+
+<Route
+  path="customer-service"
+  element={<CustomerServiceChat />}
 />
       </Route>
 
