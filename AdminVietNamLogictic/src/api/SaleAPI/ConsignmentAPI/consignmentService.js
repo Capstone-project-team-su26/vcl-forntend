@@ -352,7 +352,30 @@ export const normalizeQuotationPayload = (
       ? payload.quotation
       : {};
 
+  const submittedAtUtc =
+    normalizeText(
+      payload?.submittedAtUtc
+    );
+
+  const clientSubmittedAtUtc =
+    normalizeText(
+      payload?.clientSubmittedAtUtc
+    ) || submittedAtUtc;
+
   return {
+    submittedAtUtc,
+    clientSubmittedAtUtc,
+    clientTimeZone: normalizeText(
+      payload?.clientTimeZone
+    ),
+    clientUtcOffset: normalizeText(
+      payload?.clientUtcOffset
+    ),
+    clientUtcOffsetMinutes:
+      normalizeNumber(
+        payload?.clientUtcOffsetMinutes,
+        0
+      ),
     warehouseId: normalizeText(
       payload?.warehouseId
     ),

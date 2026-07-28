@@ -59,6 +59,10 @@ import {
 } from "../../../../api/SaleAPI/ConsignmentAPI/packageConfigurationService";
 
 import AuthNotify from "../../../../utils/Common/AuthNotify";
+import {
+  getBrowserTimeInfo,
+  getSyncedNowUtcIso,
+} from "../../../../utils/timeUtc";
 import ConfirmConsignmentQuotation from "./ConfirmCrearConssigemtQuotaion/ConfirmConsignmentQuotation";
 import "./CreateConsignmentQuotation.css";
 
@@ -159,6 +163,25 @@ const roundMoney = (value) =>
   Math.round(
     normalizePositiveNumber(value)
   );
+
+const getClientUtcPayload = () => {
+  const browserTime =
+    getBrowserTimeInfo();
+  const submittedAtUtc =
+    getSyncedNowUtcIso();
+
+  return {
+    submittedAtUtc,
+    clientSubmittedAtUtc:
+      submittedAtUtc,
+    clientTimeZone:
+      browserTime.timeZone,
+    clientUtcOffset:
+      browserTime.utcOffsetText,
+    clientUtcOffsetMinutes:
+      browserTime.utcOffsetMinutes,
+  };
+};
 
 const formatCurrency = (value) => {
   return new Intl.NumberFormat("vi-VN", {
@@ -883,9 +906,16 @@ export default function CreateConsignmentQuotation() {
     quotationSubmitLockRef.current =
       false;
 
-    setQuotationSubmitted(false);
+    const resetTimer = window.setTimeout(
+      () => {
+        setQuotationSubmitted(false);
+        loadPageData();
+      },
+      0
+    );
 
-    loadPageData();
+    return () =>
+      window.clearTimeout(resetTimer);
   }, [loadPageData, orderId]);
 
   const items = useMemo(() => {
@@ -894,7 +924,7 @@ export default function CreateConsignmentQuotation() {
     )
       ? detail.items
       : [];
-  }, [detail?.items]);
+  }, [detail]);
 
   const orderStatus =
     useMemo(
@@ -984,51 +1014,63 @@ export default function CreateConsignmentQuotation() {
     }, [matchedWarehouses]);
 
   useEffect(() => {
-    if (matchedWarehouses.length === 0) {
-      setSelectedWarehouseId("");
-      return;
-    }
-
-    const quotationWarehouseId =
-      normalizeText(
-        detail?.quotation?.warehouseId
-      );
-
-    setSelectedWarehouseId(
-      (currentWarehouseId) => {
-        const currentStillValid =
-          matchedWarehouses.some(
-            (warehouse) =>
-              normalizeText(
-                warehouse?.id
-              ) ===
-              normalizeText(
-                currentWarehouseId
-              )
-          );
-
-        if (currentStillValid) {
-          return currentWarehouseId;
+    const warehouseTimer =
+      window.setTimeout(() => {
+        if (
+          matchedWarehouses.length === 0
+        ) {
+          setSelectedWarehouseId("");
+          return;
         }
 
-        const quotationWarehouseExists =
-          matchedWarehouses.some(
-            (warehouse) =>
-              normalizeText(
-                warehouse?.id
-              ) ===
-              quotationWarehouseId
+        const quotationWarehouseId =
+          normalizeText(
+            detail?.quotation?.warehouseId
           );
 
-        if (quotationWarehouseExists) {
-          return quotationWarehouseId;
-        }
+        setSelectedWarehouseId(
+          (currentWarehouseId) => {
+            const currentStillValid =
+              matchedWarehouses.some(
+                (warehouse) =>
+                  normalizeText(
+                    warehouse?.id
+                  ) ===
+                  normalizeText(
+                    currentWarehouseId
+                  )
+              );
 
-        return normalizeText(
-          matchedWarehouses[0]?.id
+            if (currentStillValid) {
+              return currentWarehouseId;
+            }
+
+            const quotationWarehouseExists =
+              matchedWarehouses.some(
+                (warehouse) =>
+                  normalizeText(
+                    warehouse?.id
+                  ) ===
+                  quotationWarehouseId
+              );
+
+            if (
+              quotationWarehouseExists
+            ) {
+              return quotationWarehouseId;
+            }
+
+            return normalizeText(
+              matchedWarehouses[0]?.id
+            );
+          }
         );
-      }
-    );
+      }, 0);
+
+    return () =>
+      window.clearTimeout(
+        warehouseTimer
+      );
   }, [
     detail?.quotation?.warehouseId,
     matchedWarehouses,
@@ -1791,7 +1833,17 @@ export default function CreateConsignmentQuotation() {
           }
         );
 
+      /*
+       * Chụp thời gian đúng lúc người dùng mở bước xác nhận.
+       * Payload này được giữ nguyên cho đến khi gửi thành công,
+       * tránh tạo nhiều mốc thời gian khác nhau khi nhấn xác nhận.
+       */
+      const clientUtcPayload =
+        getClientUtcPayload();
+
       return {
+        ...clientUtcPayload,
+
         warehouseId:
           selectedWarehouse.id,
 
