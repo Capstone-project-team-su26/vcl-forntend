@@ -876,7 +876,8 @@ export default function PendingConsignmentList() {
 
   return (
     <div className="vcl-container">
-      <div className="page-header">
+      <div className="vcl-fixed-panel">
+        <div className="page-header">
         <div>
           <h1 className="page-title">
             DANH SÁCH YÊU CẦU KÝ GỬI
@@ -947,7 +948,9 @@ export default function PendingConsignmentList() {
           </Button>
         </div>
       </div>
+      </div>
 
+      <div className="vcl-data-panel">
       {loading ? (
         <div className="vcl-loading-box">
           <CircularProgress size={38} />
@@ -1258,6 +1261,7 @@ export default function PendingConsignmentList() {
           )}
         </>
       )}
+      </div>
     </div>
   );
 }

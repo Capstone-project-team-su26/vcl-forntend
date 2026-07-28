@@ -52,7 +52,7 @@
       #f6f8fc;
   }
   
-  /* Äá»“ng bá»™ font cho toĂ n bá»™ thĂ nh pháº§n bĂªn trong */
+  /* Ă„ÂĂ¡Â»â€œng bĂ¡Â»â„¢ font cho toÄ‚ n bĂ¡Â»â„¢ thÄ‚ nh phĂ¡ÂºÂ§n bÄ‚Âªn trong */
   
   .vcl-container *,
   .vcl-container *::before,
@@ -1146,8 +1146,8 @@
     }
   
     /*
-     * DÄ‚Â¹ng 16px trÄ‚Âªn Ă„â€˜iĂ¡Â»â€¡n thoĂ¡ÂºÂ¡i Ă„â€˜Ă¡Â»Æ’ trÄ‚Â¬nh duyĂ¡Â»â€¡t iOS
-     * khÄ‚Â´ng tĂ¡Â»Â± phÄ‚Â³ng to khi ngĂ†Â°Ă¡Â»Âi dÄ‚Â¹ng nhĂ¡ÂºÂ­p liĂ¡Â»â€¡u.
+     * DĂ„â€Ă‚Â¹ng 16px trĂ„â€Ă‚Âªn Ä‚â€Ă¢â‚¬ËœiÄ‚Â¡Ă‚Â»Ă¢â‚¬Â¡n thoÄ‚Â¡Ă‚ÂºĂ‚Â¡i Ä‚â€Ă¢â‚¬ËœÄ‚Â¡Ă‚Â»Ă†â€™ trĂ„â€Ă‚Â¬nh duyÄ‚Â¡Ă‚Â»Ă¢â‚¬Â¡t iOS
+     * khĂ„â€Ă‚Â´ng tÄ‚Â¡Ă‚Â»Ă‚Â± phĂ„â€Ă‚Â³ng to khi ngÄ‚â€ Ă‚Â°Ä‚Â¡Ă‚Â»Ă‚Âi dĂ„â€Ă‚Â¹ng nhÄ‚Â¡Ă‚ÂºĂ‚Â­p liÄ‚Â¡Ă‚Â»Ă¢â‚¬Â¡u.
      */
   
     .filter-search-input .ant-input,
@@ -1335,7 +1335,7 @@
   }
 
 /* =========================================================
-   CONSIGNMENT CARD Ă¢â‚¬â€ STABLE HEADER, COPY CODE, PRODUCT INFO
+   CONSIGNMENT CARD Ä‚Â¢Ă¢â€Â¬Ă¢â‚¬Â STABLE HEADER, COPY CODE, PRODUCT INFO
    ========================================================= */
 
 .vcl-container .consignment-card {
@@ -1668,7 +1668,7 @@
   }
 }
 /* =========================================================
-   PRODUCT NAME LIST Ă¢â‚¬â€ TÄ‚ÂCH NHIĂ¡Â»â‚¬U SĂ¡ÂºÂ¢N PHĂ¡ÂºÂ¨M THÄ‚â‚¬NH TĂ¡Â»ÂªNG DÄ‚â€™NG
+   PRODUCT NAME LIST Ä‚Â¢Ă¢â€Â¬Ă¢â‚¬Â TĂ„â€Ă‚ÂCH NHIÄ‚Â¡Ă‚Â»Ă¢â€Â¬U SÄ‚Â¡Ă‚ÂºĂ‚Â¢N PHÄ‚Â¡Ă‚ÂºĂ‚Â¨M THĂ„â€Ă¢â€Â¬NH TÄ‚Â¡Ă‚Â»Ă‚ÂªNG DĂ„â€Ă¢â‚¬â„¢NG
    ========================================================= */
 
 .vcl-container .product-name-group {
@@ -2020,5 +2020,125 @@
   .filter-status-select {
     width: 100%;
     min-width: 0;
+  }
+}
+
+/* =========================================================
+   FIXED TOP PANEL - ONLY LOWER DATA AREA SCROLLS
+========================================================= */
+
+.vcl-container {
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.vcl-fixed-panel {
+  flex: 0 0 auto;
+  position: relative;
+  z-index: 20;
+  width: 100%;
+  background: #f6f8fc;
+}
+
+.vcl-fixed-panel .page-header {
+  margin-bottom: 24px;
+}
+
+.vcl-fixed-panel .filter-section {
+  margin-bottom: 16px;
+}
+
+.vcl-data-panel {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-right: 6px;
+  padding-bottom: 4px;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
+}
+
+.vcl-data-panel::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+.vcl-data-panel::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: #eaf0f7;
+}
+
+.vcl-data-panel::-webkit-scrollbar-thumb {
+  border: 2px solid #eaf0f7;
+  border-radius: 999px;
+  background: #94a3b8;
+}
+
+.vcl-data-panel::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+.vcl-data-panel .card-list {
+  width: 100%;
+  min-height: auto;
+  overflow: visible !important;
+  margin: 0 auto 24px;
+  padding-right: 0;
+}
+
+.vcl-data-panel .vcl-loading-box {
+  width: 100%;
+  min-height: 320px;
+  margin-bottom: 0;
+}
+
+.vcl-data-panel .pagination-section {
+  width: 100%;
+  margin-bottom: 0;
+}
+
+.vcl-fixed-panel .filter-search-input,
+.vcl-fixed-panel .filter-date-picker,
+.vcl-fixed-panel .filter-status-select {
+  min-height: 44px;
+}
+
+.vcl-fixed-panel .filter-status-select {
+  height: 44px;
+}
+
+.vcl-fixed-panel .filter-status-select .ant-select-selector {
+  min-height: 44px !important;
+  height: 44px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.vcl-fixed-panel .filter-status-select .ant-select-selection-wrap,
+.vcl-fixed-panel .filter-status-select .ant-select-selection-search-input {
+  height: 42px !important;
+}
+
+.vcl-fixed-panel .filter-status-select .ant-select-selection-item,
+.vcl-fixed-panel .filter-status-select .ant-select-selection-placeholder {
+  line-height: 42px !important;
+}
+
+@media (max-width: 768px) {
+  .vcl-container {
+    height: 100%;
+    max-height: 100%;
+    overflow: hidden;
+  }
+
+  .vcl-data-panel {
+    padding-right: 2px;
   }
 }
