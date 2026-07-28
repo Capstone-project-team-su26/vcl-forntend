@@ -836,3 +836,178 @@
     padding-right: 2px;
   }
 }
+
+/* =====================================================
+   FIXED HEADER + 5 ITEMS PAGINATION
+===================================================== */
+
+/*
+ * Chá»‰ khung báº£ng cuá»™n.
+ * Bá»™ lá»c, sá»‘ lÆ°á»£ng káº¿t quáº£ vĂ  phĂ¢n trang Ä‘á»©ng yĂªn.
+ */
+.restricted-items-data-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-right: 0;
+}
+
+.restricted-items-table-wrapper {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  isolation: isolate;
+  -webkit-overflow-scrolling: touch;
+}
+
+.restricted-items-table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+/*
+ * HĂ ng tiĂªu Ä‘á» cá»‘ Ä‘á»‹nh:
+ * STT, TĂªn máº·t hĂ ng, Quá»‘c gia,
+ * Má»©c Ä‘á»™ háº¡n cháº¿, Ghi chĂº, Tráº¡ng thĂ¡i, Thao tĂ¡c.
+ */
+.restricted-items-table thead {
+  position: relative;
+  z-index: 20;
+}
+
+.restricted-items-table thead th {
+  position: sticky !important;
+  top: 0;
+  z-index: 21;
+  background: #f8fafc !important;
+  background-clip: padding-box;
+  box-shadow:
+    inset 0 -1px 0 #dfe6ef,
+    0 2px 5px rgba(15, 23, 42, 0.06);
+}
+
+.restricted-items-table thead th::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 1px;
+  background: #dfe6ef;
+  pointer-events: none;
+}
+
+.restricted-items-table tbody {
+  position: relative;
+  z-index: 1;
+}
+
+/* Thanh cuá»™n náº±m trong báº£ng. */
+.restricted-items-table-wrapper::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+.restricted-items-table-wrapper::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: #eef2f7;
+}
+
+.restricted-items-table-wrapper::-webkit-scrollbar-thumb {
+  border: 2px solid #eef2f7;
+  border-radius: 999px;
+  background: #94a3b8;
+}
+
+.restricted-items-table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* PhĂ¢n trang Ä‘á»©ng yĂªn bĂªn dÆ°á»›i dá»¯ liá»‡u. */
+.restricted-items-pagination {
+  flex: 0 0 auto;
+  min-height: 52px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 2px 0;
+  border-top: 1px solid #edf0f5;
+  background: #fff;
+}
+
+.restricted-items-pagination
+  .ant-pagination {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+}
+
+.restricted-items-pagination
+  .ant-pagination-total-text {
+  margin-right: auto;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.restricted-items-pagination
+  .ant-pagination-item,
+.restricted-items-pagination
+  .ant-pagination-prev,
+.restricted-items-pagination
+  .ant-pagination-next {
+  min-width: 34px;
+  height: 34px;
+  line-height: 32px;
+  border-radius: 9px;
+}
+
+.restricted-items-pagination
+  .ant-pagination-item-active {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.restricted-items-pagination
+  .ant-pagination-item-active
+  a {
+  color: #1d4ed8;
+  font-weight: 700;
+}
+
+.restricted-items-empty,
+.restricted-items-error {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+@media (max-width: 760px) {
+  .restricted-items-pagination {
+    align-items: center;
+    padding-top: 12px;
+  }
+
+  .restricted-items-pagination
+    .ant-pagination {
+    justify-content: center;
+  }
+
+  .restricted-items-pagination
+    .ant-pagination-total-text {
+    width: 100%;
+    margin-right: 0;
+    text-align: center;
+  }
+}

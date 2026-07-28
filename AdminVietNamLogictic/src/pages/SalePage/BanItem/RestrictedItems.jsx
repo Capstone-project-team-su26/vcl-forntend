@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import {
@@ -10,6 +11,7 @@ import {
   Empty,
   Input,
   Modal,
+  Pagination,
   Select,
   Skeleton,
   Tag,
@@ -151,6 +153,8 @@ const TYPE_OPTIONS = [
   },
 ];
 
+const RESTRICTED_ITEMS_PAGE_SIZE = 5;
+
 const normalizeText = (value) =>
   String(value ?? "").trim();
 
@@ -210,6 +214,11 @@ export default function RestrictedItems() {
     useState(false);
   const [selectedItem, setSelectedItem] =
     useState(null);
+
+  const [currentPage, setCurrentPage] =
+    useState(1);
+
+  const tableScrollRef = useRef(null);
 
   const loadItems = useCallback(async () => {
     try {
@@ -298,6 +307,71 @@ export default function RestrictedItems() {
     restrictionType,
     activeOnly,
   ]);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(
+      filteredItems.length /
+        RESTRICTED_ITEMS_PAGE_SIZE
+    )
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [
+    keyword,
+    country,
+    restrictionType,
+    activeOnly,
+  ]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [
+    currentPage,
+    totalPages,
+  ]);
+
+  const paginatedItems = useMemo(() => {
+    const startIndex =
+      (currentPage - 1) *
+      RESTRICTED_ITEMS_PAGE_SIZE;
+
+    return filteredItems.slice(
+      startIndex,
+      startIndex +
+        RESTRICTED_ITEMS_PAGE_SIZE
+    );
+  }, [
+    filteredItems,
+    currentPage,
+  ]);
+
+  const visibleStart =
+    filteredItems.length === 0
+      ? 0
+      : (currentPage - 1) *
+          RESTRICTED_ITEMS_PAGE_SIZE +
+        1;
+
+  const visibleEnd = Math.min(
+    currentPage *
+      RESTRICTED_ITEMS_PAGE_SIZE,
+    filteredItems.length
+  );
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+
+    window.requestAnimationFrame(() => {
+      tableScrollRef.current?.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
+    });
+  };
 
   const statistics = useMemo(() => {
     return items.reduce(
@@ -392,6 +466,7 @@ export default function RestrictedItems() {
     setCountry("ALL");
     setRestrictionType("ALL");
     setActiveOnly(false);
+    setCurrentPage(1);
   };
 
   if (loading) {
@@ -544,6 +619,10 @@ export default function RestrictedItems() {
           <span>
             Hiển thị{" "}
             <strong>
+              {visibleStart}–{visibleEnd}
+            </strong>{" "}
+            trong{" "}
+            <strong>
               {filteredItems.length}
             </strong>{" "}
             mặt hàng
@@ -572,7 +651,10 @@ export default function RestrictedItems() {
             />
           </div>
         ) : (
-          <div className="restricted-items-table-wrapper">
+          <div
+            ref={tableScrollRef}
+            className="restricted-items-table-wrapper"
+          >
             <table className="restricted-items-table">
               <thead>
                 <tr>
@@ -587,7 +669,7 @@ export default function RestrictedItems() {
               </thead>
 
               <tbody>
-                {filteredItems.map(
+                {paginatedItems.map(
                   (item, index) => {
                     const typeConfig =
                       getTypeConfig(
@@ -598,7 +680,10 @@ export default function RestrictedItems() {
                       <tr key={item.id}>
                         <td>
                           <span className="restricted-items-index">
-                            {index + 1}
+                            {(currentPage - 1) *
+                              RESTRICTED_ITEMS_PAGE_SIZE +
+                              index +
+                              1}
                           </span>
                         </td>
 
@@ -686,6 +771,23 @@ export default function RestrictedItems() {
             </table>
           </div>
         )}
+        </div>
+
+        <div className="restricted-items-pagination">
+          <Pagination
+            current={currentPage}
+            pageSize={
+              RESTRICTED_ITEMS_PAGE_SIZE
+            }
+            total={filteredItems.length}
+            showSizeChanger={false}
+            showLessItems
+            responsive
+            onChange={handlePageChange}
+            showTotal={(total, range) =>
+              `${range[0]}–${range[1]} trong ${total} mặt hàng`
+            }
+          />
         </div>
       </section>
 
