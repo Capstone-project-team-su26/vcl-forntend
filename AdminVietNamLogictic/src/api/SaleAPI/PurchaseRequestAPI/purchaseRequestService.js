@@ -105,6 +105,32 @@ const normalizeUpperText = (
     .toUpperCase();
 };
 
+const normalizeNonNegativeNumber = (
+  value,
+  fieldLabel,
+  fallback = 0
+) => {
+  const normalizedValue =
+    value === undefined ||
+    value === null ||
+    value === ""
+      ? fallback
+      : Number(value);
+
+  if (
+    !Number.isFinite(
+      normalizedValue
+    ) ||
+    normalizedValue < 0
+  ) {
+    throw new Error(
+      `${fieldLabel} phải là số lớn hơn hoặc bằng 0.`
+    );
+  }
+
+  return normalizedValue;
+};
+
 /* =========================================================
    ERROR HELPER
 ========================================================= */
@@ -377,6 +403,143 @@ const normalizePurchaseRequestDetail =
   };
 
 /* =========================================================
+   NORMALIZE CREATE QUOTATION PAYLOAD
+========================================================= */
+
+const normalizeQuotationItem = (
+  item = {},
+  index = 0
+) => {
+  const purchaseRequestItemId =
+    normalizeText(
+      item?.purchaseRequestItemId ??
+        item?.itemId
+    );
+
+  if (!purchaseRequestItemId) {
+    throw new Error(
+      `Sản phẩm thứ ${index + 1} chưa có purchaseRequestItemId.`
+    );
+  }
+
+  return {
+    purchaseRequestItemId,
+
+    unitPrice:
+      normalizeNonNegativeNumber(
+        item?.unitPrice,
+        `Đơn giá sản phẩm thứ ${index + 1}`
+      ),
+  };
+};
+
+const normalizeQuotationAdditionalFee =
+  (
+    fee = {},
+    index = 0
+  ) => {
+    const pricingRuleId =
+      normalizeText(
+        fee?.pricingRuleId ??
+          fee?.id
+      );
+
+    if (!pricingRuleId) {
+      throw new Error(
+        `Phụ phí thứ ${index + 1} chưa có pricingRuleId.`
+      );
+    }
+
+    return {
+      pricingRuleId,
+
+      feeName:
+        normalizeText(
+          fee?.feeName ??
+            fee?.ruleName
+        ),
+
+      feeType:
+        normalizeText(
+          fee?.feeType ??
+            fee?.ruleType
+        ),
+
+      calculationType:
+        normalizeUpperText(
+          fee?.calculationType
+        ),
+
+      value:
+        normalizeNonNegativeNumber(
+          fee?.value,
+          `Giá trị cấu hình phụ phí thứ ${index + 1}`
+        ),
+
+      amount:
+        normalizeNonNegativeNumber(
+          fee?.amount,
+          `Số tiền phụ phí thứ ${index + 1}`
+        ),
+
+      note:
+        normalizeText(
+          fee?.note
+        ),
+    };
+  };
+
+const normalizeCreateQuotationPayload =
+  (payload = {}) => {
+    const items =
+      Array.isArray(payload?.items)
+        ? payload.items
+        : [];
+
+    if (items.length === 0) {
+      throw new Error(
+        "Báo giá phải có ít nhất một sản phẩm."
+      );
+    }
+
+    const additionalFees =
+      Array.isArray(
+        payload?.additionalFees
+      )
+        ? payload.additionalFees
+        : [];
+
+    return {
+      purchaseFee:
+        normalizeNonNegativeNumber(
+          payload?.purchaseFee,
+          "Phí mua hộ"
+        ),
+
+      shippingFee:
+        normalizeNonNegativeNumber(
+          payload?.shippingFee,
+          "Phí vận chuyển"
+        ),
+
+      note:
+        normalizeText(
+          payload?.note
+        ),
+
+      items:
+        items.map(
+          normalizeQuotationItem
+        ),
+
+      additionalFees:
+        additionalFees.map(
+          normalizeQuotationAdditionalFee
+        ),
+    };
+};
+
+/* =========================================================
    VALIDATE ID
 ========================================================= */
 
@@ -546,12 +709,77 @@ export const getPurchaseRequestDetailApi =
   };
 
 /* =========================================================
+   CREATE PURCHASE REQUEST QUOTATION
+   POST /api/purchase-requests/{purchaseRequestId}/quotation
+========================================================= */
+
+/**
+ * Tạo báo giá cho yêu cầu mua hộ.
+ *
+ * @param {string} purchaseRequestId
+ * @param {Object} payload
+ * @param {number} payload.purchaseFee
+ * @param {number} payload.shippingFee
+ * @param {string} payload.note
+ * @param {Array} payload.items
+ * @param {Array} payload.additionalFees
+ */
+export const createPurchaseRequestQuotationApi =
+  async (
+    purchaseRequestId,
+    payload = {}
+  ) => {
+    const normalizedId =
+      validatePurchaseRequestId(
+        purchaseRequestId
+      );
+
+    const requestBody =
+      normalizeCreateQuotationPayload(
+        payload
+      );
+
+    try {
+      const response =
+        await axiosInstance.post(
+          `/api/purchase-requests/${normalizedId}/quotation`,
+          requestBody,
+          {
+            headers: {
+              ...getAuthHeaders(),
+
+              "Content-Type":
+                "application/json",
+            },
+          }
+        );
+
+      return getResponseData(
+        response
+      );
+    } catch (error) {
+      console.error(
+        "CREATE PURCHASE REQUEST QUOTATION ERROR:",
+        error
+      );
+
+      throw new Error(
+        getApiErrorMessage(
+          error,
+          "Không thể tạo báo giá yêu cầu mua hộ."
+        )
+      );
+    }
+  };
+
+/* =========================================================
    DEFAULT EXPORT
 ========================================================= */
 
 const purchaseRequestService = {
   getPurchaseRequestsApi,
   getPurchaseRequestDetailApi,
+  createPurchaseRequestQuotationApi,
 };
 
 export default purchaseRequestService;

@@ -49,6 +49,8 @@ import {
 } from "../../../../api/SaleAPI/ConsignmentAPI/pricingRuleService";
 import AuthNotify from "../../../../utils/Common/AuthNotify";
 
+import CreatePurchaseRequestQuotationModal from "./CreatePurchaseRequestQuotationModal";
+
 import {
   apiToUtcIso,
   formatUtcDateTime,
@@ -78,6 +80,11 @@ const STATUS_CONFIG = {
     label: "Đã gửi báo giá",
     className: "is-info",
   },
+
+  QUOTED: {
+    label: "Đã báo giá",
+    className: "is-success",
+  },
   WAITING_DEPOSIT: {
     label: "Chờ đặt cọc",
     className: "is-warning",
@@ -105,6 +112,13 @@ const STATUS_CONFIG = {
  * không phải dịch vụ khách hàng lựa chọn.
  * Không hiển thị trong khu vực dịch vụ.
  */
+const CREATE_QUOTATION_STATUSES =
+  new Set([
+    "PENDING_REVIEW",
+    "IN_REVIEW",
+    "APPROVED",
+  ]);
+
 const HIDDEN_SERVICE_RULE_CODES =
   new Set([
     PRICING_RULE_CODE
@@ -114,11 +128,180 @@ const HIDDEN_SERVICE_RULE_CODES =
       .DOMESTIC_FEE,
   ]);
 
+const QUOTATION_STATUS_CONFIG = {
+  PENDING_CUSTOMER_CONFIRMATION: {
+    label:
+      "Chờ khách xác nhận",
+    className:
+      "is-warning",
+  },
+
+  ACCEPTED: {
+    label:
+      "Đã chấp nhận",
+    className:
+      "is-success",
+  },
+
+  CUSTOMER_CONFIRMED: {
+    label:
+      "Khách đã xác nhận",
+    className:
+      "is-success",
+  },
+
+  CONFIRMED: {
+    label:
+      "Đã xác nhận",
+    className:
+      "is-success",
+  },
+
+  REJECTED: {
+    label:
+      "Đã từ chối",
+    className:
+      "is-danger",
+  },
+
+  EXPIRED: {
+    label:
+      "Đã hết hạn",
+    className:
+      "is-default",
+  },
+};
+
+const FEE_TYPE_LABELS = {
+  SERVICE_FEE:
+    "Phí dịch vụ",
+
+  TAX:
+    "Thuế",
+
+  WOOD_BOX:
+    "Đóng thùng gỗ",
+
+  MAIN_SERVICE:
+    "Phí vận chuyển",
+
+  INSPECTION:
+    "Kiểm hàng",
+
+  INSURANCE:
+    "Bảo hiểm",
+};
+
 const normalizeText = (value) =>
   String(value ?? "").trim();
 
 const normalizeUpperText = (value) =>
   normalizeText(value).toUpperCase();
+
+const getQuotationStatusInfo = (
+  value
+) => {
+  const code =
+    normalizeUpperText(value);
+
+  return (
+    QUOTATION_STATUS_CONFIG[
+      code
+    ] || {
+      label:
+        code
+          .replace(/_/g, " ")
+          .toLocaleLowerCase(
+            "vi-VN"
+          )
+          .replace(
+            /(^|\s)\S/g,
+            (character) =>
+              character
+                .toLocaleUpperCase(
+                  "vi-VN"
+                )
+          ) ||
+        "Chưa xác định",
+
+      className:
+        "is-default",
+    }
+  );
+};
+
+const getFeeTypeLabel = (
+  value
+) => {
+  const code =
+    normalizeUpperText(value);
+
+  return (
+    FEE_TYPE_LABELS[code] ||
+    code
+      .replace(/_/g, " ")
+      .toLocaleLowerCase(
+        "vi-VN"
+      )
+      .replace(
+        /(^|\s)\S/g,
+        (character) =>
+          character
+            .toLocaleUpperCase(
+              "vi-VN"
+            )
+      ) ||
+    "Phụ phí"
+  );
+};
+
+const getFeeToneClass = (
+  value
+) => {
+  const code =
+    normalizeUpperText(value);
+
+  if (
+    code === "TAX"
+  ) {
+    return "is-tax";
+  }
+
+  if (
+    code === "INSURANCE"
+  ) {
+    return "is-insurance";
+  }
+
+  if (
+    code === "WOOD_BOX" ||
+    code === "INSPECTION"
+  ) {
+    return "is-service";
+  }
+
+  return "is-default";
+};
+
+const formatFeeCalculation = (
+  fee
+) => {
+  const calculationType =
+    normalizeUpperText(
+      fee?.calculationType
+    );
+
+  if (
+    calculationType ===
+    "PERCENTAGE"
+  ) {
+    return `${formatNumber(
+      fee?.value
+    )}%`;
+  }
+
+  return "Cố định";
+};
 
 const getStatusInfo = (value) => {
   const code =
@@ -728,7 +911,8 @@ function QuotationView({
       <div className="purchase-quotation-empty">
         <Empty
           image={
-            Empty.PRESENTED_IMAGE_SIMPLE
+            Empty
+              .PRESENTED_IMAGE_SIMPLE
           }
           description="Yêu cầu chưa có báo giá"
         />
@@ -736,75 +920,584 @@ function QuotationView({
     );
   }
 
-  const entries =
-    Object.entries(quotation);
+  const quotationStatus =
+    getQuotationStatusInfo(
+      quotation?.status
+    );
+
+  const quotationItems =
+    Array.isArray(
+      quotation?.items
+    )
+      ? quotation.items
+      : [];
+
+  const additionalFees =
+    Array.isArray(
+      quotation
+        ?.additionalFees
+    )
+      ? quotation.additionalFees
+      : [];
+
+  const additionalFeeTotal =
+    additionalFees.reduce(
+      (total, fee) =>
+        total +
+        (Number(
+          fee?.amount
+        ) || 0),
+      0
+    );
+
+  const calculatedTotal =
+    (Number(
+      quotation
+        ?.productsSubtotal
+    ) || 0) +
+    additionalFeeTotal;
+
+  const totalDifference =
+    Math.abs(
+      calculatedTotal -
+      (Number(
+        quotation
+          ?.totalAmount
+      ) || 0)
+    );
 
   return (
-    <div className="purchase-quotation-grid">
-      {entries.map(
-        ([key, value]) => (
-          <div key={key}>
+    <div className="purchase-quote-view">
+      <section className="purchase-quote-overview">
+        <div className="purchase-quote-overview__top">
+          <div>
+            <span className="purchase-quote-eyebrow">
+              BÁO GIÁ MUA HỘ
+            </span>
+
+            <h3>
+              {quotation
+                ?.purchaseCode ||
+                "Báo giá mua hộ"}
+            </h3>
+
+            <p>
+              Chi tiết giá sản phẩm,
+              dịch vụ, thuế và tổng
+              số tiền khách hàng cần
+              xác nhận.
+            </p>
+          </div>
+
+          <Tag
+            className={`purchase-quote-status ${quotationStatus.className}`}
+          >
+            {
+              quotationStatus.label
+            }
+          </Tag>
+        </div>
+
+        <div className="purchase-quote-identifiers">
+          <div>
             <span>
-              {key
-                .replace(
-                  /([a-z])([A-Z])/g,
-                  "$1 $2"
+              Mã báo giá
+            </span>
+
+            <CopyValue
+              value={
+                quotation
+                  ?.quotationId
+              }
+              label="mã báo giá"
+            />
+          </div>
+
+          <div>
+            <span>
+              Mã yêu cầu mua hộ
+            </span>
+
+            <CopyValue
+              value={
+                quotation
+                  ?.purchaseRequestId
+              }
+              label="mã yêu cầu mua hộ"
+            />
+          </div>
+
+          <div>
+            <span>
+              Thời gian tạo
+            </span>
+
+            <div
+              className="purchase-quote-date"
+              title={
+                formatDateUtcTitle(
+                  quotation
+                    ?.createdAt
                 )
-                .replace(/_/g, " ")
-                .toLocaleUpperCase(
-                  "vi-VN"
+              }
+            >
+              <strong>
+                {formatDateTime(
+                  quotation
+                    ?.createdAt
                 )}
+              </strong>
+
+              <small>
+                UTC+7
+              </small>
+            </div>
+          </div>
+        </div>
+
+        <div className="purchase-quote-summary-grid">
+          <article>
+            <span>
+              Tiền sản phẩm
             </span>
 
             <strong>
-              {typeof value ===
-              "number"
-                ? key
-                    .toLocaleLowerCase(
-                      "vi-VN"
-                    )
-                    .includes(
-                      "amount"
-                    ) ||
-                  key
-                    .toLocaleLowerCase(
-                      "vi-VN"
-                    )
-                    .includes(
-                      "cost"
-                    ) ||
-                  key
-                    .toLocaleLowerCase(
-                      "vi-VN"
-                    )
-                    .includes(
-                      "fee"
-                    ) ||
-                  key
-                    .toLocaleLowerCase(
-                      "vi-VN"
-                    )
-                    .includes(
-                      "total"
-                    )
-                  ? formatCurrency(
-                      value
-                    )
-                  : formatNumber(
-                      value
-                    )
-                : typeof value ===
-                  "object"
-                ? JSON.stringify(
-                    value
-                  )
-                : normalizeText(
-                    value
-                  ) || "—"}
+              {formatCurrency(
+                quotation
+                  ?.productsSubtotal
+              )}
+            </strong>
+          </article>
+
+          <article>
+            <span>
+              Phí mua hộ
+            </span>
+
+            <strong>
+              {formatCurrency(
+                quotation
+                  ?.purchaseFee
+              )}
+            </strong>
+          </article>
+
+          <article>
+            <span>
+              Phí vận chuyển
+            </span>
+
+            <strong>
+              {formatCurrency(
+                quotation
+                  ?.shippingFee
+              )}
+            </strong>
+          </article>
+
+          <article>
+            <span>
+              Thuế VAT
+            </span>
+
+            <strong>
+              {formatCurrency(
+                quotation?.vat
+              )}
+            </strong>
+          </article>
+
+          <article>
+            <span>
+              Thuế nhập khẩu
+            </span>
+
+            <strong>
+              {formatCurrency(
+                quotation
+                  ?.importTax
+              )}
+            </strong>
+          </article>
+
+          <article className="is-total">
+            <span>
+              Tổng thanh toán
+            </span>
+
+            <strong>
+              {formatCurrency(
+                quotation
+                  ?.totalAmount
+              )}
+            </strong>
+          </article>
+        </div>
+
+        <div className="purchase-quote-reconciliation">
+          <div>
+            <span>
+              Tổng phụ phí
+            </span>
+
+            <strong>
+              {formatCurrency(
+                additionalFeeTotal
+              )}
             </strong>
           </div>
-        )
-      )}
+
+          <div>
+            <span>
+              Đối soát
+            </span>
+
+            <strong>
+              {formatCurrency(
+                quotation
+                  ?.productsSubtotal
+              )}{" "}
+              +{" "}
+              {formatCurrency(
+                additionalFeeTotal
+              )}{" "}
+              ={" "}
+              {formatCurrency(
+                calculatedTotal
+              )}
+            </strong>
+          </div>
+        </div>
+
+        {totalDifference > 1 && (
+          <Alert
+            type="warning"
+            showIcon
+            message="Tổng báo giá chưa khớp"
+            description={`Chênh lệch ${formatCurrency(
+              totalDifference
+            )} giữa tổng các khoản và totalAmount từ API.`}
+            className="purchase-quote-warning"
+          />
+        )}
+      </section>
+
+      <section className="purchase-quote-panel">
+        <div className="purchase-quote-panel__heading">
+          <div>
+            <ShoppingOutlined />
+
+            <div>
+              <span>
+                SẢN PHẨM ĐƯỢC BÁO GIÁ
+              </span>
+
+              <h3>
+                {formatNumber(
+                  quotationItems.length
+                )} mặt hàng
+              </h3>
+            </div>
+          </div>
+
+          <Tag>
+            Thành tiền:{" "}
+            {formatCurrency(
+              quotation
+                ?.productsSubtotal
+            )}
+          </Tag>
+        </div>
+
+        {quotationItems.length ===
+        0 ? (
+          <Empty description="Báo giá chưa có sản phẩm" />
+        ) : (
+          <div className="purchase-quote-item-table">
+            <div className="purchase-quote-item-table__head">
+              <span>
+                Sản phẩm
+              </span>
+
+              <span>
+                Đơn giá
+              </span>
+
+              <span>
+                Số lượng
+              </span>
+
+              <span>
+                Thành tiền
+              </span>
+            </div>
+
+            <div className="purchase-quote-item-table__body">
+              {quotationItems.map(
+                (item, index) => (
+                  <article
+                    key={
+                      item
+                        ?.quotationItemId ||
+                      index
+                    }
+                    className="purchase-quote-item-row"
+                  >
+                    <div
+                      className="purchase-quote-item-row__product"
+                      data-label="Sản phẩm"
+                    >
+                      <span>
+                        {index + 1}
+                      </span>
+
+                      <div>
+                        <strong>
+                          {item
+                            ?.productName ||
+                            "Sản phẩm"}
+                        </strong>
+
+                        <small>
+                          Mã dòng báo giá:{" "}
+                          {item
+                            ?.quotationItemId ||
+                            "—"}
+                        </small>
+
+                        <small>
+                          Mã sản phẩm yêu cầu:{" "}
+                          {item
+                            ?.purchaseRequestItemId ||
+                            "—"}
+                        </small>
+                      </div>
+                    </div>
+
+                    <div
+                      data-label="Đơn giá"
+                    >
+                      <strong>
+                        {formatCurrency(
+                          item
+                            ?.unitPrice
+                        )}
+                      </strong>
+                    </div>
+
+                    <div
+                      data-label="Số lượng"
+                    >
+                      <strong>
+                        {formatNumber(
+                          item
+                            ?.quantity
+                        )}
+                      </strong>
+                    </div>
+
+                    <div
+                      className="purchase-quote-item-row__total"
+                      data-label="Thành tiền"
+                    >
+                      <strong>
+                        {formatCurrency(
+                          item
+                            ?.lineTotal
+                        )}
+                      </strong>
+                    </div>
+                  </article>
+                )
+              )}
+            </div>
+          </div>
+        )}
+      </section>
+
+      <section className="purchase-quote-panel">
+        <div className="purchase-quote-panel__heading">
+          <div>
+            <DollarOutlined />
+
+            <div>
+              <span>
+                CHI TIẾT PHỤ PHÍ
+              </span>
+
+              <h3>
+                {formatNumber(
+                  additionalFees.length
+                )} khoản phí và thuế
+              </h3>
+            </div>
+          </div>
+
+          <Tag className="is-fee-total">
+            Tổng:{" "}
+            {formatCurrency(
+              additionalFeeTotal
+            )}
+          </Tag>
+        </div>
+
+        {additionalFees.length ===
+        0 ? (
+          <Empty description="Không có phụ phí" />
+        ) : (
+          <div className="purchase-quote-fee-list">
+            {additionalFees.map(
+              (fee, index) => {
+                const feeTone =
+                  getFeeToneClass(
+                    fee?.feeType
+                  );
+
+                return (
+                  <article
+                    key={
+                      fee?.id ||
+                      index
+                    }
+                    className={`purchase-quote-fee-card ${feeTone}`}
+                  >
+                    <div className="purchase-quote-fee-card__number">
+                      {index + 1}
+                    </div>
+
+                    <div className="purchase-quote-fee-card__content">
+                      <div className="purchase-quote-fee-card__title">
+                        <div>
+                          <span>
+                            {getFeeTypeLabel(
+                              fee?.feeType
+                            )}
+                          </span>
+
+                          <h4>
+                            {fee
+                              ?.feeName ||
+                              "Phụ phí"}
+                          </h4>
+                        </div>
+
+                        <strong>
+                          {formatCurrency(
+                            fee?.amount
+                          )}
+                        </strong>
+                      </div>
+
+                      <div className="purchase-quote-fee-card__meta">
+                        <div>
+                          <span>
+                            Cách tính
+                          </span>
+
+                          <strong>
+                            {formatFeeCalculation(
+                              fee
+                            )}
+                          </strong>
+                        </div>
+
+                        <div>
+                          <span>
+                            Giá trị cấu hình
+                          </span>
+
+                          <strong>
+                            {normalizeUpperText(
+                              fee
+                                ?.calculationType
+                            ) ===
+                            "PERCENTAGE"
+                              ? `${formatNumber(
+                                  fee?.value
+                                )}%`
+                              : formatCurrency(
+                                  fee?.value
+                                )}
+                          </strong>
+                        </div>
+
+                        <div>
+                          <span>
+                            Mã quy tắc giá
+                          </span>
+
+                          <strong>
+                            {fee
+                              ?.pricingRuleId ||
+                              "Hệ thống tự động"}
+                          </strong>
+                        </div>
+
+                        <div>
+                          <span>
+                            Thời gian tạo
+                          </span>
+
+                          <div
+                            className="purchase-quote-fee-date"
+                            title={
+                              formatDateUtcTitle(
+                                fee
+                                  ?.createdAt
+                              )
+                            }
+                          >
+                            <strong>
+                              {formatDateTime(
+                                fee
+                                  ?.createdAt
+                              )}
+                            </strong>
+
+                            <small>
+                              UTC+7
+                            </small>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="purchase-quote-fee-card__note">
+                        <FileTextOutlined />
+
+                        <span>
+                          {fee?.note ||
+                            "Không có ghi chú"}
+                        </span>
+                      </div>
+
+                      <small className="purchase-quote-fee-card__id">
+                        Mã khoản phí:{" "}
+                        {fee?.id ||
+                          "—"}
+                      </small>
+                    </div>
+                  </article>
+                );
+              }
+            )}
+          </div>
+        )}
+      </section>
+
+      <section className="purchase-quote-note">
+        <FileTextOutlined />
+
+        <div>
+          <span>
+            GHI CHÚ BÁO GIÁ
+          </span>
+
+          <strong>
+            {quotation?.note ||
+              "Không có ghi chú"}
+          </strong>
+        </div>
+      </section>
     </div>
   );
 }
@@ -841,6 +1534,11 @@ export default function PurchaseRequestDetail() {
     pricingWarning,
     setPricingWarning,
   ] = useState("");
+
+  const [
+    quotationModalOpen,
+    setQuotationModalOpen,
+  ] = useState(false);
 
   const loadDetail =
     useCallback(async () => {
@@ -1209,6 +1907,35 @@ export default function PurchaseRequestDetail() {
   const appliedPricingRuleCount =
     pricingRuleRows.length;
 
+  const canCreateQuotation =
+    useMemo(() => {
+      const currentStatus =
+        normalizeUpperText(
+          detail?.status
+        );
+
+      return (
+        !detail?.quotation &&
+        items.length > 0 &&
+        CREATE_QUOTATION_STATUSES.has(
+          currentStatus
+        )
+      );
+    }, [
+      detail?.quotation,
+      detail?.status,
+      items.length,
+    ]);
+
+  const handleQuotationCreated =
+    useCallback(async () => {
+      setQuotationModalOpen(
+        false
+      );
+
+      await loadDetail();
+    }, [loadDetail]);
+
   if (loading) {
     return <DetailLoading />;
   }
@@ -1272,11 +1999,30 @@ export default function PurchaseRequestDetail() {
             Quay lại danh sách
           </Button>
 
-          <Tag
-            className={`purchase-detail-status ${status.className}`}
-          >
-            {status.label}
-          </Tag>
+          <div className="purchase-detail-topbar__actions">
+            {canCreateQuotation && (
+              <Button
+                type="primary"
+                icon={
+                  <DollarOutlined />
+                }
+                onClick={() =>
+                  setQuotationModalOpen(
+                    true
+                  )
+                }
+                className="purchase-create-quotation-button"
+              >
+                Tạo báo giá
+              </Button>
+            )}
+
+            <Tag
+              className={`purchase-detail-status ${status.className}`}
+            >
+              {status.label}
+            </Tag>
+          </div>
         </div>
 
         <section className="purchase-detail-hero">
@@ -2049,7 +2795,7 @@ export default function PurchaseRequestDetail() {
           )}
         </section>
 
-        <section className="purchase-detail-card">
+        <section className="purchase-detail-card purchase-detail-quotation-section">
           <div className="purchase-detail-section-heading">
             <TagsOutlined />
 
@@ -2070,6 +2816,25 @@ export default function PurchaseRequestDetail() {
           />
         </section>
       </div>
+      <CreatePurchaseRequestQuotationModal
+        open={
+          quotationModalOpen
+        }
+        onClose={() =>
+          setQuotationModalOpen(
+            false
+          )
+        }
+        onSuccess={
+          handleQuotationCreated
+        }
+        purchaseRequest={
+          detail
+        }
+        pricingRules={
+          pricingRuleRows
+        }
+      />
     </main>
   );
 }
