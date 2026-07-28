@@ -214,7 +214,7 @@ const MENU_BY_ROLE = {
       key: "sale-purchase-requests",
       label: "Quản lý mua hộ",
       icon: <ShoppingCartOutlined />,
-      path: "/sale/purchase-requests",
+      path: "purchase-requests",
     },
     // {
     //   key: "sale-quotations",

@@ -21,6 +21,11 @@ import RestrictedItems from "../pages/SalePage/BanItem/RestrictedItems";
 import ServicePricings from "../pages/SalePage/ServicePricingRule/ServicePricings";
 import PendingConsignmentListHistory from "../pages/SalePage/HistorySalePage/HistoryOrderPage/PendingConsignmentListHistory"
 import OrderPaymentHistory from "../pages/SalePage/HistorySalePage/HistoryOrderPage/OrderDetailhisstory/OrderPaymentHistory";
+import PurchaseRequestList
+  from "../pages/SalePage/PurchasePage/PurchaseRequestList";
+
+import PurchaseRequestDetail
+  from "../pages/SalePage/PurchasePage/PurchaseRequetDetail/PurchaseRequestDetail";
 /* ================= ROLE CONFIG ================= */
 
 const ROLE_HOME = {
@@ -261,6 +266,19 @@ export default function AppRoutes() {
   path="orders/:orderId/payments/history"
   element={
     <OrderPaymentHistory />
+  }
+/>
+<Route
+  path="purchase-requests"
+  element={
+    <PurchaseRequestList />
+  }
+/>
+
+<Route
+  path="purchase-requests/:purchaseRequestId"
+  element={
+    <PurchaseRequestDetail />
   }
 />
       </Route>
